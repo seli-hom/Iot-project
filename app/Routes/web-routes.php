@@ -7,6 +7,7 @@ declare(strict_types=1);
  */
 
 use App\Controllers\HomeController;
+use App\Controllers\RegistrationController;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -24,5 +25,11 @@ return static function (Slim\App $app): void {
     // A route to test runtime error handling and custom exceptions.
     $app->get('/error', function (Request $request, Response $response, $args) {
         throw new \Slim\Exception\HttpBadRequestException($request, "This is a runtime error. Something went wrong");
+    });
+
+    // Customer view routes
+    $app->group('/customer', function ($group) {
+        $group->get('/', [RegistrationController::class, 'index'])
+            ->setName('registration.index');
     });
 };
