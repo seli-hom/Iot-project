@@ -18,6 +18,6 @@ class RegistrationController extends BaseController
             'title' => "Customer Registration",
         ];
 
-        return $this->render($response, 'customer/customerRegistrationView.php', $data);
+        return $this->render($response, '/customer/customerRegistrationView.php', $data);
     }
 }

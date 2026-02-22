@@ -6,6 +6,10 @@ namespace App\Helpers;
 
 class ViewHelper
 {
+    public static function url(string $path): string
+    {
+        return '/' . APP_ROOT_DIR_NAME . '/' . ltrim($path, '/');
+    }
 
     /**
      * Load the common header for the page.

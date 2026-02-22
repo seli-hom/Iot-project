@@ -2,12 +2,12 @@
 
 use App\Helpers\ViewHelper;
 //TODO: set the page title dynamically based on the view being rendered in the controller.
-$page_title = 'Customer Registration';
+$page_title = $data['title'];
 ViewHelper::loadHeader($page_title);
 ?>
 
 <div class="page-content">
-    <h2>Customer Registration</h2>
+    <h2><?= $page_title ?></h2>
     <br>
     <div id="form-container">
         <form class="row g-3">

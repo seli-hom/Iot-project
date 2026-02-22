@@ -29,7 +29,7 @@ return static function (Slim\App $app): void {
 
     // Customer view routes
     $app->group('/customer', function ($group) {
-        $group->get('/', [RegistrationController::class, 'index'])
+        $group->get('/registration', [RegistrationController::class, 'index'])
             ->setName('registration.index');
     });
 };
