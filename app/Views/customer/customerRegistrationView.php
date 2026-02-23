@@ -10,26 +10,26 @@ ViewHelper::loadHeader($page_title);
     <h2><?= $page_title ?></h2>
     <br>
     <div id="form-container">
-        <form class="row g-3">
+        <form class="row g-3" action="/Iot-project/customer/registration/create" method="POST">
             <div class="col-md-6">
                 <label for="fname" class="form-label">First Name</label>
-                <input type="text" class="form-control" id="fname">
+                <input type="text" class="form-control" id="fname" name="fname">
             </div>
             <div class="col-md-6">
                 <label for="lname" class="form-label">Last Name</label>
-                <input type="text" class="form-control" id="lname">
+                <input type="text" class="form-control" id="lname" name="lname">
             </div>
             <div class="col-12">
-                <label for="inputAddress" class="form-label">Address</label>
-                <input type="text" class="form-control" id="inputAddress">
+                <label for="address" class="form-label">Address</label>
+                <input type="text" class="form-control" id="address" name="address">
             </div>
             <div class="col-12">
-                <label for="inputEmail" class="form-label">Email</label>
-                <input type="email" class="form-control" id="inputEmail">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" name="email">
             </div>
             <div class="col-12">
-                <label for="inputPhone" class="form-label">Phone Number</label>
-                <input type="email" class="form-control" id="inputPhone">
+                <label for="phone" class="form-label">Phone Number</label>
+                <input type="phone" class="form-control" id="phone" name="phone">
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">Sign in</button>

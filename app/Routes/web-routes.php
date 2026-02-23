@@ -31,5 +31,7 @@ return static function (Slim\App $app): void {
     $app->group('/customer', function ($group) {
         $group->get('/registration', [RegistrationController::class, 'index'])
             ->setName('registration.index');
+        $group->post('/registration/create', [RegistrationController::class, 'create'])
+            ->setName('registration.create');
     });
 };
