@@ -19,7 +19,14 @@ class HomeController extends BaseController
 
     public function index(Request $request, Response $response, array $args): Response
     {
-        //$data['flash'] = $this->flash->getFlashMessage();
+
+            return $this->render($response, 'common/layout.php', [
+            'page_title'  => 'Home',
+            'contentView' => APP_VIEWS_PATH . '/HomeView.php',
+            'data'        => [
+                'title' => "Home"
+            ]
+        ]);
         //echo $data['message'] ;exit;
 
         $data['data'] = [

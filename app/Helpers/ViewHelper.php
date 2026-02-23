@@ -94,4 +94,42 @@ class ViewHelper
 
         return $options;
     }
+
+        public static function loadNavBar(): void
+    {
+       
+        require_once APP_VIEWS_PATH . '/common/navbar.php';
+    }
+
+    /**
+     * Set a flash message (stored in session).
+     *
+     * @param string $key 'success', 'error', or any custom key
+     * @param string $message The message text
+     * @return void
+     */
+    public static function setFlash(string $key, string $message): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $_SESSION['flash'][$key] = $message;
+    }
+
+    /**
+     * Get flash messages and clear them from session.
+     *
+     * @return array<string,string> Associative array of flash messages
+     */
+    public static function getFlash(): array
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        $flash = $_SESSION['flash'] ?? [];
+        unset($_SESSION['flash']); // Clear after reading
+        return $flash;
+    }
 }
