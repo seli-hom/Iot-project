@@ -7,41 +7,33 @@ export default function LoginPage() {
   const [flash, setFlash] = useState(null);
   const navigate = useNavigate();
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+ async function handleSubmit(e) {
+  e.preventDefault();
+  setFlash(null);
 
-    try {
-      const response = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+  try {
+    const response = await fetch("http://localhost:5000/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
+    const data = await response.json();
 
-      if (response.ok) {
-        localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/", {
-          state: { flash: { type: "success", message: "Login successful!" } },
-        });
-      } else if (data?.error) {
-        setFlash({ type: "error", message: data.error });
-      } else {
-        setFlash({ type: "error", message: "Login failed. Please try again." });
-      }
-    } catch (err) {
-      setFlash({ type: "error", message: "Network error. Please check your connection." });
+    if (response.ok) {
+      setFlash({ type: "success", message: data.message || "Registration successful!" });
+      setTimeout(() => navigate("/login"), 2000);
+    } else {
+      setFlash({ type: "error", message: data.error || "Registration failed!" });
     }
+  } catch (err) {
+    setFlash({ type: "error", message: "Network error. Please try again." });
   }
+}
 
   return (
     <div className="container py-5 d-flex justify-content-center">
-      <div style={{ maxWidth: "400px", width: "100%" }}>
+      <div>
         <h2 className="text-primary fw-bold mb-3 text-center">Login</h2>
 
         {flash && (

@@ -9,9 +9,9 @@ export default function RegisterPage() {
   function handleChange(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
-
   async function handleSubmit(e) {
     e.preventDefault();
+    setFlash(null);
 
     try {
       const response = await fetch("http://localhost:5000/api/register", {
@@ -20,24 +20,16 @@ export default function RegisterPage() {
         body: JSON.stringify(form),
       });
 
-      let data;
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
+      const data = await response.json();
 
       if (response.ok) {
-        setFlash({ type: "success", message: "Registration successful! Redirecting to login..." });
-
+        setFlash({ type: "success", message: data.message || "Registration successful!" });
         setTimeout(() => navigate("/login"), 2000);
-      } else if (data?.error) {
-        setFlash({ type: "error", message: data.error });
       } else {
-        setFlash({ type: "error", message: "Registration failed. Please try again." });
+        setFlash({ type: "error", message: data.error || "Registration failed!" });
       }
     } catch (err) {
-      setFlash({ type: "error", message: "Network error. Please check your connection." });
+      setFlash({ type: "error", message: "Network error. Please try again." });
     }
   }
 
