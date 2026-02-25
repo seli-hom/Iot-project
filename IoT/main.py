@@ -3,7 +3,7 @@ import time
 
 #can import scripts from the same folder in order to use their methods (like flutter/php slim)
 import rpi_led_buzzer as rpi
-import database as db
+import datatbase as db
 
 
 db.create_database() #database created
@@ -25,14 +25,22 @@ def main_menu():
     while True:
         print("Hwllo, Please choose one of the options!")
         print("1. Add new customer")
-        print("2. Finish and leave")
+        print("2. View all customers")
+        print("3. Finish and leave")
         
         choice = input("Selection: ")
         
         if choice == '1':
             add_customer()
         elif choice == '2':
+            rpi.new_customer_fail()
+            # customers = db.select_customersss()
+            # for customer in customers:
+                # print(customer)
+        elif choice == '3':
             print("Bye bye!")
             break
         else:
             print("Invalid, option not supported. Please try again.")
+
+main_menu()

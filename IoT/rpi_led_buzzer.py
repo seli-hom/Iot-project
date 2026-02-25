@@ -3,7 +3,7 @@ import time
 
 LED_BLUE = 24
 LED_RED = 23
-BUZZER = 18
+BUZZER = 20
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(LED_BLUE, GPIO.OUT)
@@ -14,7 +14,7 @@ GPIO.setup(BUZZER, GPIO.OUT)
 def new_customer_success():
     GPIO.output(LED_BLUE, GPIO.HIGH)
     
-    time.sleep(1.5)
+    time.sleep(4)
     GPIO.output(LED_BLUE, GPIO.LOW)
 
 #Database error happens and customer cannot add to db

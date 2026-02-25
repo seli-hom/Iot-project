@@ -1,3 +1,6 @@
+import RPi.GPIO as GPIO
+import time 
+
 import sqlite3
 import rpi_led_buzzer as rpi
 
@@ -32,10 +35,10 @@ def add_customer(first_name, last_name, email, phone, address):
                           (first_name, last_name, email, phone, address))
         conn.commit()
         conn.close()
-        print("Customer added to database successfully.")
-        rpi.new_customer_success()
+        print ("Customer added successfully")
+        rpi.new_customer_success
         return True
     except sqlite3.IntegrityError as e:
-        rpi.new_customer_fail()
+        rpi.new_customer_fail
         print(f"Database error: {e}")
         return False
