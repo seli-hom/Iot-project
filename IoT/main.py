@@ -17,10 +17,22 @@ def add_customer():
     email = input("Please enter your email: ")
     phone = input("Please enter your phone number: ")
     address = input("Please enter your address: ")
-    try:
-        if db.add_customer(fname, lname, email, phone, address):
-            rpi.new_customer_success()
-            print("Customer added successfully!")
+    
+    db.add_customer(fname, lname, email, phone, address)
+      
+      
+def main_menu():
+    while True:
+        print("Hwllo, Please choose one of the options!")
+        print("1. Add new customer")
+        print("2. Finish and leave")
+        
+        choice = input("Selection: ")
+        
+        if choice == '1':
+            add_customer()
+        elif choice == '2':
+            print("Bye bye!")
+            break
         else:
-            rpi.new_customer_fail()
-            print("Failed to add customer. Please check the database for errors.")
+            print("Invalid, option not supported. Please try again.")
