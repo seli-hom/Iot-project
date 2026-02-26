@@ -57,4 +57,11 @@ class RegistrationController extends BaseController
             }
         }
     }
+
+    public function turnLedOn(){
+        echo "turnng led on";
+
+        exec("python" . PYTHON_SCRIPTS_PATH . "redLed.py");
+        
+    }
 }

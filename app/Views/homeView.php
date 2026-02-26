@@ -12,6 +12,7 @@ ViewHelper::loadHeader($page_title);
     <h2><?= $page_title ?></h2>
     <br>
     <a href="<?= ViewHelper::url('customer/registration') ?>">Go To Customer Registration Page</a>
+    <a href="<?= VewHelper::url('customer/turnon') ?>"> Turn red light on </a>
 </div>
 
 

@@ -22,7 +22,7 @@
     //-------- Appearance settings --------
     "editor.guides.bracketPairs": true,
     "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
-    "workbench.iconTheme": "material-icon-theme",
+    "workbench.iconTheme": "vs-seti",
     "editor.cursorBlinking": "smooth",
     // Add golden guides to the file explorer view.
     "workbench.colorCustomizations": {
