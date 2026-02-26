@@ -9,6 +9,7 @@ use Slim\Routing\RouteContext;
 
 use App\Domain\Models\UserModel;
 use App\Helpers\UserContext;
+use App\Helpers\ViewHelper;
 
 class AuthController extends BaseController
 {
@@ -42,6 +43,26 @@ class AuthController extends BaseController
             ]
         ]);
     }
+
+    public function processNavbarLogin($request, $response, $args)
+{
+    $data = $request->getParsedBody();
+    $email = $data['email'] ?? '';
+    $password = $data['password'] ?? '';
+    $remember = isset($data['remember']);
+
+    $user = $this->userModel->verifyCredentials($email, $password);
+
+    if ($user) {
+        $_SESSION['user'] = $user;
+        ViewHelper::setFlash('success', 'Welcome back!');
+    } else {
+        ViewHelper::setFlash('error', 'Invalid email or password.');
+    }
+
+    $referer = $_SERVER['HTTP_REFERER'] ?? base_url('/');
+    return $response->withHeader('Location', $referer)->withStatus(302);
+}
 
     public function processRegistrationForm(Request $request, Response $response): Response
     {

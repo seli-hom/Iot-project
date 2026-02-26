@@ -13,11 +13,7 @@ class UserModel extends BaseModel {
         parent::__construct($pdo);
     }
 
-    /**
-     * Create a new user record in the database.
-     */
     public function createUser(array $data): int {
-
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
 
         $sql = "
@@ -41,49 +37,42 @@ class UserModel extends BaseModel {
         return (int)$this->pdo->lastInsertId();
     }
 
-    /**
-     * Find a user by email.
-     */
     public function findByEmail(string $email): ?array {
-
-        $sql = "
-            SELECT * 
-            FROM users 
-            WHERE email = :email
-            LIMIT 1
-        ";
-
-        $result = $this->selectOne($sql, [
-            ':email' => $email
-        ]);
-
+        $sql = "SELECT * FROM users WHERE email = :email LIMIT 1";
+        $result = $this->selectOne($sql, [':email' => $email]);
         return $result ?: null;
     }
 
-    /**
-     * Find a user by phone.
-     */
     public function findByPhone(string $phone): ?array {
-
-        $sql = "
-            SELECT * 
-            FROM users 
-            WHERE phone = :phone
-            LIMIT 1
-        ";
-
-        $result = $this->selectOne($sql, [
-            ':phone' => $phone
-        ]);
-
+        $sql = "SELECT * FROM users WHERE phone = :phone LIMIT 1";
+        $result = $this->selectOne($sql, [':phone' => $phone]);
         return $result ?: null;
     }
 
-    /**
-     * Fetch all users.
-     */
     public function getUsers(): array {
         $sql = "SELECT * FROM users";
         return $this->selectAll($sql);
+    }
+
+    /**
+     * Verify credentials for login
+     *
+     * @param string $email
+     * @param string $password
+     * @return array|null Returns user array if valid, null if invalid
+     */
+    public function verifyCredentials(string $email, string $password): ?array
+    {
+        $user = $this->findByEmail($email);
+        if (!$user) {
+            return null;
+        }
+
+        if (password_verify($password, $user['password'])) {
+            unset($user['password']);
+            return $user;
+        }
+
+        return null;
     }
 }

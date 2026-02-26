@@ -27,20 +27,54 @@ return static function (Slim\App $app): void {
 
     // User Authentication routes
     $app->group('/auth', function ($auth) {
-        // Register a new user:
+        // Register a new user
         $auth->get('/registration', [AuthController::class, 'viewRegistrationForm'])
             ->setName('auth.registration.form'); 
         $auth->post('/registration/submit', [AuthController::class, 'processRegistrationForm'])
             ->setName('auth.registration.submit'); 
 
-        // Login an existing user
+        // Login page (optional dedicated page)
         $auth->get('/login', [AuthController::class, 'viewLoginForm'])
             ->setName('auth.login.form'); 
+
+        // Login submission from the login page
         $auth->post('/login/submit', [AuthController::class, 'processLoginForm'])
             ->setName('auth.login.submit'); 
 
-        // Sign out of the active user's account
+        // Login submission from the navbar (works from any page)
+        $auth->post('/navbar-login', [AuthController::class, 'processNavbarLogin'])
+            ->setName('auth.navbar.login'); 
+
+        // Logout
         $auth->get('/logout', [AuthController::class, 'logout'])
             ->setName('auth.logout'); 
     });
+
+    // Customer view routes
+    $app->group('/customer', function ($group) {
+        $group->get('/registration', [RegistrationController::class, 'index'])
+            ->setName('registration.index');
+        $group->post('/registration/create', [RegistrationController::class, 'create'])
+            ->setName('registration.create');
+    });
+
+    //    // Employee checkout routes
+    // $app->group('/employee', function ($group) {
+    //     // Employee dashboard / register customer
+    //     $group->get('/dashboard', [EmployeeController::class, 'dashboard'])
+    //         ->setName('employee.dashboard');
+
+    //     // Employee checkout actions
+    //     $group->post('/checkout', [EmployeeController::class, 'processCheckout'])
+    //         ->setName('employee.checkout.submit');
+    // });
+
+    // // Self-checkout routes (for logged-in customers)
+    // $app->group('/checkout', function ($group) {
+    //     $group->get('/self', [CheckoutController::class, 'viewCart'])
+    //         ->setName('checkout.self.view');
+
+    //     $group->post('/self/submit', [CheckoutController::class, 'processCart'])
+    //         ->setName('checkout.self.submit');
+    // });
 };

@@ -16,7 +16,7 @@ export default function NavBar() {
               Welcome back, <strong>{user.first_name}</strong>
             </span>
           ) : (
-            <span>Welcome, Anonymous</span>
+            <span>Welcome Anonymous, please login</span>
           )}
         </div>
 

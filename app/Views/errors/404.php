@@ -4,6 +4,7 @@ use App\Helpers\ViewHelper;
 
 $page_title = '404 - Page Not Found';
 ViewHelper::loadHeader($page_title);
+ViewHelper::loadNavbar();
 ?>
 
 <div style="text-align: center; padding: 50px 20px;">
