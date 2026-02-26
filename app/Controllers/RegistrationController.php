@@ -46,8 +46,11 @@ class RegistrationController extends BaseController
 
         if (!empty($first_name) && !empty($last_name) && !empty($address) && !empty($email) && !empty($phone)) {
             try {
-                $this->registration_model->insertCustomer($data);
+                $customer_registered = $this->registration_model->insertCustomer($data);
 
+                if ($customer_registered) {
+                    exec(PYTHON_SCRIPTS_PATH . 'helo.py');
+                }
                 return $response->withHeader('Location', '/Iot-project/customer/registration')->withStatus(302);
             } catch (\Throwable $th) {
                 dd('Sorry, we could not process your request');
