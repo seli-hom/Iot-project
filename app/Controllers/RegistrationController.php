@@ -49,10 +49,11 @@ class RegistrationController extends BaseController
                 $customer_registered = $this->registration_model->insertCustomer($data);
 
                 if ($customer_registered) {
-                    exec(PYTHON_SCRIPTS_PATH . 'helo.py');
+                    exec(PYTHON_SCRIPTS_PATH . 'blueLed.py');
                 }
                 return $response->withHeader('Location', '/Iot-project/customer/registration')->withStatus(302);
             } catch (\Throwable $th) {
+                  exec(PYTHON_SCRIPTS_PATH . 'redLed_buzzer.py');
                 dd('Sorry, we could not process your request');
             }
         }
@@ -62,6 +63,6 @@ class RegistrationController extends BaseController
         echo "turnng led on";
 
         exec("python" . PYTHON_SCRIPTS_PATH . "redLed.py");
-        
+
     }
 }

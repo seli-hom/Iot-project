@@ -2,7 +2,7 @@ import RPi.GPIO as GPIO
 import time
 
 
-LED = 23
+LED = 24
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(LED, GPIO.OUT)
