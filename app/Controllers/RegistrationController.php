@@ -25,6 +25,10 @@ class RegistrationController extends BaseController
 
     public function create(Request $request, Response $response, array $args)
     {
+        // echo '<pre>';
+        // print_r($_POST);
+        // die('Form reached RegistrationController');
+
         $registration_form_data = $request->getParsedBody();
         $first_name = $registration_form_data['fname'];
         $last_name = $registration_form_data['lname'];
@@ -42,12 +46,23 @@ class RegistrationController extends BaseController
 
         if (!empty($first_name) && !empty($last_name) && !empty($address) && !empty($email) && !empty($phone)) {
             try {
-                $this->registration_model->insertCustomer($data);
+                $customer_registered = $this->registration_model->insertCustomer($data);
 
-                return $response->withHeader('Location', '/Iot-project/SLIM_MVC_TEMPLATE/customer/registration')->withStatus(302);
+                if ($customer_registered) {
+                    exec(PYTHON_SCRIPTS_PATH . 'blueLed.py');
+                }
+                return $response->withHeader('Location', '/Iot-project/customer/registration')->withStatus(302);
             } catch (\Throwable $th) {
+                  exec(PYTHON_SCRIPTS_PATH . 'redLed_buzzer.py');
                 dd('Sorry, we could not process your request');
             }
         }
+    }
+
+    public function turnLedOn(){
+        echo "turnng led on";
+
+        exec("python" . PYTHON_SCRIPTS_PATH . "redLed.py");
+
     }
 }

@@ -12,6 +12,7 @@ define('APP_ROOT_DIR_NAME', $_ENV['APP_ROOT_DIR'] ?? basename(dirname(__FILE__, 
 
 // Define the path of the application's views directory.
 const APP_VIEWS_PATH = APP_BASE_DIR_PATH . '/app/Views';
+const PYTHON_SCRIPTS_PATH  = APP_BASE_DIR_PATH."/public/assets/python/";
 
 
 

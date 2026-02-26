@@ -34,7 +34,11 @@ class HomeController extends BaseController
             'message' => 'Welcome to the home page',
         ];
 
-        //dd($data);
+        // dd("dad");
+        // dd(PYTHON_SCRIPTS_PATH . 'helo.py');
+        $res  = exec("python " . PYTHON_SCRIPTS_PATH . 'helo.py');
+
+        //dd($res);
         //var_dump($this->session); exit;
         return $this->render($response, 'homeView.php', $data);
     }
