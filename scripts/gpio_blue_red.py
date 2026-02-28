@@ -11,7 +11,7 @@ GPIO.setup(LED_RED, GPIO.OUT)
 GPIO.setup(BUZZER, GPIO.OUT)
 
 #No issues customer is able to register into the database successfulyy
-@app.route('customerRegistration/success')
+# @app.route('customerRegistration/success')
 def new_customer_success():
     GPIO.output(LED_BLUE, GPIO.HIGH)
     GPIO.output(LED_RED, GPIO.LOW)
@@ -21,7 +21,7 @@ def new_customer_success():
     return {status: 'success'}
 
 #DB error happens and customer is unable to register
-@app.route('customerRegistration/fail')
+# @app.route('customerRegistration/fail')
 def new_customer_fail():
     GPIO.output(LED_RED, GPIO.HIGH)
     GPIO.output(LED_BLUE, GPIO.LOW)
