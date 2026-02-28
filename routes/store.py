@@ -8,8 +8,8 @@ def storeIndex():
 
 @app.route('/customers')
 def customersList():
-    return render_template('customers/customersList.html')
+    return render_template('customersList.html')
 
 @app.route('/customers/registration')
 def customersRegistration():
-    return render_template('customers/customersRegistration.html')
+    return render_template('customersRegistration.html')
