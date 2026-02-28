@@ -1,3 +1,4 @@
+# import RPi.GPIO as GPIO
 import RPi.GPIO as GPIO
 import time
 
@@ -18,7 +19,7 @@ def new_customer_success():
     GPIO.output(BUZZER, GPIO.LOW)
     time.sleep(4)
     GPIO.output(LED_BLUE, GPIO.LOW)
-    return {status: 'success'}
+    return 
 
 #DB error happens and customer is unable to register
 # @app.route('customerRegistration/fail')
@@ -26,7 +27,7 @@ def new_customer_fail():
     GPIO.output(LED_RED, GPIO.HIGH)
     GPIO.output(LED_BLUE, GPIO.LOW)
     GPIO.output(BUZZER, GPIO.HIGH)
-    time.sleep(4)
+    time.sleep(2)
     GPIO.output(LED_RED, GPIO.LOW)
     GPIO.output(BUZZER, GPIO.LOW)
-    return {status: 'fail'}
+    return 

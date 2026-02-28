@@ -1,7 +1,9 @@
-from flask import render_template, request
+from flask import render_template, request, Blueprint
 from models import database as db
 from models import customers
-from app import app
+# from app import app
+
+app = Blueprint('store', __name__)
 
 @app.route('/')
 def storeIndex():
