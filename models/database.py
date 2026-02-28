@@ -5,7 +5,7 @@ def getDB():
     conn.row_factory = sqlite3.Row
     return conn
 
-def start_database():
+def init_db():
     storeDb = getDB()
     storeDb.execute('''CREATE TABLE IF NOT EXISTS customers (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,

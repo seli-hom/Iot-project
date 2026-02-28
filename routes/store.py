@@ -1,8 +1,7 @@
-from flask import Flask, render_template
-import database as db
-import customers
-
-app = Flask(__name__)
+from flask import render_template, request
+from models import database as db
+from models import customers
+from app import app
 
 @app.route('/')
 def storeIndex():
@@ -31,6 +30,3 @@ def customersRegistration():
             
         success = result
     return render_template('customersRegistration.html')
-
-if __name__ == '__app__':
-    app.run(debug=True, host= '10.0.0.186', port=5000)

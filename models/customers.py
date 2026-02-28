@@ -1,6 +1,6 @@
 import sqlite3
-import gpio_blue_red as gpr
-import database as db
+from scripts import gpio_blue_red as gpr
+from models import database as db
 
 def add_new_customer(first_name, last_name, email, phone, address):
     try:
