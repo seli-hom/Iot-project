@@ -1,3 +1,5 @@
+DEV_MODE = True
+
 from flask import Flask
 from models import database as db
 db.init_db()

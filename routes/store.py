@@ -31,4 +31,4 @@ def customersRegistration():
             message = "Error: Customer could not be added to the store db. Please try again."
             
         success = result
-    return render_template('customersRegistration.html')
+    return render_template('customersRegistration.html', message=message, success=success)
