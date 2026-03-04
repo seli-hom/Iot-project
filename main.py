@@ -1,9 +1,25 @@
+DEV_MODE = True
+
 from flask import Flask
+from flask_mail import Mail
 from models import database as db
-db.init_db()
-app = Flask(__name__)
 from routes.store import app as store
+
+db.init_db()
+
+app = Flask(__name__)
 app.register_blueprint(store)
+
+app.secret_key = "iotprojectsmartstore" # secret key for session cookies
+
+app.config['MAIL_USERNAME'] = 'project.smartstore@gmail.com'
+app.config['MAIL_PASSWORD'] = 'xxxx-xxxx-xxxx-xxxx'
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+
+mail = Mail(app)  # initializing the Flask-Mail extension
 
 if __name__ == '__main__':
     app.run(debug=True, host= '0.0.0.0', port=5000)

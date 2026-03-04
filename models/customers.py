@@ -1,25 +1,45 @@
 import sqlite3
-from scripts import gpio_blue_red as gpr
+import bcrypt  # for password hashing
+try:
+    from scripts import gpio_blue_red as gpr
+except ModuleNotFoundError:
+    gpr = None  # for development purposes only
+    print("[ERROR] DPIO module not found")
+
 from models import database as db
 
-def add_new_customer(first_name, last_name, email, phone, address):
+def add_new_customer(first_name, last_name, email, phone, address, password=None, role='customer'):
+    """
+    Adds a new customer to the database
+    Returns the new customer's ID if successful, False otherwise
+    """
+    store = db.getDB()
     try:
-        store = db.getDB()
-        store.execute('''INSERT INTO customers (first_name, last_name, email, phone, address) 
-                          VALUES (?, ?, ?, ?, ?)''', 
-                          (first_name, last_name, email, phone, address))
+        # hashing the password
+        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()) if password else None
+
+        cur = store.execute('''INSERT INTO customers 
+                               (first_name, last_name, email, phone, address, password, role, verified)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
+                            (first_name, last_name, email, phone, address, hashed_pw, role, 0 if password is None else 1))
         store.commit()
-        store.close()
+        new_id = cur.lastrowid
         print("Customer added to database successfully.")
-        gpr.new_customer_success()
-        return True
+        if gpr:
+            gpr.new_customer_success()
+        return new_id
     except sqlite3.IntegrityError as e:
-        gpr.new_customer_fail()
         print(f"Database error: {e}")
+        if gpr:
+            gpr.new_customer_fail()
         return False
-    
+    finally:
+        store.close() 
+
 def select_customers():
     storeDb = db.getDB()
-    customers = storeDb.execute('SELECT * FROM customers').fetchall()
-    storeDb.close()
-    return customers
+    try:
+        customers = storeDb.execute('SELECT * FROM customers').fetchall()
+        return customers
+    finally:
+        storeDb.close()
