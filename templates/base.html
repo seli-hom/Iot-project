@@ -4,93 +4,246 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/00-Global-Styles.css') }}">
     <title>IoT Store</title>
   </head>
   <body>
-    <!-- Navbar: -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
-      <div class="container">
-        <a class="navbar-brand" href="{{ url_for('store.storeIndex') }}">
-          <b>IoT Project - Smart Store</b>
-        </a>
+    <main>
+      <!-- Navbar: -->
+      <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+        <div class="container">
+          <a class="navbar-brand" href="{{ url_for('store.storeIndex') }}">
+            <b>IoT Project - Smart Store</b>
+          </a>
 
-        <div class="ms-auto text-white d-flex align-items-center">
-          {% if session.get('user_first_name') %}
-            <!-- logged-in view -->
-            <span class="me-2">Welcome {{ session['user_first_name'] }}</span>
-            <form method="GET" action="{{ url_for('store.logout') }}">
-              <button type="submit" class="btn btn-danger btn-sm">Logout</button>
-            </form>
-          {% else %}
-            <!-- logged-out view -->
-            <span class="me-2">Welcome Anon</span>
-            <div class="dropdown">
-              <button class="btn btn-primary dropdown-toggle"
-                      type="button"
-                      id="loginDropdown"
-                      data-bs-toggle="dropdown"
-                      data-bs-auto-close="outside"
-                      aria-expanded="false">
-                Please login
-              </button>
-              <div class="dropdown-menu dropdown-menu-end p-4 shadow"
-                  aria-labelledby="loginDropdown"
-                  style="min-width: 320px;">
-                <!-- login form -->
-                <form method="POST" action="{{ url_for('store.login') }}">
-                  <div class="mb-3">
-                    <label class="form-label">Email address</label>
-                    <input type="email"
-                          name="email"
-                          class="form-control"
-                          placeholder="email@example.com"
-                          required>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Password</label>
-                    <input type="password"
-                          name="password"
-                          class="form-control"
-                          placeholder="Password"
-                          required>
-                  </div>
-                  <div class="form-check mb-3">
-                    <input type="checkbox"
-                          name="remember"
-                          class="form-check-input"
-                          id="rememberCheck">
-                    <label class="form-check-label" for="rememberCheck">
-                      Remember me
-                    </label>
-                  </div>
-                  <button type="submit" class="btn btn-primary w-100">
-                    Sign in
-                  </button>
-                </form>
+          <div class="ms-auto text-white d-flex align-items-center">
+            {% if session.get('user_first_name') %}
+              <!-- logged-in view -->
+              <span class="me-2">Welcome {{ session['user_first_name'] }}</span>
+              <form method="GET" action="{{ url_for('store.logout') }}">
+                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+              </form>
+            {% else %}
+              <!-- logged-out view -->
+              <span class="me-2">Welcome Anon</span>
+              <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle"
+                        type="button"
+                        id="loginDropdown"
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside"
+                        aria-expanded="false">
+                  Please login
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-4 shadow"
+                    aria-labelledby="loginDropdown"
+                    style="min-width: 320px;">
+                  <!-- login form -->
+                  <form method="POST" action="{{ url_for('store.login') }}">
+                    <div class="mb-3">
+                      <label class="form-label">Email address</label>
+                      <input type="email"
+                            name="email"
+                            class="form-control"
+                            placeholder="email@example.com"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Password</label>
+                      <input type="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="Password"
+                            required>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input type="checkbox"
+                            name="remember"
+                            class="form-check-input"
+                            id="rememberCheck">
+                      <label class="form-check-label" for="rememberCheck">
+                        Remember me
+                      </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                      Sign in
+                    </button>
+                  </form>
+                </div>
               </div>
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </nav>
-
-    <!-- Main Content: -->
-    <div class="container mt-4">{% block content %}{% endblock %}</div>
-   
-    <!-- Footer: -->
-    <footer class="bg-primary text-white py-4 mt-auto">
-      <div class="container d-flex justify-content-between align-items-center">
-          <span>&copy; {{ current_year }} IoT Project</span>
-          <div>
-              <a href="{{ url_for('store.storeIndex') }}" class="text-white me-3 text-decoration-none">Home</a>
-              <a href="{{ url_for('store.customersRegistration') }}" class="text-white text-decoration-none">Register</a>
-              <a href="{{ url_for('store.storeInbox') }}" class="text-white text-decoration-none">Inbox</a>
+            {% endif %}
           </div>
-      </div>
-    </footer>
+        </div>
+      </nav>
 
+      <!-- Main Content: -->
+      <div class="container mt-4">{% block content %}{% endblock %}</div>
+    
+      <!-- Footer: -->
+      <footer class="bg-primary text-white py-4 mt-auto">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span>&copy; {{ current_year }} IoT Project</span>
+            <div>
+                <a href="{{ url_for('store.storeIndex') }}" class="text-white me-3 text-decoration-none">Home</a>
+                <a href="{{ url_for('store.customersRegistration') }}" class="text-white text-decoration-none">Register</a>
+                <a href="{{ url_for('store.storeInbox') }}" class="text-white text-decoration-none">Inbox</a>
+            </div>
+        </div>
+      </footer>
+    </main>
     <!-- Import Javascript scripts here: -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Project Scripts: -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-gauges/gauge.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+ <script>
+function drawOverlayGauge(canvasId, minGood, maxGood, maxValue) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    // Destroy existing chart if present
+    if (canvas.chart) {
+        canvas.chart.destroy();
+    }
+
+    const badBefore = minGood;
+    const good = maxGood - minGood;
+    const badAfter = maxValue - maxGood;
+
+    const chart = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [badBefore, good, badAfter],
+                backgroundColor: [
+                    '#ffe66d90',
+                    '#73a56b90',
+                    '#ff6b6b90'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            rotation: -90,
+            circumference: 180,
+            cutout: '83%',
+            plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        }
+    });
+
+    // store chart instance
+    canvas.chart = chart;
+}
+
+function createNeedleGauge(canvasId, value, min, max, units, ticks) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    new RadialGauge({
+        renderTo: canvasId,
+        width: 200,
+        height: 200,
+        minValue: min,
+        maxValue: max,
+        value: value,
+        units: units,
+        majorTicks: ticks,
+        minorTicks: 1,
+        strokeTicks: true,
+        highlights: [],
+        colorPlate: "#EEE",
+        borders: false,
+        needleType: "line",
+        needleWidth: 3,
+        needleCircleSize: 12,
+        needleCircleOuter: true,
+        animationDuration: 600
+    }).draw();
+}
+
+function toggleFan(id, isOn) {
+    // You only have ONE fan icon, so don't use indexed IDs
+    const icon = document.getElementById("fanIcon");
+    if (!icon) return;
+
+    if (isOn) {
+        icon.classList.remove('fan-off');
+        icon.classList.add('fan-on');
+    } else {
+        icon.classList.remove('fan-on');
+        icon.classList.add('fan-off');
+    }
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const placeholderFridges = [
+        { temp: 4, tempMax: 10, tempMin: 0, humidity: 65, humMax: 100, humMin: 0, fan: true },
+        { temp: 6, tempMax: 10, tempMin: 0, humidity: 55, humMax: 100, humMin: 0, fan: false }
+    ];
+
+    placeholderFridges.forEach((fridge, index) => {
+        const idx = index + 1;
+
+        const tempMinEl = document.getElementById(`tempMin${idx}`);
+        const tempMaxEl = document.getElementById(`tempMax${idx}`);
+        const humMinEl = document.getElementById(`humMin${idx}`);
+        const humMaxEl = document.getElementById(`humMax${idx}`);
+
+        if (!tempMinEl || !tempMaxEl || !humMinEl || !humMaxEl) return;
+
+        const tempMin = parseFloat(tempMinEl.value);
+        const tempMax = parseFloat(tempMaxEl.value);
+        const humMin = parseFloat(humMinEl.value);
+        const humMax = parseFloat(humMaxEl.value);
+
+        drawOverlayGauge(`tempGaugeBg${idx}`, tempMin, tempMax, fridge.tempMax);
+        drawOverlayGauge(`humidityGaugeBg${idx}`, humMin, humMax, fridge.humMax);
+
+        createNeedleGauge(
+            `tempGaugeNeedle${idx}`,
+            fridge.temp,
+            fridge.tempMin,
+            fridge.tempMax,
+            "°C",
+            ["0","2","4","6","8","10"]
+        );
+
+        createNeedleGauge(
+            `humidityGaugeNeedle${idx}`,
+            fridge.humidity,
+            fridge.humMin,
+            fridge.humMax,
+            "%",
+            ["0","20","40","60","80","100"]
+        );
+    });
+
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('change', () => {
+            placeholderFridges.forEach((fridge, index) => {
+                const idx = index + 1;
+
+                const tempMinEl = document.getElementById(`tempMin${idx}`);
+                const tempMaxEl = document.getElementById(`tempMax${idx}`);
+                const humMinEl = document.getElementById(`humMin${idx}`);
+                const humMaxEl = document.getElementById(`humMax${idx}`);
+
+                if (!tempMinEl || !tempMaxEl || !humMinEl || !humMaxEl) return;
+
+                const tempMin = parseFloat(tempMinEl.value);
+                const tempMax = parseFloat(tempMaxEl.value);
+                const humMin = parseFloat(humMinEl.value);
+                const humMax = parseFloat(humMaxEl.value);
+
+                drawOverlayGauge(`tempGaugeBg${idx}`, tempMin, tempMax, fridge.tempMax);
+                drawOverlayGauge(`humidityGaugeBg${idx}`, humMin, humMax, fridge.humMax);
+            });
+        });
+    });
+});
+</script>
   </body>
 </html>

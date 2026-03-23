@@ -13,7 +13,7 @@ app.register_blueprint(store)
 app.secret_key = "iotprojectsmartstore" # secret key for session cookies
 
 app.config['MAIL_USERNAME'] = 'project.smartstore@gmail.com'
-app.config['MAIL_PASSWORD'] = 'xxxx-xxxx-xxxx-xxxx'
+app.config['MAIL_PASSWORD'] = 'lumsadlznehrqsuv'
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True

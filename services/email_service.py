@@ -60,9 +60,37 @@ def send_new_customer_notification(first_name, last_name, email_address):
     # Send the email using Flask-Mail
     try:
         current_app.extensions['mail'].send(msg)
-        print("Store notification email sent successfully!")
+        print("Store notification email was sent successfully!")
     except Exception as e:
         print("Failed to send store notification email:", e)
+
+# ! haven't tested it yet..
+# Security Alert System:
+# def send_security_alert_notification(temperature, email_address):
+    
+#     msg = Message(
+#         subject="[⚠️] Warning our system has detected an abnormal temperature reacding",  # subject of the notification
+#         sender=current_app.config['MAIL_USERNAME'],  # sender = store email
+#         recipients=[current_app.config['MAIL_USERNAME']]  # sending to store inbox
+#     )
+
+#     # plain text message
+#     msg.body = f"Dear Administration, the system has detected an irregular temperature reading."
+
+#     # HTML version
+#     msg.html = f"""
+#     <p>The current temperature is <b>{temp}</b></p><br>
+#     <p>Do you wish to turn the fan on?</p>
+#     <button type="button" class="btn btn-secondary btn-lg">NO</button>
+#     <button type="button" class="btn btn-primary btn-lg">YES</button>
+#     """
+
+#     # Send the email using Flask-Mail
+#     try:
+#         current_app.extensions['mail'].send(msg)
+#         print("Alert notification email was sent successfully!")
+#     except Exception as e:
+#         print("Failed to send alert notification email:", e)
 
 
 # Reading emails from the store inbox

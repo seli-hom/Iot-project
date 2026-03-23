@@ -12,6 +12,10 @@ app = Blueprint('store', __name__)
 def storeIndex():
     return render_template('index.html')
 
+@app.route('/store-dashboard')
+def storeIndex():
+    return render_template('index.html')
+
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
