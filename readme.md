@@ -12,6 +12,7 @@
 <!--* install python -->
 <!--* set Wampoon (explain what is wampoon exactly)' -->
 <!--* make sure wampoon is running before next step ⬇ -->
+<!--* run cmd 'pip install Flask-Mail' -->
 <!--* run cmd 'python main.py' -->
 <!--* go to "http://localhost:5000/" to view project -->
 

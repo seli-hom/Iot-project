@@ -13,8 +13,8 @@ def storeIndex():
     return render_template('index.html')
 
 @app.route('/store-dashboard')
-def storeIndex():
-    return render_template('index.html')
+def storeDashboard():
+    return render_template('storeDashboard.html')
 
 @app.route('/customers')
 def customersList():
