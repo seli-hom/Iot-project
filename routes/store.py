@@ -1,11 +1,9 @@
-from flask import render_template, request, Blueprint, session, redirect, url_for, flash
+from flask import render_template, request, Blueprint, session, redirect, url_for, flash, jsonify
 from models import database as db
 from models import customers
 from services import email_service
 import bcrypt 
-# from app import app
 
-# blueprint for store routes
 app = Blueprint('store', __name__)
 
 @app.route('/')
@@ -14,8 +12,53 @@ def storeIndex():
 
 @app.route('/store-dashboard')
 def storeDashboard():
-    return render_template('storeDashboard.html')
+    storeDb = db.getDB()
 
+    notifications = storeDb.execute('''
+        SELECT * FROM notifications
+        ORDER BY created_at DESC
+        LIMIT 5
+    ''').fetchall()
+
+    storeDb.close()
+
+    return render_template(
+        'storeDashboard.html',
+        notifications=notifications,
+        temp=4,
+        hm=65,
+        type="Notice"
+    )
+
+@app.route('/api/notifications')
+def get_notifications():
+    storeDb = db.getDB()
+    try:
+        notifications = storeDb.execute('''
+            SELECT id, type, title, msg_summary, msg_extended, created_at
+            FROM notifications
+            ORDER BY created_at DESC
+            LIMIT 10
+        ''').fetchall()
+
+        notif_list = [
+            {
+                "id": n["id"],
+                "type": n["type"],
+                "title": n["title"],
+                "summary": n["msg_summary"],
+                "extended": n["msg_extended"],
+                "created_at": n["created_at"]
+            } for n in notifications
+        ]
+
+        return jsonify(notif_list)
+    except Exception as e:
+        print("Error fetching notifications:", e)
+        return jsonify([]), 500
+    finally:
+        storeDb.close()
+        
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
@@ -26,7 +69,6 @@ def customersRegistration():
     message = None
     success = None
     if request.method == 'POST':
-        # adding the customer to the database
         new_customer_id = customers.add_new_customer(
             request.form['first_name'],
             request.form['last_name'],
@@ -36,43 +78,41 @@ def customersRegistration():
         )
         
         if new_customer_id:
-            # sending verification email to the newly registered customer
             try:
                 from services.email_service import send_registration_email
                 send_registration_email(
                     request.form['first_name'],
                     request.form['last_name'],
                     request.form['email'],
-                    new_customer_id  # passing the customer ID to build the verify link
+                    new_customer_id
                 )
-                message = "Customer has been added to the store db successfully. Verification email sent!"
+                message = "Customer added successfully. Verification email sent!"
                 success = True
             except Exception as e:
                 print("Email sending failed:", e)
-                message = "Customer added, but failed to send verification email. Please contact support."
+                message = "Customer added, but failed to send verification email."
                 success = False
         else:
-            message = "Error: Customer could not be added to the store db. Please try again."
+            message = "Error: Customer could not be added."
             success = False
             
     return render_template('customersRegistration.html', message=message, success=success)
 
-# verification route for customers
 @app.route('/verify/<int:customer_id>', methods=['GET', 'POST'])
 def customerVerification(customer_id):
     storeDb = db.getDB()
-    customer = storeDb.execute('SELECT * FROM customers WHERE id = ?', (customer_id,)).fetchone()
+
+    user = storeDb.execute('SELECT * FROM users WHERE id = ?', (customer_id,)).fetchone()
     
     message = None
     success = None
 
-    if not customer:
+    if not user:
         message = "Invalid verification link."
         success = False
         storeDb.close()
         return render_template('customersVerification.html', message=message, success=success)
 
-    # if POST, the user submitted the password form
     if request.method == 'POST':
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
@@ -84,71 +124,115 @@ def customerVerification(customer_id):
             message = "Passwords do not match. Please try again."
             success = False
         else:
-            # hashing the password
             hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            # updating customer password and marking as verified
-            storeDb.execute('UPDATE customers SET password = ?, verified = 1 WHERE id = ?', (hashed_pw, customer_id))
+
+            storeDb.execute(
+                'UPDATE users SET password = ?, verified = 1 WHERE id = ?', 
+                (hashed_pw, customer_id)
+            )
             storeDb.commit()
-            message = "Your account has been verified and password set! You can now log in."
+
+            message = "Your account has been verified!"
             success = True
 
-            # ✅ Send notification to store/admin about the new verified user
             try:
                 from services.email_service import send_new_customer_notification
                 send_new_customer_notification(
-                    customer['first_name'],
-                    customer['last_name'],
-                    customer['email']
+                    user['first_name'],
+                    user['last_name'],
+                    user['email']
                 )
             except Exception as e:
-                print("Failed to send admin notification email:", e)
+                print("Email fail:", e)
 
     storeDb.close()
     return render_template('customersVerification.html', message=message, success=success)
 
-# login route for navbar form
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form.get('email')
     password = request.form.get('password')
 
     storeDb = db.getDB()
-    customer = storeDb.execute('SELECT * FROM customers WHERE email = ?', (email,)).fetchone()
+
+    user = storeDb.execute('''
+        SELECT users.*, customers.phone, customers.address
+        FROM users
+        JOIN customers ON users.id = customers.user_id
+        WHERE users.email = ?
+    ''', (email,)).fetchone()
+
     storeDb.close()
 
-    message = None
-    success = None
+    if not user:
+        return redirect(url_for('store.storeIndex'))
 
-    if not customer:
-        message = "Invalid email or password."
-        success = False
-    else:
-        # Check password using bcrypt
-        if bcrypt.checkpw(password.encode('utf-8'), customer['password']):
-            session['user_email'] = customer['email']
-            session['user_first_name'] = customer['first_name']
-            message = f"Welcome back, {customer['first_name']}!"
-            success = True
-        else:
-            message = "Invalid email or password."
-            success = False
+    if bcrypt.checkpw(password.encode('utf-8'), user['password']):
+        session['user_email'] = user['email']
+        session['user_first_name'] = user['first_name']
 
     return redirect(url_for('store.storeIndex'))
 
-# Logout route
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('store.storeIndex'))
 
-# Read Email's Inbox route
+@app.route('/fan/<int:id>', methods=['POST'])
+def toggle_fan(id):
+    data = request.get_json()
+    state = data.get("state")  
+
+    title = "Fan Update"
+    summary = f"Fan {'ON' if state else 'OFF'}"
+    extended = f"The fan with ID {id} was turned {'ON' if state else 'OFF'} via the store dashboard."
+
+    storeDb = db.getDB()
+    storeDb.execute('''
+        INSERT INTO notifications (type, title, msg_summary, msg_extended)
+        VALUES (?, ?, ?, ?)
+    ''', ("system", title, summary, extended))
+    storeDb.commit()
+    storeDb.close()
+
+    try:
+        from services.email_service import send_system_alert_email
+        send_system_alert_email(title, extended)
+    except Exception as e:
+        print("System alert email failed:", e)
+
+    return jsonify({"status": "ok", "summary": summary})
+
+@app.route('/threshold/update', methods=['POST'])
+def update_threshold():
+    data = request.get_json()
+    fridge = data.get("fridge")
+    t_min = data.get("tempMin")
+    t_max = data.get("tempMax")
+    h_min = data.get("humMin")
+    h_max = data.get("humMax")
+
+    title = f"Fridge {fridge} Threshold Updated"
+    summary = f"Temp: {t_min}-{t_max}°C | Humidity: {h_min}-{h_max}%"
+    extended = f"Thresholds updated for Fridge {fridge}:\nTemperature: {t_min}-{t_max} °C\nHumidity: {h_min}-{h_max} %"
+
+    storeDb = db.getDB()
+    storeDb.execute('''
+        INSERT INTO notifications (type, title, msg_summary, msg_extended)
+        VALUES (?, ?, ?, ?)
+    ''', ("system", title, summary, extended))
+    storeDb.commit()
+    storeDb.close()
+
+    try:
+        from services.email_service import send_system_alert_email
+        send_system_alert_email(title, extended)
+    except Exception as e:
+        print("Threshold email failed:", e)
+
+    return jsonify({"status": "ok", "summary": summary})
+
 @app.route('/store-inbox')
 def storeInbox():
-    """
-    Fetches emails from the store's Gmail inbox and displays them
-    """
-    # Fetch emails using the function from email_service
     emails = email_service.fetch_store_emails()
-
-    # Render the inbox template with emails
     return render_template('viewInbox.html', emails=emails)

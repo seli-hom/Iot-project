@@ -87,6 +87,7 @@
             <div>
                 <a href="{{ url_for('store.storeIndex') }}" class="text-white me-3 text-decoration-none">Home</a>
                 <a href="{{ url_for('store.customersRegistration') }}" class="text-white text-decoration-none">Register</a>
+                <a href="{{ url_for('store.storeDashboard') }}" class="text-white text-decoration-none">Dashboard</a>
                 <a href="{{ url_for('store.storeInbox') }}" class="text-white text-decoration-none">Inbox</a>
             </div>
         </div>
@@ -104,7 +105,6 @@ function drawOverlayGauge(canvasId, minGood, maxGood, maxValue) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
-    // Destroy existing chart if present
     if (canvas.chart) {
         canvas.chart.destroy();
     }
@@ -134,7 +134,6 @@ function drawOverlayGauge(canvasId, minGood, maxGood, maxValue) {
         }
     });
 
-    // store chart instance
     canvas.chart = chart;
 }
 
@@ -165,7 +164,6 @@ function createNeedleGauge(canvasId, value, min, max, units, ticks) {
 }
 
 function toggleFan(id, isOn) {
-    // You only have ONE fan icon, so don't use indexed IDs
     const icon = document.getElementById("fanIcon");
     if (!icon) return;
 
@@ -244,6 +242,100 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+</script>
+
+<script>
+function sendThresholdUpdate(fridgeId) {
+    const tempMin = document.getElementById(`tempMin${fridgeId}`)?.value;
+    const tempMax = document.getElementById(`tempMax${fridgeId}`)?.value;
+    const humMin = document.getElementById(`humMin${fridgeId}`)?.value;
+    const humMax = document.getElementById(`humMax${fridgeId}`)?.value;
+
+    fetch('/threshold/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            fridge: fridgeId,
+            tempMin,
+            tempMax,
+            humMin,
+            humMax
+        })
+    });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    ['1','2'].forEach(id => {
+        ['tempMin','tempMax','humMin','humMax'].forEach(prefix => {
+            const el = document.getElementById(`${prefix}${id}`);
+            if (el) {
+                el.addEventListener('change', () => {
+                    sendThresholdUpdate(id);
+                });
+            }
+        });
+    });
+});
+</script>
+
+<script>
+async function loadNotifications() {
+    try {
+        const res = await fetch('/api/notifications');
+        if (!res.ok) throw new Error("Failed to fetch notifications");
+
+        const notifications = await res.json();
+        const container = document.getElementById('notifications-container');
+        container.innerHTML = '';
+
+        if (!notifications || notifications.length === 0) {
+            container.innerHTML = '<div class="text-muted">No notifications</div>';
+            return;
+        }
+
+        notifications.forEach(notif => {
+            const div = document.createElement('div');
+            div.className = 'border-bottom pb-2 mb-2';
+
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <b>${notif.title}</b> - <small class="text-muted">${notif.created_at}</small>
+                    </div>
+                    <button class="btn btn-sm btn-link p-0" style="font-size:0.85em;">Show more</button>
+                </div>
+                <div class="notif-summary mt-1">${notif.summary}</div>
+                <div class="notif-extended mt-1 text-muted" style="display:none; font-size:0.85em;">
+                    ${notif.extended}
+                </div>
+            `;
+
+            const toggleBtn = div.querySelector('button');
+            const extendedDiv = div.querySelector('.notif-extended');
+
+            toggleBtn.addEventListener('click', () => {
+                if (extendedDiv.style.display === 'none') {
+                    extendedDiv.style.display = 'block';
+                    toggleBtn.innerText = 'Show less';
+                } else {
+                    extendedDiv.style.display = 'none';
+                    toggleBtn.innerText = 'Show more';
+                }
+            });
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById('notifications-container').innerHTML =
+            '<div class="text-danger">Failed to load notifications</div>';
+    }
+}
+
+loadNotifications();
+
+setInterval(loadNotifications, 10000);
 </script>
   </body>
 </html>

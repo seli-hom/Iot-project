@@ -1,4 +1,5 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block content %}
 
 <div class="container d-flex flex-column align-items-center py-5">
   <div class="card shadow-sm mb-4 rounded" style="min-width: 450px; max-width: 600px; width: 100%;">
@@ -6,17 +7,15 @@
 
       <h3 class="card-title text-center mb-4">Register a new Customer Today!</h3>
 
-      <!-- Flash Messages: -->
-      <!-- simplified but i can add more customizability later -->
       {% if message %}
         <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
           {{ message }}
         </div>
       {% endif %}
 
-      <!-- Registration form -->
-      <form method="POST" class="mb-3">
+      <form method="POST" action="" class="mb-3">
         <div class="row g-3">
+
           <div class="col-md-6">
             <label class="form-label">First Name</label>
             <input type="text" class="form-control rounded" name="first_name" required>
@@ -43,12 +42,12 @@
           </div>
 
           <div class="col-12 mt-3">
-            <button type="submit" class="btn btn-primary w-100 rounded">submit</button>
+            <button type="submit" class="btn btn-primary w-100 rounded">Submit</button>
           </div>
+
         </div>
       </form>
 
-      <!-- View Existing Customers link: -->
       <div class="text-center mt-2">
         <a href="{{ url_for('store.customersList') }}">View Existing Customers</a>
       </div>
@@ -56,6 +55,5 @@
     </div>
   </div>
 </div>
-
 
 {% endblock %}

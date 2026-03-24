@@ -147,10 +147,18 @@ main {
 
 .fan {
     grid-column: span 1;
+    & > .fan-section-inner {
+        display: flex;
+        flex-flow: column nowrap;
+    }
 }
 
 .notifications {
     grid-column: span 1;
+    & > .notif-section-inner {
+        display: flex;
+        flex-flow: column nowrap;
+    }
 }
 
 .frig2 {
@@ -165,8 +173,8 @@ main {
 .fan-icon {
     display: block;
     margin: 0 auto;
-    min-width: 16rem;
-    min-height: 16rem;
+    width: 16rem;
+    height: 16rem;
     transition: transform 0.2s ease;
 }
 

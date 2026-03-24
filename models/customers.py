@@ -1,5 +1,5 @@
 import sqlite3
-import bcrypt  # for password hashing
+import bcrypt
 try:
     from scripts import gpio_blue_red as gpr
 except ModuleNotFoundError:
@@ -18,16 +18,24 @@ def add_new_customer(first_name, last_name, email, phone, address, password=None
         # hashing the password
         hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()) if password else None
 
-        cur = store.execute('''INSERT INTO customers 
-                               (first_name, last_name, email, phone, address, password, role, verified)
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', 
-                            (first_name, last_name, email, phone, address, hashed_pw, role, 0 if password is None else 1))
+        # insert into users table
+        cur = store.execute('''
+            INSERT INTO customers 
+            (first_name, last_name, email, phone, address, password, role, verified)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', 
+        (first_name, last_name, email, phone, address, hashed_pw, role, 0 if password is None else 1))
+
+        user_id = cur.lastrowid  
+
         store.commit()
-        new_id = cur.lastrowid
+
         print("Customer added to database successfully.")
         if gpr:
             gpr.new_customer_success()
-        return new_id
+
+        return user_id
+
     except sqlite3.IntegrityError as e:
         print(f"Database error: {e}")
         if gpr:
@@ -36,10 +44,13 @@ def add_new_customer(first_name, last_name, email, phone, address, password=None
     finally:
         store.close() 
 
+
 def select_customers():
     storeDb = db.getDB()
     try:
-        customers = storeDb.execute('SELECT * FROM customers').fetchall()
+        customers = storeDb.execute('''
+            SELECT * FROM customers
+        ''').fetchall()
         return customers
     finally:
         storeDb.close()

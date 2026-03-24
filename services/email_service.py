@@ -1,154 +1,111 @@
 from flask import current_app, url_for
 from flask_mail import Message
-import imaplib
-import email
-from email.header import decode_header
 
-# Sending an email to the newly registered customer to verify their account
 def send_registration_email(first_name, last_name, email_address, customer_id):
-    
-    # Generate verification URL dynamically for this customer
     verification_url = url_for('store.customerVerification', customer_id=customer_id, _external=True)
-
-    # Compose the email message
     msg = Message(
-        subject="Welcome to the Smart Store!",  # subject of the email
-        sender=current_app.config['MAIL_USERNAME'], # refers to our store's email from app config
-        recipients=[email_address] # recipient is the newly registered customer's email
+        subject="Welcome to the Smart Store!",
+        sender=current_app.config['MAIL_USERNAME'],
+        recipients=[email_address]
     )
-
-    # Composing message to be sent
-    # plain text fallback
     msg.body = f"Hello {first_name} {last_name},\nPlease verify your account: {verification_url}"
-
-    # HTML version
     msg.html = f"""
     Hello {first_name} {last_name},<br><br>
     Thank you for registering for our Smart Store!<br>
     Please click <a href="{verification_url}">here</a> to verify your account.<br><br>
     Regards,<br>The Smart Store Team
     """
-
-    # Send the email using the Mail instance attached to current_app
     try:
         current_app.extensions['mail'].send(msg)
-        print("Customer verification email sent successfully!")  # for debugging
+        print("Customer verification email sent successfully!")
     except Exception as e:
-        print("Customer added, but failed to send verification email. Please contact support.")
-        print("Email error:", e)  # debug info for why sending failed
+        print("Customer added, but failed to send verification email:", e)
 
-
-# Sending a notification to the store inbox when a new customer verifies
 def send_new_customer_notification(first_name, last_name, email_address):
-    
     msg = Message(
-        subject="New Customer Verified!",  # subject of the notification
-        sender=current_app.config['MAIL_USERNAME'],  # sender = store email
-        recipients=[current_app.config['MAIL_USERNAME']]  # sending to store inbox
+        subject="New Customer Verified!",
+        sender=current_app.config['MAIL_USERNAME'],
+        recipients=[current_app.config['MAIL_USERNAME']]
     )
-
-    # plain text message
     msg.body = f"Customer {first_name} {last_name} ({email_address}) has just verified their account."
-
-    # HTML version
     msg.html = f"""
     <b>New Customer Verified!</b><br>
     Name: {first_name} {last_name}<br>
     Email: {email_address}<br>
     """
-
-    # Send the email using Flask-Mail
     try:
         current_app.extensions['mail'].send(msg)
-        print("Store notification email was sent successfully!")
+        print("Store notification email sent successfully!")
     except Exception as e:
         print("Failed to send store notification email:", e)
 
-# ! haven't tested it yet..
-# Security Alert System:
-# def send_security_alert_notification(temperature, email_address):
-    
-#     msg = Message(
-#         subject="[⚠️] Warning our system has detected an abnormal temperature reacding",  # subject of the notification
-#         sender=current_app.config['MAIL_USERNAME'],  # sender = store email
-#         recipients=[current_app.config['MAIL_USERNAME']]  # sending to store inbox
-#     )
+def send_system_alert_email(title, message):
+    """
+    Generic system alert email. Sends to the store inbox (MAIL_USERNAME)
+    """
+    msg = Message(
+        subject=title,
+        sender=current_app.config['MAIL_USERNAME'],
+        recipients=[current_app.config['MAIL_USERNAME']]
+    )
+    msg.body = message
+    msg.html = f"<b>{title}</b><br><pre>{message}</pre>"
+    try:
+        current_app.extensions['mail'].send(msg)
+        print("System alert email sent successfully!")
+    except Exception as e:
+        print(f"Failed to send system alert email: {e}")
 
-#     # plain text message
-#     msg.body = f"Dear Administration, the system has detected an irregular temperature reading."
+def send_threshold_update_email(fridge, t_min, t_max, h_min, h_max):
+    title = f"Threshold Updated - Fridge {fridge}"
+    message = f"Temperature: {t_min}-{t_max} °C\nHumidity: {h_min}-{h_max} %"
+    send_system_alert_email(title, message)
 
-#     # HTML version
-#     msg.html = f"""
-#     <p>The current temperature is <b>{temp}</b></p><br>
-#     <p>Do you wish to turn the fan on?</p>
-#     <button type="button" class="btn btn-secondary btn-lg">NO</button>
-#     <button type="button" class="btn btn-primary btn-lg">YES</button>
-#     """
+def send_security_alert_notification(temperature):
+    title = "[⚠️] Security Alert - Abnormal Temperature Detected"
+    message = f"The system detected an irregular temperature reading: {temperature} °C"
+    send_system_alert_email(title, message)
 
-#     # Send the email using Flask-Mail
-#     try:
-#         current_app.extensions['mail'].send(msg)
-#         print("Alert notification email was sent successfully!")
-#     except Exception as e:
-#         print("Failed to send alert notification email:", e)
+import imaplib
+import email
+from email.header import decode_header
 
-
-# Reading emails from the store inbox
 def fetch_store_emails():
-    """
-    Connects to Gmail using IMAP and fetches all emails from the inbox.
-    Returns a list of dicts with keys: subject, from, body
-    """
     emails = []
     username = current_app.config['MAIL_USERNAME']
     password = current_app.config['MAIL_PASSWORD']
 
     try:
-        # connecting to Gmail IMAP server
         mail = imaplib.IMAP4_SSL("imap.gmail.com")
         mail.login(username, password)
-        mail.select("inbox")  # select inbox
-        
-        # searching for all messages
+        mail.select("inbox")
         status, messages = mail.search(None, "ALL")
         message_numbers = messages[0].split()
 
-        for num in reversed(message_numbers):  # iterate from newest to oldest
+        for num in reversed(message_numbers):
             status, data = mail.fetch(num, "(RFC822)")
             raw_email = data[0][1]
-
             msg = email.message_from_bytes(raw_email)
 
-            # decoding subject
             subject, encoding = decode_header(msg["Subject"])[0]
             if isinstance(subject, bytes):
                 subject = subject.decode(encoding if encoding else "utf-8")
-
-            # decoding sender
             from_ = msg.get("From")
 
-            # decoding email body
             body = ""
             if msg.is_multipart():
                 for part in msg.walk():
                     content_type = part.get_content_type()
                     content_dispo = str(part.get("Content-Disposition"))
-
-                    # skip attachments
                     if content_type == "text/plain" and "attachment" not in content_dispo:
                         body = part.get_payload(decode=True).decode()
                         break
             else:
                 body = msg.get_payload(decode=True).decode()
 
-            emails.append({
-                "subject": subject,
-                "from": from_,
-                "body": body
-            })
+            emails.append({"subject": subject, "from": from_, "body": body})
 
         mail.logout()
-
     except Exception as e:
         print("Error fetching store emails:", e)
 
