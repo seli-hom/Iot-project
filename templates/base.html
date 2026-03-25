@@ -163,19 +163,34 @@ function createNeedleGauge(canvasId, value, min, max, units, ticks) {
     }).draw();
 }
 
-function toggleFan(id, isOn) {
-    const icon = document.getElementById("fanIcon");
-    if (!icon) return;
+const fanIcon = document.getElementById("fanIcon");
+const fanToggle = document.getElementById("fanToggle");
 
+function updateFanVisual(isOn) {
     if (isOn) {
-        icon.classList.remove('fan-off');
-        icon.classList.add('fan-on');
+        fanIcon.classList.remove('fan-off');
+        fanIcon.classList.add('fan-on');
     } else {
-        icon.classList.remove('fan-on');
-        icon.classList.add('fan-off');
+        fanIcon.classList.remove('fan-on');
+        fanIcon.classList.add('fan-off');
     }
 }
 
+fanToggle.addEventListener('change', () => {
+    const isOn = fanToggle.checked;
+    updateFanVisual(isOn);
+
+    fetch('/fan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: isOn })
+    })
+    .then(res => res.json())
+    .then(data => console.log('Fan toggled:', data))
+    .catch(err => console.error(err));
+});
+
+updateFanVisual(fanToggle.checked);
 document.addEventListener("DOMContentLoaded", function() {
     const placeholderFridges = [
         { temp: 4, tempMax: 10, tempMin: 0, humidity: 65, humMax: 100, humMin: 0, fan: true },

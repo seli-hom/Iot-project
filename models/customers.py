@@ -1,56 +1,86 @@
 import sqlite3
-import bcrypt
+from models import database as db
 try:
     from scripts import gpio_blue_red as gpr
 except ModuleNotFoundError:
     gpr = None  # for development purposes only
     print("[ERROR] DPIO module not found")
 
-from models import database as db
-
-def add_new_customer(first_name, last_name, email, phone, address, password=None, role='customer'):
+def add_new_customer(user_id, phone, address):
     """
-    Adds a new customer to the database
-    Returns the new customer's ID if successful, False otherwise
+    Adds a new customer profile linked to a user
+    Returns the new customer ID if successful, False otherwise
     """
     store = db.getDB()
     try:
-        # hashing the password
-        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()) if password else None
-
-        # insert into users table
         cur = store.execute('''
-            INSERT INTO customers 
-            (first_name, last_name, email, phone, address, password, role, verified)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', 
-        (first_name, last_name, email, phone, address, hashed_pw, role, 0 if password is None else 1))
-
-        user_id = cur.lastrowid  
+            INSERT INTO customers (user_id, phone, address)
+            VALUES (?, ?, ?)
+        ''', (user_id, phone, address))
 
         store.commit()
+        customer_id = cur.lastrowid
 
-        print("Customer added to database successfully.")
+        print(f"Customer profile added successfully: user_id={user_id}, customer_id={customer_id}")
         if gpr:
             gpr.new_customer_success()
 
-        return user_id
+        return customer_id
 
     except sqlite3.IntegrityError as e:
-        print(f"Database error: {e}")
+        print(f"[ERROR] Database integrity error: {e}")
         if gpr:
             gpr.new_customer_fail()
         return False
     finally:
-        store.close() 
+        store.close()
 
 
 def select_customers():
+    """
+    Returns a list of all customers, joined with their user info
+    """
     storeDb = db.getDB()
     try:
         customers = storeDb.execute('''
-            SELECT * FROM customers
+            SELECT customers.*, users.first_name, users.last_name, users.email, users.role, users.verified
+            FROM customers
+            JOIN users ON customers.user_id = users.id
         ''').fetchall()
         return customers
+    finally:
+        storeDb.close()
+
+
+def update_customer_role(user_id, new_role):
+    """
+    Update a user's role (customer, employee, admin)
+    """
+    storeDb = db.getDB()
+    try:
+        storeDb.execute('UPDATE users SET role = ? WHERE id = ?', (new_role, user_id))
+        storeDb.commit()
+        print(f"Updated role for user_id={user_id} to '{new_role}'")
+        return True
+    except sqlite3.Error as e:
+        print(f"[ERROR] Failed to update role: {e}")
+        return False
+    finally:
+        storeDb.close()
+
+
+def delete_customer(user_id):
+    """
+    Deletes a user and associated customer profile
+    """
+    storeDb = db.getDB()
+    try:
+        storeDb.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        storeDb.commit()
+        print(f"Deleted user and associated customer profile: user_id={user_id}")
+        return True
+    except sqlite3.Error as e:
+        print(f"[ERROR] Failed to delete customer: {e}")
+        return False
     finally:
         storeDb.close()

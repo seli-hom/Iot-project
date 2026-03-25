@@ -1,8 +1,8 @@
 from flask import render_template, request, Blueprint, session, redirect, url_for, flash, jsonify
 from models import database as db
-from models import customers
+from models import customers, users
 from services import email_service
-import bcrypt 
+import bcrypt
 
 app = Blueprint('store', __name__)
 
@@ -58,7 +58,7 @@ def get_notifications():
         return jsonify([]), 500
     finally:
         storeDb.close()
-        
+
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
@@ -69,22 +69,35 @@ def customersRegistration():
     message = None
     success = None
     if request.method == 'POST':
-        new_customer_id = customers.add_new_customer(
-            request.form['first_name'],
-            request.form['last_name'],
-            request.form['email'],
-            request.form['phone'],
-            request.form['address']
-        )
-        
-        if new_customer_id:
+        # First, create the user
+        storeDb = db.getDB()
+        try:
+            cur = storeDb.execute('''
+                INSERT INTO users (first_name, last_name, email, role, verified)
+                VALUES (?, ?, ?, 'customer', 0)
+            ''', (request.form['first_name'], request.form['last_name'], request.form['email']))
+            storeDb.commit()
+            new_user_id = cur.lastrowid
+
+            # Then create the customer profile
+            from models import customers
+            customer_id = customers.add_new_customer(
+                new_user_id,
+                request.form['phone'],
+                request.form['address']
+            )
+
+            if not customer_id:
+                raise Exception("Failed to create customer profile")
+
+            # Send verification email
             try:
                 from services.email_service import send_registration_email
                 send_registration_email(
                     request.form['first_name'],
                     request.form['last_name'],
                     request.form['email'],
-                    new_customer_id
+                    new_user_id
                 )
                 message = "Customer added successfully. Verification email sent!"
                 success = True
@@ -92,16 +105,18 @@ def customersRegistration():
                 print("Email sending failed:", e)
                 message = "Customer added, but failed to send verification email."
                 success = False
-        else:
+
+        except Exception as e:
+            print("Error creating customer:", e)
             message = "Error: Customer could not be added."
             success = False
-            
-    return render_template('customersRegistration.html', message=message, success=success)
+        finally:
+            storeDb.close()
 
+    return render_template('customersRegistration.html', message=message, success=success)
 @app.route('/verify/<int:customer_id>', methods=['GET', 'POST'])
 def customerVerification(customer_id):
     storeDb = db.getDB()
-
     user = storeDb.execute('SELECT * FROM users WHERE id = ?', (customer_id,)).fetchone()
     
     message = None
@@ -125,13 +140,11 @@ def customerVerification(customer_id):
             success = False
         else:
             hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
             storeDb.execute(
                 'UPDATE users SET password = ?, verified = 1 WHERE id = ?', 
                 (hashed_pw, customer_id)
             )
             storeDb.commit()
-
             message = "Your account has been verified!"
             success = True
 
@@ -154,14 +167,12 @@ def login():
     password = request.form.get('password')
 
     storeDb = db.getDB()
-
     user = storeDb.execute('''
         SELECT users.*, customers.phone, customers.address
         FROM users
-        JOIN customers ON users.id = customers.user_id
+        JOIN customers ON users.id = customers.id
         WHERE users.email = ?
     ''', (email,)).fetchone()
-
     storeDb.close()
 
     if not user:
@@ -170,6 +181,7 @@ def login():
     if bcrypt.checkpw(password.encode('utf-8'), user['password']):
         session['user_email'] = user['email']
         session['user_first_name'] = user['first_name']
+        session['user_role'] = user['role']
 
     return redirect(url_for('store.storeIndex'))
 
@@ -178,16 +190,19 @@ def logout():
     session.clear()
     return redirect(url_for('store.storeIndex'))
 
-@app.route('/fan/<int:id>', methods=['POST'])
-def toggle_fan(id):
+@app.route('/fan', methods=['POST'])
+def toggle_fan():
     data = request.get_json()
-    state = data.get("state")  
+    if not data or "state" not in data:
+        return jsonify({"status": "error", "msg": "Missing 'state' in request"}), 400
 
-    title = "Fan Update"
-    summary = f"Fan {'ON' if state else 'OFF'}"
-    extended = f"The fan with ID {id} was turned {'ON' if state else 'OFF'} via the store dashboard."
+    state = data["state"]
 
     storeDb = db.getDB()
+    title = "Fan Update"
+    summary = f"Fan {'ON' if state else 'OFF'}"
+    extended = f"The fan was turned {'ON' if state else 'OFF'} via the store dashboard."
+
     storeDb.execute('''
         INSERT INTO notifications (type, title, msg_summary, msg_extended)
         VALUES (?, ?, ?, ?)
@@ -196,10 +211,9 @@ def toggle_fan(id):
     storeDb.close()
 
     try:
-        from services.email_service import send_system_alert_email
-        send_system_alert_email(title, extended)
+        email_service.send_fan_toggle_email(state)
     except Exception as e:
-        print("System alert email failed:", e)
+        print("Fan email failed:", e)
 
     return jsonify({"status": "ok", "summary": summary})
 
@@ -236,3 +250,83 @@ def update_threshold():
 def storeInbox():
     emails = email_service.fetch_store_emails()
     return render_template('viewInbox.html', emails=emails)
+
+@app.route('/admin-dashboard')
+def adminDashboard():
+    # if session.get('user_role') != 'admin':
+    #     flash("Unauthorized access.", "danger")
+    #     return redirect(url_for('store.storeIndex'))
+
+    storeDb = db.getDB()
+    all_users = storeDb.execute('SELECT * FROM users ORDER BY created_at DESC').fetchall()
+    staff_users = storeDb.execute('SELECT * FROM users WHERE role IN ("admin","employee")').fetchall()
+
+    user_notifications = storeDb.execute('''
+        SELECT * FROM notifications
+        WHERE id IS NOT NULL
+        ORDER BY created_at DESC
+        LIMIT 5
+    ''').fetchall()
+
+    total_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
+    verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE verified=1').fetchone()['cnt']
+    latest_user = storeDb.execute('SELECT * FROM users ORDER BY created_at DESC LIMIT 1').fetchone()
+    popular_user = storeDb.execute('''
+        SELECT users.*, COUNT(customers.id) as posts
+        FROM users
+        LEFT JOIN customers ON users.id = customers.id
+        GROUP BY users.id
+        ORDER BY posts DESC
+        LIMIT 1
+    ''').fetchone()
+
+    storeDb.close()
+
+    db_stats = {
+        "total_users": total_users,
+        "verified_users": verified_users,
+        "latest_user": latest_user,
+        "most_popular_user": popular_user
+    }
+
+    return render_template(
+        'adminDashboard.html',
+        all_users=all_users,
+        staff=staff_users,
+        notifications=user_notifications,
+        db_stats=db_stats
+    )
+
+@app.route('/admin/user/<int:id>/update', methods=['POST'])
+def adminUpdateUser(id):
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized.", "danger")
+        return redirect(url_for('store.storeIndex'))
+
+    role = request.form.get('role')
+    verified = request.form.get('verified') == 'on'
+
+    storeDb = db.getDB()
+    storeDb.execute(
+        'UPDATE users SET role = ?, verified = ? WHERE id = ?',
+        (role, verified, id)
+    )
+    storeDb.commit()
+    storeDb.close()
+
+    flash("User updated successfully.", "success")
+    return redirect(url_for('store.adminDashboard'))
+
+@app.route('/admin/user/<int:id>/delete', methods=['POST'])
+def adminDeleteUser(id):
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized.", "danger")
+        return redirect(url_for('store.storeIndex'))
+
+    storeDb = db.getDB()
+    storeDb.execute('DELETE FROM users WHERE id = ?', (id,))
+    storeDb.commit()
+    storeDb.close()
+
+    flash("User deleted successfully.", "success")
+    return redirect(url_for('store.adminDashboard'))
