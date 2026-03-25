@@ -352,5 +352,76 @@ loadNotifications();
 
 setInterval(loadNotifications, 10000);
 </script>
+
+<script>
+// sidebar highlight + card + subtab title
+document.addEventListener('DOMContentLoaded', () => {
+    const sidebarLinks = document.querySelectorAll('.admin-sidebar .nav-link');
+    const cards = document.querySelectorAll('.dashboard-card, #all-users-section');
+
+    // Map each link to its card element
+    const linkToCardMap = {};
+    sidebarLinks.forEach(link => {
+        const targetId = link.getAttribute('href').split('#')[1]; // get id after #
+        const card = document.getElementById(targetId);
+        if (card) linkToCardMap[targetId] = card;
+    });
+
+    // Click handler
+    sidebarLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            cards.forEach(c => c.classList.remove('active'));
+            sidebarLinks.forEach(l => l.classList.remove('active'));
+
+            link.classList.add('active');
+
+            const targetId = link.getAttribute('href').split('#')[1];
+            if (linkToCardMap[targetId]) {
+                const card = linkToCardMap[targetId];
+                card.classList.add('active');
+
+                // Remove any previous active-title highlights
+                cards.forEach(c => {
+                    const h5 = c.querySelector('h5');
+                    if (h5) h5.classList.remove('active-title');
+                });
+
+                // If the card has subtabs (temperature / humidity), highlight its title
+                const h5 = card.querySelector('h5');
+                if (h5) h5.classList.add('active-title');
+            }
+        });
+    });
+
+    // Optional: scroll spy highlight on scroll
+    window.addEventListener('scroll', () => {
+        const scrollPos = window.scrollY + 100; // offset for sticky sidebar
+
+        cards.forEach(card => {
+            const rect = card.getBoundingClientRect();
+            const cardTop = rect.top + window.scrollY;
+            const cardBottom = cardTop + rect.height;
+
+            const cardLink = [...sidebarLinks].find(link => linkToCardMap[link.getAttribute('href').split('#')[1]] === card);
+
+            if (scrollPos >= cardTop && scrollPos < cardBottom) {
+                cards.forEach(c => c.classList.remove('active'));
+                sidebarLinks.forEach(l => l.classList.remove('active'));
+                card.classList.add('active');
+                if (cardLink) cardLink.classList.add('active');
+
+                const h5 = card.querySelector('h5');
+                if (h5) {
+                    cards.forEach(c => {
+                        const h = c.querySelector('h5');
+                        if (h) h.classList.remove('active-title');
+                    });
+                    h5.classList.add('active-title');
+                }
+            }
+        });
+    });
+});
+</script>
   </body>
 </html>

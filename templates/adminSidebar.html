@@ -1,0 +1,31 @@
+<!-- adminSidebar.html -->
+<nav class="admin-sidebar col-md-3 col-lg-2 d-md-block bg-light vh-100 border-end shadow-sm">
+  <div class="position-sticky top-0 pt-4 pb-4 px-2">
+    <nav class="nav flex-column">
+
+      <!-- Admin Panel -->
+      <span class="text-primary fw-bold mb-2">Admin Panel</span>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#staff-section">Admins & Employees</a>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#all-users-section">All Users</a>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#notifications-section">Notifications</a>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#db-overview-section">Database Overview</a>
+
+      <br>
+      <br>
+      <!-- Store Panel -->
+      <span class="text-primary fw-bold mt-2 mb-2">Store Panel</span>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-1">Frig 1</a>
+      <a class="nav-link px-4 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-1-temp">Temperature</a>
+      <a class="nav-link px-4 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-1-humidity">Humidity</a>
+
+      <a class="nav-link px-2 py-1 rounded mt-2" href="{{ url_for('store.storeDashboard') }}#frig-2">Frig 2</a>
+      <a class="nav-link px-4 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-2-temp">Temperature</a>
+      <a class="nav-link px-4 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-2-humidity">Humidity</a>
+
+      <a class="nav-link px-2 py-1 rounded mt-2" href="{{ url_for('store.storeDashboard') }}#fan-section">Fan</a>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#notifications-section">Notifications</a>
+
+
+    </nav>
+  </div>
+</nav>
