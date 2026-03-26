@@ -3,39 +3,42 @@ import time
 import smtplib
 import imaplib
 import email
+import json
 from email.mime.text import MIMEText
 from gpiozero import OutputDevice
 
 # ---------------------------
 # CONFIG
 # ---------------------------
-BROKER = ""
+BROKER = "192.168.2.163"
 
-SENDER_EMAIL_ADDR = ""
-SENDER_PASSWORD = ""
+SENDER_EMAIL_ADDR = "nwantolyLuke@gmail.com"
+SENDER_PASSWORD = "dwjiapckhjltbxre"
 
-RECEIVER_EMAIL_ADDR = ""
+RECEIVER_EMAIL_ADDR = "lnwantoly@gmail.com"
 
 SMTP_SERVER = "smtp.gmail.com"
 IMAP_SERVER = "imap.gmail.com"
 
 EMAIL_INTERVAL = 300  # 5 minutes
-TEMP_THRESHOLD = 24   # °C
+TEMP_THRESHOLD = 20   # °C
 
 # ---------------------------
 # GPIO SETUP (Pi 5)
 # ---------------------------
-Motor1 = OutputDevice(22)
-Motor2 = OutputDevice(27)
-Motor3 = OutputDevice(17)
+#Motor1 = OutputDevice(22)
+#Motor2 = OutputDevice(27)
+#Motor3 = OutputDevice(17)
 
-Motor1.off()
+#Motor1.off()
 
 # ---------------------------
 # GLOBAL VARIABLES
 # ---------------------------
-latest_temp = None
-latest_hum = None
+kitchen_temp = None
+kitchen_hum = None
+room_temp = None
+room_hum = None
 
 last_email_time = 0
 waiting_for_reply = False
@@ -46,7 +49,7 @@ alert_sent = False
 # ---------------------------
 def motor_on_5_seconds():
     print("Motor ON (5 seconds)")
-    
+
     Motor1.on()
     Motor2.off()
     Motor3.on()
@@ -60,18 +63,20 @@ def motor_on_5_seconds():
 # MQTT CALLBACK
 # ---------------------------
 def on_message(client, userdata, message):
-    global latest_temp, latest_hum
+    global kitchen_temp, kitchen_hum,room_temp,room_hum
 
     topic = message.topic
     payload = message.payload.decode()
+    payload = json.loads(payload)
+    if topic == "Temperature/Kitchen":
+        kitchen_temp = payload['kitchen']['temperature']
+        kitchen_hum = payload['kitchen']['humidity']
 
-    if topic == "esp32/temperature":
-        latest_temp = payload
-        print("Temperature:", latest_temp)
 
-    elif topic == "esp32/humidity":
-        latest_hum = payload
-        print("Humidity:", latest_hum)
+    elif topic == "Temperature/Room":
+        room_temp = payload['room']['temperature']
+        room_hum = payload['room']['humidity']
+
 
 # ---------------------------
 # SEND EMAIL
@@ -80,8 +85,8 @@ def send_email():
     global last_email_time, waiting_for_reply
 
     body = f"""
-Temperature: {latest_temp}°C
-Humidity: {latest_hum}%
+Temperature: {kitchen_temp}°C
+Humidity: {kitchen_hum}%
 
 Temperature is above {TEMP_THRESHOLD}°C.
 
@@ -162,8 +167,8 @@ def check_email():
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.connect(BROKER, 1883)
 
-client.subscribe("esp32/temperature")
-client.subscribe("esp32/humidity")
+client.subscribe("Temperature/Kitchen")
+client.subscribe("Temperature/Room")
 
 client.on_message = on_message
 
@@ -177,13 +182,15 @@ print("SYSTEM RUNNING\n")
 try:
     while True:
 
-        if latest_temp is not None and latest_hum is not None:
 
-            temp_value = float(latest_temp)
+        if kitchen_hum is not None and kitchen_temp is not None and room_hum is not None and room_temp is not None:
 
+            temp_value = float(kitchen_temp)
+            print(temp_value)
             if temp_value >= TEMP_THRESHOLD:
 
                 if (not alert_sent) and (time.time() - last_email_time > EMAIL_INTERVAL):
+                    print('sending alert')
                     send_email()
                     alert_sent = True
 
@@ -197,4 +204,4 @@ try:
 
 except KeyboardInterrupt:
     print("STOPPING PROGRAM")
-    Motor1.off()
+   # Motor1.off()
