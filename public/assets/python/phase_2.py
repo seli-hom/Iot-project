@@ -10,12 +10,12 @@ from gpiozero import OutputDevice
 # ---------------------------
 # CONFIG
 # ---------------------------
-BROKER = "192.168.2.163"
+BROKER = "10.79.90.145"
 
-SENDER_EMAIL_ADDR = "nwantolyLuke@gmail.com"
-SENDER_PASSWORD = "dwjiapckhjltbxre"
+SENDER_EMAIL_ADDR = "taliamuro3@gmail.com"
+SENDER_PASSWORD = "hapc ypha dcwh ewbc"
 
-RECEIVER_EMAIL_ADDR = "lnwantoly@gmail.com"
+RECEIVER_EMAIL_ADDR = "efremselihom1@gmail.com"
 
 SMTP_SERVER = "smtp.gmail.com"
 IMAP_SERVER = "imap.gmail.com"
@@ -70,12 +70,18 @@ def on_message(client, userdata, message):
     payload = json.loads(payload)
     if topic == "Temperature/Kitchen":
         kitchen_temp = payload['kitchen']['temperature']
+        print("Kitchen Temperature: ", kitchen_temp)
+    # elif topic == "Humidity/Kitchen"
         kitchen_hum = payload['kitchen']['humidity']
-
+        print("Kitchen Humidity: ", kitchen_hum)
+    
 
     elif topic == "Temperature/Room":
         room_temp = payload['room']['temperature']
+        print("Room Humidity: ", room_temp)
+    # elif topic = "Humidity/Room"
         room_hum = payload['room']['humidity']
+        print("Room Humidity: ", room_hum)
 
 
 # ---------------------------

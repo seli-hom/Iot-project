@@ -3,6 +3,7 @@ from models import database as db
 from models import customers, users
 from services import email_service
 import bcrypt
+from public.assets.python import phase_2
 
 app = Blueprint('store', __name__)
 
@@ -27,7 +28,11 @@ def storeDashboard():
         notifications=notifications,
         temp=4,
         hm=65,
-        type="Notice"
+        type="Notice",
+        kitchen_temp=kitchen_temp,
+        kitchen_hum=kitchen_hum,
+        room_temp=room_temp,
+        room_hum=room_hum,
     )
 
 @app.route('/api/notifications')
