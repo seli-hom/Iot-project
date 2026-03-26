@@ -1,0 +1,10 @@
+.page-content {
+    margin: 50px;
+}
+
+#form-container {
+    padding: 20px;
+    width: 500px;
+    border: 1px solid #d7d7d7;
+    border-radius: 10px;
+}

@@ -1,0 +1,22 @@
+{% extends "base.html" %} {% block content %}
+<!-- <h2>Home Page</h2> -->
+<!-- <br /> -->
+<!-- <a href="{{ url_for('store.customersRegistration') }}">Go To Customer Registration</a> -->
+<!-- <a href="{{url_for('store.customersList')}}"> Turn red light on </a> -->
+
+<div class="page-content text-center">
+  <div class="container py-5">
+    <h1 class="text-secondary mb-4">Welcome to the Smart Store!</h1>
+    <!-- <h3>Please login to continue</h3> -->
+    <!-- <p><b>OR</b></p> -->
+    <!-- <br> -->
+    <a href="{{ url_for('store.customersRegistration') }}" class="btn btn-primary btn-lg mb-3">
+      Register New Customer
+    </a>
+    <br>
+    <a href="{{ url_for('store.customersList') }}" class="btn btn-secondary">
+      View Existing Customers
+    </a>
+  </div>
+</div>
+{% endblock %}
