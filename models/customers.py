@@ -1,10 +1,10 @@
 import sqlite3
 import bcrypt
-try:
-    from scripts import gpio_blue_red as gpr
-except ModuleNotFoundError:
-    gpr = None  # for development purposes only
-    print("[ERROR] DPIO module not found")
+#try:
+   # from scripts import gpio_blue_red as gpr
+#except ModuleNotFoundError:
+   # gpr = None  # for development purposes only
+   # print("[ERROR] DPIO module not found")
 
 from models import database as db
 
@@ -31,15 +31,15 @@ def add_new_customer(first_name, last_name, email, phone, address, password=None
         store.commit()
 
         print("Customer added to database successfully.")
-        if gpr:
-            gpr.new_customer_success()
+        #if gpr:
+           # gpr.new_customer_success()
 
         return user_id
 
     except sqlite3.IntegrityError as e:
         print(f"Database error: {e}")
-        if gpr:
-            gpr.new_customer_fail()
+        #if gpr:
+        #    gpr.new_customer_fail()
         return False
     finally:
         store.close() 

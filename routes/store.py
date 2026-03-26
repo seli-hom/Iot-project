@@ -3,6 +3,7 @@ from models import database as db
 from models import customers
 from services import email_service
 import bcrypt 
+from scripts import getTemp
 
 app = Blueprint('store', __name__)
 
@@ -63,6 +64,12 @@ def get_notifications():
 def customersList():
     all_customers = customers.select_customers()
     return render_template('customersList.html', customers=all_customers)
+
+@app.route('/temp')
+def get_temp():
+    data = getTemp.get_temp()
+    print(data)
+    return  data
 
 @app.route('/customers/registration', methods=['GET', 'POST'])
 def customersRegistration():
