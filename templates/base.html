@@ -88,7 +88,7 @@
                 <a href="{{ url_for('store.storeIndex') }}" class="text-white me-3 text-decoration-none">Home</a>
                 <a href="{{ url_for('store.customersRegistration') }}" class="text-white text-decoration-none">Register</a>
                 <a href="{{ url_for('store.storeDashboard') }}" class="text-white text-decoration-none">Dashboard</a>
-                <a href="{{ url_for('store.storeInbox') }}" class="text-white text-decoration-none">Inbox</a>
+                <a href="{{ url_for('store.viewInbox') }}" class="text-white text-decoration-none">Inbox</a>
             </div>
         </div>
       </footer>
@@ -422,6 +422,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
+</script>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const subject = params.get("subject");
+
+if(subject){
+    const id = "email-" + subject.replaceAll(" ", "-");
+    const el = document.getElementById(id);
+
+    if(el){
+        el.scrollIntoView({behavior:"smooth"});
+        el.classList.add("border-primary");
+    }
+}
 </script>
   </body>
 </html>

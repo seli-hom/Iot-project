@@ -246,10 +246,19 @@ def update_threshold():
 
     return jsonify({"status": "ok", "summary": summary})
 
-@app.route('/store-inbox')
+@app.route("/inbox", endpoint='viewInbox')  # Route is /inbox, endpoint is viewInbox
 def storeInbox():
-    emails = email_service.fetch_store_emails()
-    return render_template('viewInbox.html', emails=emails)
+    try:
+        emails = email_service.fetch_store_emails()
+        print("Fetched emails:", len(emails))
+    except Exception as e:
+        print("Inbox error:", e)
+        emails = []
+
+    return render_template(
+        "viewInbox.html",
+        emails=emails
+    )
 
 @app.route('/admin-dashboard')
 def adminDashboard():
