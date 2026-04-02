@@ -23,7 +23,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_fname TEXT NOT NULL,
-            last_lname TEXT NOT NULL,
+            user_lname TEXT NOT NULL,
             user_email TEXT UNIQUE NOT NULL,
             user_password TEXT,
             user_role TEXT DEFAULT 'customer',
@@ -32,7 +32,7 @@ def init_db():
         )
     ''')
 
-    # Initializing customers table
+    # Customers table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS customers (
             customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +43,6 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     ''')
-
     # Initializing customer loyalty table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS customer_loyalty (
@@ -192,6 +191,7 @@ def init_db():
     ''')
 
     # Populating the database
+
 
     storeDb.commit()
     storeDb.close()

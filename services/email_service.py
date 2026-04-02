@@ -61,31 +61,31 @@ def send_email(subject, body, html=None, recipients=None, roles=None):
 # -----------------------------
 # Send registration email
 # -----------------------------
-def send_registration_email(first_name, last_name, email_address, customer_id):
-    verification_url = url_for('store.customerVerification', customer_id=customer_id, _external=True)
+def send_registration_email(user_fname, user_lname, user_email, user_id):
+    verification_url = url_for('store.customerVerification', user_id=user_id, _external=True)
     send_email(
         "Welcome to the Smart Store!",
         f"Verify: {verification_url}",
         f"""
-        Hello {first_name} {last_name},<br><br>
+        Hello {user_fname} {user_lname},<br><br>
         Please verify your account:<br>
         <a href="{verification_url}">Verify Account</a>
         """,
-        recipients=[email_address]
+        recipients=[user_email]
     )
 
 
 # -----------------------------
 # New customer notification for admins
 # -----------------------------
-def send_new_customer_notification(first_name, last_name, email_address):
+def send_new_customer_notification(user_fname, user_lname, user_email):
     send_email(
         "New Customer Verified",
-        f"{first_name} {last_name} verified",
+        f"{user_fname} {user_lname} verified",
         f"""
         <b>New Customer Verified</b><br>
-        {first_name} {last_name}<br>
-        {email_address}
+        {user_fname} {userq}<br>
+        {user_email}
         """,
         roles=["admin"]
     )

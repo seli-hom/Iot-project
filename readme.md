@@ -58,6 +58,7 @@ IOT-PROJECT
 </pre>
 
 <br>
+
 *TODO: add more detailed descript of each part, its purpose and how it works.
 
 ## Application Entry

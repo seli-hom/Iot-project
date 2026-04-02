@@ -6,6 +6,9 @@ import bcrypt
 
 app = Blueprint('store', __name__)
 
+# -----------------------------
+# STORE HOME / DASHBOARD
+# -----------------------------
 @app.route('/')
 def storeIndex():
     return render_template('index.html')
@@ -14,21 +17,24 @@ def storeIndex():
 @app.route('/store-dashboard')
 def storeDashboard():
     storeDb = db.getDB()
-    notifications = storeDb.execute('''
-        SELECT * FROM notifications
-        ORDER BY notif_created_at DESC
-        LIMIT 5
-    ''').fetchall()
+    # notifications = storeDb.execute('''
+    #     SELECT * FROM notifications
+    #     ORDER BY notif_created_at DESC
+    #     LIMIT 5
+    # ''').fetchall()
     storeDb.close()
     return render_template(
         'storeDashboard.html',
-        notifications=notifications,
+        # notifications=notifications,
         temp=4,
         hm=65,
         type="Notice"
     )
 
 
+# -----------------------------
+# NOTIFICATIONS API
+# -----------------------------
 @app.route('/api/notifications')
 def get_notifications():
     storeDb = db.getDB()
@@ -58,6 +64,9 @@ def get_notifications():
         storeDb.close()
 
 
+# -----------------------------
+# CUSTOMER ROUTES
+# -----------------------------
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
@@ -72,50 +81,62 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
-                INSERT INTO users (user_fname, last_lname, user_email, user_role, user_verified)
+                INSERT INTO users 
+                (user_fname, user_lname, user_email, user_role, user_verified)
                 VALUES (?, ?, ?, 'customer', 0)
-            ''', (request.form['first_name'], request.form['last_name'], request.form['email']))
+            ''', (
+                request.form['user_fname'],
+                request.form['user_lname'],
+                request.form['user_email']
+            ))
+
             storeDb.commit()
             new_user_id = cur.lastrowid
-
-            customer_id = customers.add_new_customer(
-                new_user_id,
-                request.form['phone'],
-                request.form['address']
-            )
-
-            if not customer_id:
-                raise Exception("Failed to create customer profile")
+            print("User created:", new_user_id)
 
             try:
+                # -------------------------------
+                # Send registration email
+                # -------------------------------
                 from services.email_service import send_registration_email
                 send_registration_email(
-                    request.form['first_name'],
-                    request.form['last_name'],
-                    request.form['email'],
+                    request.form['user_fname'],
+                    request.form['user_lname'],
+                    request.form['user_email'],
                     new_user_id
                 )
-                message = "Customer added successfully. Verification email sent!"
+                message = "Customer invited successfully. Verification email sent!"
                 success = True
+
             except Exception as e:
+                import traceback
                 print("Email sending failed:", e)
-                message = "Customer added, but failed to send verification email."
+                traceback.print_exc()
+                message = "User created, but email failed."
                 success = False
 
         except Exception as e:
-            print("Error creating customer:", e)
-            message = "Error: Customer could not be added."
+            print("Error creating user:", e)
+            message = "Error creating user"
             success = False
+
         finally:
             storeDb.close()
 
-    return render_template('customersRegistration.html', message=message, success=success)
+    return render_template(
+        'customersRegistration.html',
+        message=message,
+        success=success
+    )
 
 
-@app.route('/verify/<int:customer_id>', methods=['GET', 'POST'])
-def customerVerification(customer_id):
+@app.route('/verify/<int:user_id>', methods=['GET', 'POST'])
+def customerVerification(user_id):
     storeDb = db.getDB()
-    user = storeDb.execute('SELECT * FROM users WHERE user_id = ?', (customer_id,)).fetchone()
+    user = storeDb.execute(
+        'SELECT * FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
 
     message = None
     success = None
@@ -124,7 +145,11 @@ def customerVerification(customer_id):
         message = "Invalid verification link."
         success = False
         storeDb.close()
-        return render_template('customersVerification.html', message=message, success=success)
+        return render_template(
+            'customersVerification.html',
+            message=message,
+            success=success
+        )
 
     if request.method == 'POST':
         password = request.form.get('password')
@@ -134,32 +159,53 @@ def customerVerification(customer_id):
             message = "Please fill in both password fields."
             success = False
         elif password != confirm_password:
-            message = "Passwords do not match. Please try again."
+            message = "Passwords do not match."
             success = False
         else:
-            hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            storeDb.execute(
-                'UPDATE users SET user_password = ?, user_verified = 1 WHERE user_id = ?',
-                (hashed_pw, customer_id)
-            )
-            storeDb.commit()
-            message = "Your account has been verified!"
-            success = True
-
             try:
-                from services.email_service import send_new_customer_notification
-                send_new_customer_notification(
-                    user['user_fname'],
-                    user['last_lname'],
-                    user['user_email']
+                hashed_pw = bcrypt.hashpw(
+                    password.encode('utf-8'),
+                    bcrypt.gensalt()
                 )
+
+                storeDb.execute('''
+                    UPDATE users 
+                    SET user_password = ?, user_verified = 1 
+                    WHERE user_id = ?
+                ''', (hashed_pw, user_id))
+
+                customers.add_new_customer(user_id, None, None)
+                storeDb.commit()
+
+                message = "Your account has been verified!"
+                success = True
+
+                try:
+                    from services.email_service import send_new_customer_notification
+                    send_new_customer_notification(
+                        user['user_fname'],
+                        user['user_lname'],
+                        user['user_email']
+                    )
+                except Exception as e:
+                    print("Admin notification email failed:", e)
+
             except Exception as e:
-                print("Email fail:", e)
+                print("Verification error:", e)
+                message = "Error verifying account."
+                success = False
 
     storeDb.close()
-    return render_template('customersVerification.html', message=message, success=success)
+    return render_template(
+        'customersVerification.html',
+        message=message,
+        success=success
+    )
 
 
+# -----------------------------
+# LOGIN / LOGOUT
+# -----------------------------
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form.get('email')
@@ -180,7 +226,7 @@ def login():
 
     if user['user_password'] and bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
-        session['user_first_name'] = user['user_fname']
+        session['user_fname'] = user['user_fname']
         session['user_role'] = user['user_role']
 
     return redirect(url_for('store.storeIndex'))
@@ -192,6 +238,9 @@ def logout():
     return redirect(url_for('store.storeIndex'))
 
 
+# -----------------------------
+# FAN / THRESHOLD ROUTES
+# -----------------------------
 @app.route('/fan', methods=['POST'])
 def toggle_fan():
     data = request.get_json()
@@ -199,7 +248,6 @@ def toggle_fan():
         return jsonify({"status": "error", "msg": "Missing 'state' in request"}), 400
 
     state = data["state"]
-
     storeDb = db.getDB()
     title = "Fan Update"
     summary = f"Fan {'ON' if state else 'OFF'}"
@@ -250,6 +298,9 @@ def update_threshold():
     return jsonify({"status": "ok", "summary": summary})
 
 
+# -----------------------------
+# INBOX
+# -----------------------------
 @app.route("/inbox", endpoint='viewInbox')
 def storeInbox():
     try:
@@ -259,12 +310,12 @@ def storeInbox():
         print("Inbox error:", e)
         emails = []
 
-    return render_template(
-        "viewInbox.html",
-        emails=emails
-    )
+    return render_template("viewInbox.html", emails=emails)
 
 
+# -----------------------------
+# ADMIN DASHBOARD
+# -----------------------------
 @app.route('/admin-dashboard')
 def adminDashboard():
     storeDb = db.getDB()
@@ -304,9 +355,11 @@ def adminDashboard():
         db_stats=db_stats
     )
 
-
-@app.route('/admin/user/<int:id>/update', methods=['POST'])
-def adminUpdateUser(id):
+# -----------------------------
+# ADMIN USER UPDATE / DELETE
+# -----------------------------
+@app.route('/admin/user/<int:user_id>/update', methods=['POST'])
+def adminUpdateUser(user_id):
     if session.get('user_role') != 'admin':
         flash("Unauthorized.", "danger")
         return redirect(url_for('store.storeIndex'))
@@ -317,7 +370,7 @@ def adminUpdateUser(id):
     storeDb = db.getDB()
     storeDb.execute(
         'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
-        (role, verified, id)
+        (role, verified, user_id)
     )
     storeDb.commit()
     storeDb.close()
@@ -326,14 +379,14 @@ def adminUpdateUser(id):
     return redirect(url_for('store.adminDashboard'))
 
 
-@app.route('/admin/user/<int:id>/delete', methods=['POST'])
-def adminDeleteUser(id):
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+def adminDeleteUser(user_id):
     if session.get('user_role') != 'admin':
         flash("Unauthorized.", "danger")
         return redirect(url_for('store.storeIndex'))
 
     storeDb = db.getDB()
-    storeDb.execute('DELETE FROM users WHERE user_id = ?', (id,))
+    storeDb.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
     storeDb.commit()
     storeDb.close()
 
@@ -341,6 +394,9 @@ def adminDeleteUser(id):
     return redirect(url_for('store.adminDashboard'))
 
 
+# -----------------------------
+# PRODUCTS / CART / CHECKOUT
+# -----------------------------
 @app.route('/products-gallery')
 def productGallery():
     storeDb = db.getDB()
@@ -431,25 +487,8 @@ def addToCart():
 
 @app.route('/self-checkout')
 def selfCheckout():
-    # if 'user_email' not in session:
-    #     flash("Please log in to checkout.", "warning")
-    #     return redirect(url_for('store.storeIndex'))
-
     storeDb = db.getDB()
-    # user = storeDb.execute("SELECT user_id FROM users WHERE user_email = ?", (session['user_email'],)).fetchone()
     cart_items = []
     cart_total = 0.0
-
-    # if user:
-    #     cart = storeDb.execute("SELECT * FROM cart WHERE user_id = ?", (user['user_id'],)).fetchone()
-    #     if cart:
-    #         cart_items = storeDb.execute("""
-    #             SELECT cp.cart_product_id, cp.cart_product_quantity, cp.cart_product_price, p.product_name, p.product_id
-    #             FROM cart_products cp
-    #             JOIN products p ON cp.product_id = p.product_id
-    #             WHERE cp.cart_id = ?
-    #         """, (cart['cart_id'],)).fetchall()
-    #         cart_total = sum(item['cart_product_quantity'] * item['cart_product_price'] for item in cart_items)
-
     storeDb.close()
     return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)

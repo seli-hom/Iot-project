@@ -6,15 +6,17 @@ except ModuleNotFoundError:
     gpr = None  # for development purposes only
     print("[ERROR] DPIO module not found")
 
-def add_new_customer(user_id, phone, address):
+def add_new_customer(user_id, phone=None, address=None):
     """
-    Adds a new customer profile linked to a user
-    Returns the new customer ID if successful, False otherwise
+    Adds a new customer profile linked to a user.
+    Returns the new customer ID if successful, False otherwise.
     """
     store = db.getDB()
+
     try:
         cur = store.execute('''
-            INSERT INTO customers (user_id, phone, address)
+            INSERT INTO customers 
+            (user_id, customer_phone, customer_address)
             VALUES (?, ?, ?)
         ''', (user_id, phone, address))
 
@@ -22,6 +24,7 @@ def add_new_customer(user_id, phone, address):
         customer_id = cur.lastrowid
 
         print(f"Customer profile added successfully: user_id={user_id}, customer_id={customer_id}")
+
         if gpr:
             gpr.new_customer_success()
 
@@ -32,33 +35,40 @@ def add_new_customer(user_id, phone, address):
         if gpr:
             gpr.new_customer_fail()
         return False
+
     finally:
         store.close()
 
 
 def select_customers():
     """
-    Returns a list of all customers, joined with their user info
+    Returns a list of all customers joined with their user info.
     """
     storeDb = db.getDB()
     try:
-        customers = storeDb.execute('''
-            SELECT customers.*, users.first_name, users.last_name, users.email, users.role, users.verified
+        customers_list = storeDb.execute('''
+            SELECT customers.*, 
+                   users.user_fname,
+                   users.user_lname,
+                   users.user_email,
+                   users.user_role,
+                   users.user_verified
             FROM customers
-            JOIN users ON customers.user_id = users.id
+            JOIN users 
+            ON customers.user_id = users.user_id
         ''').fetchall()
-        return customers
+        return customers_list
     finally:
         storeDb.close()
 
 
 def update_customer_role(user_id, new_role):
     """
-    Update a user's role (customer, employee, admin)
+    Update a user's role (customer, employee, admin).
     """
     storeDb = db.getDB()
     try:
-        storeDb.execute('UPDATE users SET role = ? WHERE id = ?', (new_role, user_id))
+        storeDb.execute('UPDATE users SET user_role = ? WHERE user_id = ?', (new_role, user_id))
         storeDb.commit()
         print(f"Updated role for user_id={user_id} to '{new_role}'")
         return True
@@ -71,11 +81,11 @@ def update_customer_role(user_id, new_role):
 
 def delete_customer(user_id):
     """
-    Deletes a user and associated customer profile
+    Deletes a user and associated customer profile.
     """
     storeDb = db.getDB()
     try:
-        storeDb.execute('DELETE FROM users WHERE id = ?', (user_id,))
+        storeDb.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
         storeDb.commit()
         print(f"Deleted user and associated customer profile: user_id={user_id}")
         return True
