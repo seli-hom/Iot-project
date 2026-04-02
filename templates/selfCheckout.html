@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container checkout-page">
+
+<h1 class="mb-4">Self Checkout</h1>
+
+{% if not cart_items %}
+<p>Your cart is empty. Scan items to begin checkout.</p>
+{% else %}
+
+<div class="checkout-grid">
+
+
+<div class="order-summary">
+
+<h2>Scanned Items</h2>
+
+<ul class="summary-items">
+
+{% for item in cart_items %}
+<li class="summary-item">
+<span>
+{{ item.product_name }} (x{{ item.item_quantity }})
+</span>
+
+<strong>
+${{ "%.2f"|format(item.product_price * item.item_quantity) }}
+</strong>
+</li>
+{% endfor %}
+
+</ul>
+
+<div class="summary-total">
+
+<strong>Total:</strong>
+
+<span>
+${{ "%.2f"|format(cart_total) }}
+</span>
+
+</div>
+
+</div>
+
+
+
+
+<form method="POST"
+action="{{ url_for('store.selfCheckoutSubmit') }}"
+class="checkout-form">
+
+<h2>Customer Confirmation</h2>
+
+<label>
+Email for Receipt
+<br>
+<input
+type="email"
+name="email"
+required
+>
+</label>
+
+<label>
+Phone (optional)
+<br>
+<input
+type="text"
+name="phone"
+>
+</label>
+
+
+<h2>Payment Method</h2>
+
+<label>
+<input
+type="radio"
+name="payment_method"
+value="tap"
+checked
+>
+Tap / NFC
+</label>
+
+<label>
+<input
+type="radio"
+name="payment_method"
+value="card">
+Chip / Card
+</label>
+
+<label>
+<input
+type="radio"
+name="payment_method"
+value="mobile">
+Mobile Pay
+</label>
+
+
+<div class="payment-placeholder">
+<p>
+Tap your card on the reader to complete payment
+</p>
+</div>
+
+<button
+type="submit"
+class="checkout-submit btn btn-primary mt-3">
+
+Complete Self Checkout
+
+</button>
+
+</form>
+
+</div>
+
+{% endif %}
+
+</div>
+
+{% endblock %}

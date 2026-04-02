@@ -10,72 +10,95 @@
   </head>
   <body>
     <main>
-      <!-- Navbar: -->
-      <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+        <!-- Navbar: -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
         <div class="container">
-          <a class="navbar-brand" href="{{ url_for('store.storeIndex') }}">
+            <a class="navbar-brand" href="{{ url_for('store.storeIndex') }}">
             <b>IoT Project - Smart Store</b>
-          </a>
+            </a>
 
-          <div class="ms-auto text-white d-flex align-items-center">
-            {% if session.get('user_first_name') %}
-              <!-- logged-in view -->
-              <span class="me-2">Welcome {{ session['user_first_name'] }}</span>
-              <form method="GET" action="{{ url_for('store.logout') }}">
-                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
-              </form>
-            {% else %}
-              <!-- logged-out view -->
-              <span class="me-2">Welcome Anon</span>
-              <div class="dropdown">
-                <button class="btn btn-primary dropdown-toggle"
-                        type="button"
-                        id="loginDropdown"
-                        data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside"
-                        aria-expanded="false">
-                  Please login
-                </button>
-                <div class="dropdown-menu dropdown-menu-end p-4 shadow"
-                    aria-labelledby="loginDropdown"
-                    style="min-width: 320px;">
-                  <!-- login form -->
-                  <form method="POST" action="{{ url_for('store.login') }}">
-                    <div class="mb-3">
-                      <label class="form-label">Email address</label>
-                      <input type="email"
-                            name="email"
-                            class="form-control"
-                            placeholder="email@example.com"
-                            required>
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label">Password</label>
-                      <input type="password"
-                            name="password"
-                            class="form-control"
-                            placeholder="Password"
-                            required>
-                    </div>
-                    <div class="form-check mb-3">
-                      <input type="checkbox"
-                            name="remember"
-                            class="form-check-input"
-                            id="rememberCheck">
-                      <label class="form-check-label" for="rememberCheck">
-                        Remember me
-                      </label>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">
-                      Sign in
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+            aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarContent">
+            <!-- Left-aligned links -->
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('store.storeIndex') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('store.productGallery') }}">Products</a>
+                </li>
+                <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('store.cartPage') }}">
+                    Cart
+                    {% if session.get('cart_count') %}
+                    <span class="badge bg-warning text-dark">{{ session['cart_count'] }}</span>
+                    {% endif %}
+                </a>
+                </li>
+            </ul>
+
+            <!-- Right-aligned login/logout -->
+            <div class="d-flex align-items-center">
+                {% if session.get('user_first_name') %}
+                <span class="text-white me-2">Welcome {{ session['user_first_name'] }}</span>
+                <form method="GET" action="{{ url_for('store.logout') }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+                </form>
+                {% else %}
+                <span class="text-white me-2">Welcome Anon</span>
+                <div class="dropdown">
+                    <button class="btn btn-primary dropdown-toggle"
+                            type="button"
+                            id="loginDropdown"
+                            data-bs-toggle="dropdown"
+                            data-bs-auto-close="outside"
+                            aria-expanded="false">
+                    Please login
                     </button>
-                  </form>
+                    <div class="dropdown-menu dropdown-menu-end p-4 shadow"
+                        aria-labelledby="loginDropdown"
+                        style="min-width: 320px;">
+                    <form method="POST" action="{{ url_for('store.login') }}">
+                        <div class="mb-3">
+                        <label class="form-label">Email address</label>
+                        <input type="email"
+                                name="email"
+                                class="form-control"
+                                placeholder="email@example.com"
+                                required>
+                        </div>
+                        <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password"
+                                name="password"
+                                class="form-control"
+                                placeholder="Password"
+                                required>
+                        </div>
+                        <div class="form-check mb-3">
+                        <input type="checkbox"
+                                name="remember"
+                                class="form-check-input"
+                                id="rememberCheck">
+                        <label class="form-check-label" for="rememberCheck">
+                            Remember me
+                        </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                        Sign in
+                        </button>
+                    </form>
+                    </div>
                 </div>
-              </div>
-            {% endif %}
-          </div>
+                {% endif %}
+            </div>
+            </div>
         </div>
-      </nav>
+        </nav>
 
       <!-- Main Content: -->
       <div class="container mt-4">{% block content %}{% endblock %}</div>
@@ -100,343 +123,344 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-gauges/gauge.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
- <script>
-function drawOverlayGauge(canvasId, minGood, maxGood, maxValue) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+    <script>
+    function drawOverlayGauge(canvasId, minGood, maxGood, maxValue) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
 
-    if (canvas.chart) {
-        canvas.chart.destroy();
-    }
-
-    const badBefore = minGood;
-    const good = maxGood - minGood;
-    const badAfter = maxValue - maxGood;
-
-    const chart = new Chart(canvas, {
-        type: 'doughnut',
-        data: {
-            datasets: [{
-                data: [badBefore, good, badAfter],
-                backgroundColor: [
-                    '#ffe66d90',
-                    '#73a56b90',
-                    '#ff6b6b90'
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            rotation: -90,
-            circumference: 180,
-            cutout: '83%',
-            plugins: { legend: { display: false }, tooltip: { enabled: false } }
+        if (canvas.chart) {
+            canvas.chart.destroy();
         }
-    });
 
-    canvas.chart = chart;
-}
+        const badBefore = minGood;
+        const good = maxGood - minGood;
+        const badAfter = maxValue - maxGood;
 
-function createNeedleGauge(canvasId, value, min, max, units, ticks) {
-    const canvas = document.getElementById(canvasId);
-    if (!canvas) return;
+        const chart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [badBefore, good, badAfter],
+                    backgroundColor: [
+                        '#ffe66d90',
+                        '#73a56b90',
+                        '#ff6b6b90'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                rotation: -90,
+                circumference: 180,
+                cutout: '83%',
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            }
+        });
 
-    new RadialGauge({
-        renderTo: canvasId,
-        width: 200,
-        height: 200,
-        minValue: min,
-        maxValue: max,
-        value: value,
-        units: units,
-        majorTicks: ticks,
-        minorTicks: 1,
-        strokeTicks: true,
-        highlights: [],
-        colorPlate: "#EEE",
-        borders: false,
-        needleType: "line",
-        needleWidth: 3,
-        needleCircleSize: 12,
-        needleCircleOuter: true,
-        animationDuration: 600
-    }).draw();
-}
-
-const fanIcon = document.getElementById("fanIcon");
-const fanToggle = document.getElementById("fanToggle");
-
-function updateFanVisual(isOn) {
-    if (isOn) {
-        fanIcon.classList.remove('fan-off');
-        fanIcon.classList.add('fan-on');
-    } else {
-        fanIcon.classList.remove('fan-on');
-        fanIcon.classList.add('fan-off');
+        canvas.chart = chart;
     }
-}
 
-fanToggle.addEventListener('change', () => {
-    const isOn = fanToggle.checked;
-    updateFanVisual(isOn);
+    function createNeedleGauge(canvasId, value, min, max, units, ticks) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
 
-    fetch('/fan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: isOn })
-    })
-    .then(res => res.json())
-    .then(data => console.log('Fan toggled:', data))
-    .catch(err => console.error(err));
-});
+        new RadialGauge({
+            renderTo: canvasId,
+            width: 200,
+            height: 200,
+            minValue: min,
+            maxValue: max,
+            value: value,
+            units: units,
+            majorTicks: ticks,
+            minorTicks: 1,
+            strokeTicks: true,
+            highlights: [],
+            colorPlate: "#EEE",
+            borders: false,
+            needleType: "line",
+            needleWidth: 3,
+            needleCircleSize: 12,
+            needleCircleOuter: true,
+            animationDuration: 600
+        }).draw();
+    }
 
-updateFanVisual(fanToggle.checked);
-document.addEventListener("DOMContentLoaded", function() {
-    const placeholderFridges = [
-        { temp: 4, tempMax: 10, tempMin: 0, humidity: 65, humMax: 100, humMin: 0, fan: true },
-        { temp: 6, tempMax: 10, tempMin: 0, humidity: 55, humMax: 100, humMin: 0, fan: false }
-    ];
+    const fanIcon = document.getElementById("fanIcon");
+    const fanToggle = document.getElementById("fanToggle");
 
-    placeholderFridges.forEach((fridge, index) => {
-        const idx = index + 1;
+    function updateFanVisual(isOn) {
+        if (isOn) {
+            fanIcon.classList.remove('fan-off');
+            fanIcon.classList.add('fan-on');
+        } else {
+            fanIcon.classList.remove('fan-on');
+            fanIcon.classList.add('fan-off');
+        }
+    }
 
-        const tempMinEl = document.getElementById(`tempMin${idx}`);
-        const tempMaxEl = document.getElementById(`tempMax${idx}`);
-        const humMinEl = document.getElementById(`humMin${idx}`);
-        const humMaxEl = document.getElementById(`humMax${idx}`);
+    fanToggle.addEventListener('change', () => {
+        const isOn = fanToggle.checked;
+        updateFanVisual(isOn);
 
-        if (!tempMinEl || !tempMaxEl || !humMinEl || !humMaxEl) return;
-
-        const tempMin = parseFloat(tempMinEl.value);
-        const tempMax = parseFloat(tempMaxEl.value);
-        const humMin = parseFloat(humMinEl.value);
-        const humMax = parseFloat(humMaxEl.value);
-
-        drawOverlayGauge(`tempGaugeBg${idx}`, tempMin, tempMax, fridge.tempMax);
-        drawOverlayGauge(`humidityGaugeBg${idx}`, humMin, humMax, fridge.humMax);
-
-        createNeedleGauge(
-            `tempGaugeNeedle${idx}`,
-            fridge.temp,
-            fridge.tempMin,
-            fridge.tempMax,
-            "°C",
-            ["0","2","4","6","8","10"]
-        );
-
-        createNeedleGauge(
-            `humidityGaugeNeedle${idx}`,
-            fridge.humidity,
-            fridge.humMin,
-            fridge.humMax,
-            "%",
-            ["0","20","40","60","80","100"]
-        );
+        fetch('/fan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ state: isOn })
+        })
+        .then(res => res.json())
+        .then(data => console.log('Fan toggled:', data))
+        .catch(err => console.error(err));
     });
 
-    document.querySelectorAll('input[type="number"]').forEach(input => {
-        input.addEventListener('change', () => {
-            placeholderFridges.forEach((fridge, index) => {
-                const idx = index + 1;
+    updateFanVisual(fanToggle.checked);
+    document.addEventListener("DOMContentLoaded", function() {
+        const placeholderFridges = [
+            { temp: 4, tempMax: 10, tempMin: 0, humidity: 65, humMax: 100, humMin: 0, fan: true },
+            { temp: 6, tempMax: 10, tempMin: 0, humidity: 55, humMax: 100, humMin: 0, fan: false }
+        ];
 
-                const tempMinEl = document.getElementById(`tempMin${idx}`);
-                const tempMaxEl = document.getElementById(`tempMax${idx}`);
-                const humMinEl = document.getElementById(`humMin${idx}`);
-                const humMaxEl = document.getElementById(`humMax${idx}`);
+        placeholderFridges.forEach((fridge, index) => {
+            const idx = index + 1;
 
-                if (!tempMinEl || !tempMaxEl || !humMinEl || !humMaxEl) return;
+            const tempMinEl = document.getElementById(`tempMin${idx}`);
+            const tempMaxEl = document.getElementById(`tempMax${idx}`);
+            const humMinEl = document.getElementById(`humMin${idx}`);
+            const humMaxEl = document.getElementById(`humMax${idx}`);
 
-                const tempMin = parseFloat(tempMinEl.value);
-                const tempMax = parseFloat(tempMaxEl.value);
-                const humMin = parseFloat(humMinEl.value);
-                const humMax = parseFloat(humMaxEl.value);
+            if (!tempMinEl || !tempMaxEl || !humMinEl || !humMaxEl) return;
 
-                drawOverlayGauge(`tempGaugeBg${idx}`, tempMin, tempMax, fridge.tempMax);
-                drawOverlayGauge(`humidityGaugeBg${idx}`, humMin, humMax, fridge.humMax);
+            const tempMin = parseFloat(tempMinEl.value);
+            const tempMax = parseFloat(tempMaxEl.value);
+            const humMin = parseFloat(humMinEl.value);
+            const humMax = parseFloat(humMaxEl.value);
+
+            drawOverlayGauge(`tempGaugeBg${idx}`, tempMin, tempMax, fridge.tempMax);
+            drawOverlayGauge(`humidityGaugeBg${idx}`, humMin, humMax, fridge.humMax);
+
+            createNeedleGauge(
+                `tempGaugeNeedle${idx}`,
+                fridge.temp,
+                fridge.tempMin,
+                fridge.tempMax,
+                "°C",
+                ["0","2","4","6","8","10"]
+            );
+
+            createNeedleGauge(
+                `humidityGaugeNeedle${idx}`,
+                fridge.humidity,
+                fridge.humMin,
+                fridge.humMax,
+                "%",
+                ["0","20","40","60","80","100"]
+            );
+        });
+
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('change', () => {
+                placeholderFridges.forEach((fridge, index) => {
+                    const idx = index + 1;
+
+                    const tempMinEl = document.getElementById(`tempMin${idx}`);
+                    const tempMaxEl = document.getElementById(`tempMax${idx}`);
+                    const humMinEl = document.getElementById(`humMin${idx}`);
+                    const humMaxEl = document.getElementById(`humMax${idx}`);
+
+                    if (!tempMinEl || !tempMaxEl || !humMinEl || !humMaxEl) return;
+
+                    const tempMin = parseFloat(tempMinEl.value);
+                    const tempMax = parseFloat(tempMaxEl.value);
+                    const humMin = parseFloat(humMinEl.value);
+                    const humMax = parseFloat(humMaxEl.value);
+
+                    drawOverlayGauge(`tempGaugeBg${idx}`, tempMin, tempMax, fridge.tempMax);
+                    drawOverlayGauge(`humidityGaugeBg${idx}`, humMin, humMax, fridge.humMax);
+                });
             });
         });
     });
-});
-</script>
+    </script>
 
-<script>
-function sendThresholdUpdate(fridgeId) {
-    const tempMin = document.getElementById(`tempMin${fridgeId}`)?.value;
-    const tempMax = document.getElementById(`tempMax${fridgeId}`)?.value;
-    const humMin = document.getElementById(`humMin${fridgeId}`)?.value;
-    const humMax = document.getElementById(`humMax${fridgeId}`)?.value;
+    <script>
+    function sendThresholdUpdate(fridgeId) {
+        const tempMin = document.getElementById(`tempMin${fridgeId}`)?.value;
+        const tempMax = document.getElementById(`tempMax${fridgeId}`)?.value;
+        const humMin = document.getElementById(`humMin${fridgeId}`)?.value;
+        const humMax = document.getElementById(`humMax${fridgeId}`)?.value;
 
-    fetch('/threshold/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            fridge: fridgeId,
-            tempMin,
-            tempMax,
-            humMin,
-            humMax
-        })
-    });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    ['1','2'].forEach(id => {
-        ['tempMin','tempMax','humMin','humMax'].forEach(prefix => {
-            const el = document.getElementById(`${prefix}${id}`);
-            if (el) {
-                el.addEventListener('change', () => {
-                    sendThresholdUpdate(id);
-                });
-            }
+        fetch('/threshold/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fridge: fridgeId,
+                tempMin,
+                tempMax,
+                humMin,
+                humMax
+            })
         });
-    });
-});
-</script>
+    }
 
-<script>
-async function loadNotifications() {
-    try {
-        const res = await fetch('/api/notifications');
-        if (!res.ok) throw new Error("Failed to fetch notifications");
-
-        const notifications = await res.json();
-        const container = document.getElementById('notifications-container');
-        container.innerHTML = '';
-
-        if (!notifications || notifications.length === 0) {
-            container.innerHTML = '<div class="text-muted">No notifications</div>';
-            return;
-        }
-
-        notifications.forEach(notif => {
-            const div = document.createElement('div');
-            div.className = 'border-bottom pb-2 mb-2';
-
-            div.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <b>${notif.title}</b> - <small class="text-muted">${notif.created_at}</small>
-                    </div>
-                    <button class="btn btn-sm btn-link p-0" style="font-size:0.85em;">Show more</button>
-                </div>
-                <div class="notif-summary mt-1">${notif.summary}</div>
-                <div class="notif-extended mt-1 text-muted" style="display:none; font-size:0.85em;">
-                    ${notif.extended}
-                </div>
-            `;
-
-            const toggleBtn = div.querySelector('button');
-            const extendedDiv = div.querySelector('.notif-extended');
-
-            toggleBtn.addEventListener('click', () => {
-                if (extendedDiv.style.display === 'none') {
-                    extendedDiv.style.display = 'block';
-                    toggleBtn.innerText = 'Show less';
-                } else {
-                    extendedDiv.style.display = 'none';
-                    toggleBtn.innerText = 'Show more';
+    document.addEventListener("DOMContentLoaded", () => {
+        ['1','2'].forEach(id => {
+            ['tempMin','tempMax','humMin','humMax'].forEach(prefix => {
+                const el = document.getElementById(`${prefix}${id}`);
+                if (el) {
+                    el.addEventListener('change', () => {
+                        sendThresholdUpdate(id);
+                    });
                 }
             });
-
-            container.appendChild(div);
         });
-
-    } catch (err) {
-        console.error(err);
-        document.getElementById('notifications-container').innerHTML =
-            '<div class="text-danger">Failed to load notifications</div>';
-    }
-}
-
-loadNotifications();
-
-setInterval(loadNotifications, 10000);
-</script>
-
-<script>
-// sidebar highlight + card + subtab title
-document.addEventListener('DOMContentLoaded', () => {
-    const sidebarLinks = document.querySelectorAll('.admin-sidebar .nav-link');
-    const cards = document.querySelectorAll('.dashboard-card, #all-users-section');
-
-    // Map each link to its card element
-    const linkToCardMap = {};
-    sidebarLinks.forEach(link => {
-        const targetId = link.getAttribute('href').split('#')[1]; // get id after #
-        const card = document.getElementById(targetId);
-        if (card) linkToCardMap[targetId] = card;
     });
+    </script>
 
-    // Click handler
-    sidebarLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            cards.forEach(c => c.classList.remove('active'));
-            sidebarLinks.forEach(l => l.classList.remove('active'));
+    <script>
+    async function loadNotifications() {
+        try {
+            const res = await fetch('/api/notifications');
+            if (!res.ok) throw new Error("Failed to fetch notifications");
 
-            link.classList.add('active');
+            const notifications = await res.json();
+            const container = document.getElementById('notifications-container');
+            container.innerHTML = '';
 
-            const targetId = link.getAttribute('href').split('#')[1];
-            if (linkToCardMap[targetId]) {
-                const card = linkToCardMap[targetId];
-                card.classList.add('active');
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = '<div class="text-muted">No notifications</div>';
+                return;
+            }
 
-                // Remove any previous active-title highlights
-                cards.forEach(c => {
-                    const h5 = c.querySelector('h5');
-                    if (h5) h5.classList.remove('active-title');
+            notifications.forEach(notif => {
+                const div = document.createElement('div');
+                div.className = 'border-bottom pb-2 mb-2';
+
+                div.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <b>${notif.title}</b> - <small class="text-muted">${notif.created_at}</small>
+                        </div>
+                        <button class="btn btn-sm btn-link p-0" style="font-size:0.85em;">Show more</button>
+                    </div>
+                    <div class="notif-summary mt-1">${notif.summary}</div>
+                    <div class="notif-extended mt-1 text-muted" style="display:none; font-size:0.85em;">
+                        ${notif.extended}
+                    </div>
+                `;
+
+                const toggleBtn = div.querySelector('button');
+                const extendedDiv = div.querySelector('.notif-extended');
+
+                toggleBtn.addEventListener('click', () => {
+                    if (extendedDiv.style.display === 'none') {
+                        extendedDiv.style.display = 'block';
+                        toggleBtn.innerText = 'Show less';
+                    } else {
+                        extendedDiv.style.display = 'none';
+                        toggleBtn.innerText = 'Show more';
+                    }
                 });
 
-                // If the card has subtabs (temperature / humidity), highlight its title
-                const h5 = card.querySelector('h5');
-                if (h5) h5.classList.add('active-title');
-            }
+                container.appendChild(div);
+            });
+
+        } catch (err) {
+            console.error(err);
+            document.getElementById('notifications-container').innerHTML =
+                '<div class="text-danger">Failed to load notifications</div>';
+        }
+    }
+
+    loadNotifications();
+
+    setInterval(loadNotifications, 10000);
+    </script>
+
+    <script>
+    // sidebar highlight + card + subtab title
+    document.addEventListener('DOMContentLoaded', () => {
+        const sidebarLinks = document.querySelectorAll('.admin-sidebar .nav-link');
+        const cards = document.querySelectorAll('.dashboard-card, #all-users-section');
+
+        // Map each link to its card element
+        const linkToCardMap = {};
+        sidebarLinks.forEach(link => {
+            const targetId = link.getAttribute('href').split('#')[1]; // get id after #
+            const card = document.getElementById(targetId);
+            if (card) linkToCardMap[targetId] = card;
         });
-    });
 
-    // Optional: scroll spy highlight on scroll
-    window.addEventListener('scroll', () => {
-        const scrollPos = window.scrollY + 100; // offset for sticky sidebar
-
-        cards.forEach(card => {
-            const rect = card.getBoundingClientRect();
-            const cardTop = rect.top + window.scrollY;
-            const cardBottom = cardTop + rect.height;
-
-            const cardLink = [...sidebarLinks].find(link => linkToCardMap[link.getAttribute('href').split('#')[1]] === card);
-
-            if (scrollPos >= cardTop && scrollPos < cardBottom) {
+        // Click handler
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
                 cards.forEach(c => c.classList.remove('active'));
                 sidebarLinks.forEach(l => l.classList.remove('active'));
-                card.classList.add('active');
-                if (cardLink) cardLink.classList.add('active');
 
-                const h5 = card.querySelector('h5');
-                if (h5) {
+                link.classList.add('active');
+
+                const targetId = link.getAttribute('href').split('#')[1];
+                if (linkToCardMap[targetId]) {
+                    const card = linkToCardMap[targetId];
+                    card.classList.add('active');
+
+                    // Remove any previous active-title highlights
                     cards.forEach(c => {
-                        const h = c.querySelector('h5');
-                        if (h) h.classList.remove('active-title');
+                        const h5 = c.querySelector('h5');
+                        if (h5) h5.classList.remove('active-title');
                     });
-                    h5.classList.add('active-title');
+
+                    // If the card has subtabs (temperature / humidity), highlight its title
+                    const h5 = card.querySelector('h5');
+                    if (h5) h5.classList.add('active-title');
                 }
-            }
+            });
+        });
+
+        // Optional: scroll spy highlight on scroll
+        window.addEventListener('scroll', () => {
+            const scrollPos = window.scrollY + 100; // offset for sticky sidebar
+
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const cardTop = rect.top + window.scrollY;
+                const cardBottom = cardTop + rect.height;
+
+                const cardLink = [...sidebarLinks].find(link => linkToCardMap[link.getAttribute('href').split('#')[1]] === card);
+
+                if (scrollPos >= cardTop && scrollPos < cardBottom) {
+                    cards.forEach(c => c.classList.remove('active'));
+                    sidebarLinks.forEach(l => l.classList.remove('active'));
+                    card.classList.add('active');
+                    if (cardLink) cardLink.classList.add('active');
+
+                    const h5 = card.querySelector('h5');
+                    if (h5) {
+                        cards.forEach(c => {
+                            const h = c.querySelector('h5');
+                            if (h) h.classList.remove('active-title');
+                        });
+                        h5.classList.add('active-title');
+                    }
+                }
+            });
         });
     });
-});
-</script>
+    </script>
 
-<script>
-const params = new URLSearchParams(window.location.search);
-const subject = params.get("subject");
+    <script>
+    const params = new URLSearchParams(window.location.search);
+    const subject = params.get("subject");
 
-if(subject){
-    const id = "email-" + subject.replaceAll(" ", "-");
-    const el = document.getElementById(id);
+    if(subject){
+        const id = "email-" + subject.replaceAll(" ", "-");
+        const el = document.getElementById(id);
 
-    if(el){
-        el.scrollIntoView({behavior:"smooth"});
-        el.classList.add("border-primary");
+        if(el){
+            el.scrollIntoView({behavior:"smooth"});
+            el.classList.add("border-primary");
+        }
     }
-}
-</script>
+    </script>
+
   </body>
 </html>

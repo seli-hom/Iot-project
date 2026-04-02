@@ -93,51 +93,12 @@ def init_db():
         )
     ''')
 
-    # Initializing products table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            product_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id INTEGER DEFAULT NULL,
-            product_name TEXT NOT NULL,
-            product_description TEXT DEFAULT NULL,
-            product_price REAL NOT NULL,
-            product_stock_quantity INTEGER DEFAULT 0,
-            product_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            product_updated_at DATETIME,
-            FOREIGN KEY(category_id) REFERENCES categories(category_id)
-        )
-    ''')
-
-    # Initializing product RFID table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS product_rfid (
-            rfid_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            product_id INTEGER NOT NULL,
-            rfid_tag TEXT UNIQUE NOT NULL,
-            rfid_status TEXT DEFAULT 'ACTIVE',
-            rfid_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(product_id) REFERENCES products(product_id)
-        )
-    ''')
-
-    # Initializing self checkout sessions table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS self_checkout_sessions (
-            session_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            session_status TEXT DEFAULT 'ACTIVE',
-            session_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
-        )
-    ''')
-
     # Initializing orders table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
             order_total REAL NOT NULL,
-            payment_method TEXT,
             order_status TEXT DEFAULT 'PENDING',
             order_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(user_id)
@@ -154,6 +115,21 @@ def init_db():
             order_product_unit_price REAL DEFAULT NULL,
             FOREIGN KEY(order_id) REFERENCES orders(order_id),
             FOREIGN KEY(product_id) REFERENCES products(product_id)
+        )
+    ''')
+
+    # Initializing products table
+    storeDb.execute('''
+        CREATE TABLE IF NOT EXISTS products (
+            product_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category_id INTEGER DEFAULT NULL,
+            product_name TEXT NOT NULL,
+            product_description TEXT DEFAULT NULL,
+            product_price REAL NOT NULL,
+            product_stock_quantity INTEGER DEFAULT 0,
+            product_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            product_updated_at DATETIME,
+            FOREIGN KEY(category_id) REFERENCES categories(category_id)
         )
     ''')
 
