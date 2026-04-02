@@ -18,6 +18,7 @@ def init_db():
     storeDb = getDB()
 
     # Initializing users table
+    # ? should we update the user_verified to make use of a bool, or stick with the bits?
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -108,6 +109,16 @@ def init_db():
         )
     ''')
 
+    # Initializing product barcode table
+    storeDb.execute('''
+        CREATE TABLE IF NOT EXISTS product_barcode (
+            barcode_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            product_id INTEGER NOT NULL,
+            barcode_num TEXT UNIQUE NOT NULL,
+            FOREIGN KEY(product_id) REFERENCES products(product_id)
+        )
+    ''')
+
     # Initializing product RFID table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS product_rfid (
@@ -179,6 +190,8 @@ def init_db():
             FOREIGN KEY(product_id) REFERENCES products(product_id)
         )
     ''')
+
+    # Populating the database
 
     storeDb.commit()
     storeDb.close()
