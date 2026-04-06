@@ -21,15 +21,24 @@
 
 <ul class="summary-items">
 
-{% for item in cart_items %}
+<!-- {% for item in cart_items %}
 <li class="summary-item">
 <span>
-{{ item.product_name }} (x{{ item.item_quantity }})
-</span>
+{{ item.product_name }} (x{{ item.item_quantity | default(1) }})</span>
 
 <strong>
-${{ "%.2f"|format(item.product_price * item.item_quantity) }}
-</strong>
+${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}</strong>
+</li>
+{% endfor %} -->
+
+{% for item in cart_items %}
+<li class="summary-item">
+    <span>
+        {{ item.product_name }} (x{{ item.item_quantity | default(1) }})
+    </span>
+    <strong>
+        ${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}
+    </strong>
 </li>
 {% endfor %}
 
@@ -137,39 +146,50 @@ Complete Self Checkout
     console.log("Initial items on page:", currentItemCount);
 
     async function loadNotifications() {
-    const container = document.getElementById('notifications-container');
+        const container = document.getElementById('notifications-container');
         
         if (!container) {
-            console.debug("Notification container not found on this page. Skipping update.");
             return; 
         }
 
         try {
             const response = await fetch('/api/notifications');
+            if (!response.ok) return;
+            
             const data = await response.json();
             
-            container.innerHTML = data.map(n => `<div>${n.title}</div>`).join('');
+            // only run if 'container' exists
+            container.innerHTML = data.map(n => `
+                <div class="notif-item">
+                    <strong>${n.notif_title}</strong>
+                    <p>${n.notif_msg_summary}</p>
+                </div>
+            `).join('');
         } catch (err) {
-            console.error("Error loading notifications:", err);
+            console.debug("Notifications not available.");
         }
     }
 
     async function pollRFID() {
         try {
             const response = await fetch('/api/scan-basket');
-            
             if (!response.ok) return;
 
             const data = await response.json();
             
-            // Compare what the scanner sees vs what is currently on the screen
+            // If the scanner found nothing, but the UI has items, reload to clear it
+            if (!data.items && currentItemCount > 0) {
+                location.reload();
+                return;
+            }
+
+            // If the number of items changes, reload to show the new list
             if (data.item_count !== currentItemCount) {
-                console.log(`Change detected! UI: ${currentItemCount}, Scanner: ${data.item_count}`);
+                console.log("Hardware change detected. Refreshing...");
                 location.reload(); 
             }
         } catch (err) {
-            // Silently handle errors to keep the page from crashing
-            console.debug("Polling...");
+            console.debug("Polling RFID...");
         }
     }
 

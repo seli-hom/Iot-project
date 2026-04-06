@@ -495,17 +495,27 @@ def addToCart():
 #     return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
 @app.route('/self-checkout')
 def selfCheckout():
-    rfid = RFIDService()
-    # Let's use a slightly longer scan for the initial page load
-    receipt = rfid.get_checkout_data(scan_duration=2.0)
-    
-    # Use receipt.get to avoid KeyErrors if the scan found nothing
-    cart_items = receipt.get('items', []) if receipt else []
-    cart_total = receipt.get('total', 0.0) if receipt else 0.0
+    # Pull data from session instead of triggering a new hardware scan
+    cart_items = session.get('cart_items', [])
+    cart_total = session.get('cart_total', 0.0)
 
     return render_template('selfCheckout.html', 
                            cart_items=cart_items, 
                            cart_total=cart_total)
+
+@app.route('/self-checkout/submit', methods=['POST'])
+def selfCheckoutSubmit():
+    # Get user info from the form
+    email = request.form.get('email')
+    payment_method = request.form.get('payment_method')
+    
+    # Clear the session now that they've paid
+    session.pop('cart_items', None)
+    session.pop('cart_total', None)
+    
+    # redirect
+    flash(f"Thank you! A receipt has been sent to {email}.", "success")
+    return redirect(url_for('store.storeIndex'))
 
 # -----------------------------
 # RFID ROUTES
@@ -528,19 +538,19 @@ def scan_rfid():
 
 @app.route('/api/scan-basket')
 def scan_basket():
-    rfid = RFIDService()
-    tags = rfid.perform_basket_scan(scan_duration=2.0)
-    receipt = rfid.manager.process_simultaneous_scan(tags)
+    tags = rfid_service.perform_basket_scan(scan_duration=2.0)
     
-    # Check if receipt exists AND has items
-    if receipt and receipt.get('items'):
+    # Get the product data
+    receipt = rfid_service.manager.process_simultaneous_scan(tags)
+    
+    if receipt:
         session['cart_items'] = receipt['items']
         session['cart_total'] = receipt['total']
-        return jsonify(receipt)
-    
-    # Return a clean "empty" object instead of None
-    return jsonify({
-        "items": [],
-        "item_count": 0,
-        "total": 0.0
-    })
+        session.modified = True
+    else:
+        session.pop('cart_items', None)
+        session.pop('cart_total', None)
+        
+    return jsonify(receipt if receipt else {"item_count": 0})
+
+rfid_service = RFIDService()

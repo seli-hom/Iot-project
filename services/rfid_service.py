@@ -15,6 +15,11 @@ class RFIDService:
             try:
                 # Open port ONLY for the duration of this function
                 ser = serial.Serial(self.port, self.baudrate, timeout=0.1)
+
+                time.sleep(0.1)
+
+                buffer = bytearray()
+
                 buffer = bytearray()
                 found_tags = set()
                 
@@ -22,8 +27,24 @@ class RFIDService:
                 while time.time() - start_time < scan_duration:
                     if ser.in_waiting > 0:
                         data = ser.read(ser.in_waiting)
+                        # print(f"DEBUG: Raw hex: {data.hex()}")
                         buffer.extend(data)
-                        # ... (keep your existing while len(buffer) >= 26 logic) ...
+                        
+                while len(buffer) >= 26:
+                    idx = buffer.find(b'\x00\xCF') # Check if your reader uses these specific bytes
+                    if idx == -1:
+                        buffer.clear()
+                        break
+                    if len(buffer) < idx + 26:
+                        break
+
+                    packet = buffer[idx : idx + 26]
+                    # Extracting the EPC (Electronic Product Code)
+                    epc_hex = packet[12:24].hex().upper()
+                    print(f"DEBUG: Found Tag EPC: {epc_hex}")
+                    found_tags.add(epc_hex)
+                    del buffer[: idx + 26]
+
                 
                 return list(found_tags)
             except Exception as e:
