@@ -193,7 +193,24 @@ def init_db():
     ''')
 
     # Populating the database
+    storeDb.execute('''
+        INSERT INTO categories (category_type, category_desc_summary, category_desc_extended)
+        VALUES 
+            ('Makeup', 'Cosmetics for face and eyes', 'Includes cream eyeshadows, liquid blushes, and other color cosmetics for daily wear.'),
+            ('Fragrance', 'Perfumes and scents', 'High-end eau de parfums and colognes including clean and floral scent profiles.'),
+            ('Lip Sets', 'Lip care and color duos', 'Curated sets containing lip balms, tints, or glosses, often sold as limited editions.');
+    ''')
 
+    storeDb.execute('''
+        INSERT INTO products (product_name, product_price, product_company, product_stock_quantity)
+        VALUES 
+            ("Solo Shadow Cream Eyeshadow", "Makeup", 35.00, "MERIT Beauty", "840050301234", "E20041060001012345678901"),
+            ("Apple Love Eau de Parfum", "Fragrance", 161.00, "Ellis Brooklyn", "850020405678", "E20041060002056789012345"),
+            ("Dew Blush Liquid Blush", "Makeup", 35.00, "Saie", "850010209012", "E20041060003090123456789"),
+            ("The Sweet Pink Duo", "Lip Sets", 52.00, "Summer Fridays", "810030504321", "E20041060004043210987654")
+    ''')
+
+    print(storeDb.execute('''SELECT * FROM categories'''))
 
     storeDb.commit()
     storeDb.close()
