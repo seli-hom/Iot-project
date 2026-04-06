@@ -37,6 +37,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS customers (
             customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE NOT NULL,
+            membership_number TEXT UNIQUE,
             customer_phone TEXT,
             customer_address TEXT,
             customer_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -101,6 +102,7 @@ def init_db():
             product_name TEXT NOT NULL,
             product_description TEXT DEFAULT NULL,
             product_price REAL NOT NULL,
+            producer_company TEXT,
             product_stock_quantity INTEGER DEFAULT 0,
             product_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             product_updated_at DATETIME,
