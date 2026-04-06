@@ -2,6 +2,8 @@
 
 {% block content %}
 
+<div id="notifications-container"></div>
+
 <div class="container checkout-page">
 
 <h1 class="mb-4">Self Checkout</h1>
@@ -124,5 +126,55 @@ Complete Self Checkout
 {% endif %}
 
 </div>
+
+<script>
+    function getUIItemCount() {
+        const items = document.querySelectorAll('.summary-item');
+        return items ? items.length : 0;
+    }
+
+    let currentItemCount = getUIItemCount();
+    console.log("Initial items on page:", currentItemCount);
+
+    async function loadNotifications() {
+    const container = document.getElementById('notifications-container');
+        
+        if (!container) {
+            console.debug("Notification container not found on this page. Skipping update.");
+            return; 
+        }
+
+        try {
+            const response = await fetch('/api/notifications');
+            const data = await response.json();
+            
+            container.innerHTML = data.map(n => `<div>${n.title}</div>`).join('');
+        } catch (err) {
+            console.error("Error loading notifications:", err);
+        }
+    }
+
+    async function pollRFID() {
+        try {
+            const response = await fetch('/api/scan-basket');
+            
+            if (!response.ok) return;
+
+            const data = await response.json();
+            
+            // Compare what the scanner sees vs what is currently on the screen
+            if (data.item_count !== currentItemCount) {
+                console.log(`Change detected! UI: ${currentItemCount}, Scanner: ${data.item_count}`);
+                location.reload(); 
+            }
+        } catch (err) {
+            // Silently handle errors to keep the page from crashing
+            console.debug("Polling...");
+        }
+    }
+
+    // Check for changes every 5 seconds
+    setInterval(pollRFID, 5000);
+</script>
 
 {% endblock %}

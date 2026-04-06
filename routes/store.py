@@ -3,6 +3,7 @@ from models import database as db
 from models import customers, users
 from services import email_service
 import bcrypt
+from services.rfid_service import RFIDService
 
 app = Blueprint('store', __name__)
 
@@ -485,10 +486,61 @@ def addToCart():
     return redirect(request.referrer or url_for('store.productGallery'))
 
 
+# @app.route('/self-checkout')
+# def selfCheckout():
+#     storeDb = db.getDB()
+#     cart_items = []
+#     cart_total = 0.0
+#     storeDb.close()
+#     return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
 @app.route('/self-checkout')
 def selfCheckout():
-    storeDb = db.getDB()
-    cart_items = []
-    cart_total = 0.0
-    storeDb.close()
-    return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
+    rfid = RFIDService()
+    # Let's use a slightly longer scan for the initial page load
+    receipt = rfid.get_checkout_data(scan_duration=2.0)
+    
+    # Use receipt.get to avoid KeyErrors if the scan found nothing
+    cart_items = receipt.get('items', []) if receipt else []
+    cart_total = receipt.get('total', 0.0) if receipt else 0.0
+
+    return render_template('selfCheckout.html', 
+                           cart_items=cart_items, 
+                           cart_total=cart_total)
+
+# -----------------------------
+# RFID ROUTES
+# -----------------------------
+
+rfid_service = RFIDService()
+
+@app.route('/api/scan-rfid', methods=['GET'])
+def scan_rfid():
+    raw_tags = ["A00000000000000000004954", "A00000000000000000004955", "A00000000000000000004953", "A00000000000000000004959"] 
+    
+    # Process the scan
+    products = rfid_service.get_products_from_scan(raw_tags)
+    
+    # Return the shopping list
+    return jsonify({
+        "items": products,
+        "count": len(products)
+    })
+
+@app.route('/api/scan-basket')
+def scan_basket():
+    rfid = RFIDService()
+    tags = rfid.perform_basket_scan(scan_duration=2.0)
+    receipt = rfid.manager.process_simultaneous_scan(tags)
+    
+    # Check if receipt exists AND has items
+    if receipt and receipt.get('items'):
+        session['cart_items'] = receipt['items']
+        session['cart_total'] = receipt['total']
+        return jsonify(receipt)
+    
+    # Return a clean "empty" object instead of None
+    return jsonify({
+        "items": [],
+        "item_count": 0,
+        "total": 0.0
+    })
