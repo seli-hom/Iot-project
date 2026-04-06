@@ -204,10 +204,10 @@ def init_db():
     storeDb.execute('''
         INSERT INTO products (product_name, product_price, product_company, product_stock_quantity)
         VALUES 
-            ("Solo Shadow Cream Eyeshadow", "Makeup", 35.00, "MERIT Beauty", "840050301234", "E20041060001012345678901"),
-            ("Apple Love Eau de Parfum", "Fragrance", 161.00, "Ellis Brooklyn", "850020405678", "E20041060002056789012345"),
-            ("Dew Blush Liquid Blush", "Makeup", 35.00, "Saie", "850010209012", "E20041060003090123456789"),
-            ("The Sweet Pink Duo", "Lip Sets", 52.00, "Summer Fridays", "810030504321", "E20041060004043210987654")
+            ("Solo Shadow Cream Eyeshadow", "Makeup", 35.00, "Merit Beauty", "6989880828680", "A00000000000000000004954"),
+            ("Apple Love Eau de Parfum", "Fragrance", 161.00, "Ellis Brooklyn", "3063474108488", "A00000000000000000004955"),
+            ("Dew Blush Liquid Blush", "Makeup", 35.00, "Saie", "4565162111323", "A00000000000000000004953"),
+            ("The Sweet Pink Duo", "Lip Sets", 52.00, "Summer Fridays", "3898267675041", "A00000000000000000004959")
     ''')
 
     print(storeDb.execute('''SELECT * FROM categories'''))
