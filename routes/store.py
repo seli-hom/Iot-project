@@ -4,6 +4,7 @@ from models import customers, users
 from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
+from services.email_manager import EmailAlertSystem
 
 app = Blueprint('store', __name__)
 
@@ -506,15 +507,22 @@ def selfCheckout():
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
     # Get user info from the form
-    email = request.form.get('email')
+    customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
     
     # Clear the session now that they've paid
     session.pop('cart_items', None)
     session.pop('cart_total', None)
-    
+    #send receipts
+    receipt_sender = EmailAlertSystem(
+    sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
+    password="hapc ypha dcwh ewbc",                        # AND HERE
+    receiver_email=customer_email                  # AND HERE
+                   # AND HERE
+    )
+    receipt_sender.send_receipt_email(customer_email)
     # redirect
-    flash(f"Thank you! A receipt has been sent to {email}.", "success")
+    flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
     return redirect(url_for('store.storeIndex'))
 
 # -----------------------------

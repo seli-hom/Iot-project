@@ -175,6 +175,8 @@ def send_security_alert_notification(temperature):
     )
 
 
+
+
 # -----------------------------
 # Fetch emails from inbox
 # -----------------------------
