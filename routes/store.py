@@ -6,12 +6,50 @@ import bcrypt
 
 app = Blueprint('store', __name__)
 
-# -----------------------------
-# STORE HOME / DASHBOARD
-# -----------------------------
 @app.route('/')
 def storeIndex():
-    return render_template('index.html')
+    # storeDb = db.getDB()
+
+    # categories = storeDb.execute("""
+    #     SELECT *
+    #     FROM categories
+    #     ORDER BY category_created_at DESC
+    #     LIMIT 4
+    # """).fetchall()
+
+    # products = storeDb.execute("""
+    #     SELECT p.*, c.category_type
+    #     FROM products p
+    #     LEFT JOIN categories c 
+    #     ON p.category_id = c.category_id
+    #     ORDER BY p.product_created_at DESC
+    #     LIMIT 6
+    # """).fetchall()
+
+    # storeDb.close()
+
+    # Placeholder Data
+    categories = [
+        {"category_type": "Lipstick", "category_desc_summary": "Bold color essentials"},
+        {"category_type": "Foundation", "category_desc_summary": "Flawless base"},
+        {"category_type": "Eyes", "category_desc_summary": "Statement looks"},
+        {"category_type": "Skincare", "category_desc_summary": "Glow essentials"}
+    ]
+
+    products = [
+        {"product_name": "Velvet Matte Lipstick", "product_price": 29.99},
+        {"product_name": "Glow Foundation", "product_price": 42.00},
+        {"product_name": "Soft Glam Palette", "product_price": 55.00},
+        {"product_name": "Hydrating Primer", "product_price": 32.00},
+        {"product_name": "Blush Compact", "product_price": 26.00},
+        {"product_name": "Setting Spray", "product_price": 24.00}
+    ]
+
+    return render_template(
+        'index.html',
+        categories=categories,
+        products=products
+    )
 
 
 @app.route('/store-dashboard')
@@ -32,9 +70,6 @@ def storeDashboard():
     )
 
 
-# -----------------------------
-# NOTIFICATIONS API
-# -----------------------------
 @app.route('/api/notifications')
 def get_notifications():
     storeDb = db.getDB()
@@ -64,9 +99,6 @@ def get_notifications():
         storeDb.close()
 
 
-# -----------------------------
-# CUSTOMER ROUTES
-# -----------------------------
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
@@ -95,9 +127,6 @@ def customersRegistration():
             print("User created:", new_user_id)
 
             try:
-                # -------------------------------
-                # Send registration email
-                # -------------------------------
                 from services.email_service import send_registration_email
                 send_registration_email(
                     request.form['user_fname'],
@@ -203,9 +232,6 @@ def customerVerification(user_id):
     )
 
 
-# -----------------------------
-# LOGIN / LOGOUT
-# -----------------------------
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form.get('email')
@@ -222,25 +248,22 @@ def login():
 
     if not user:
         flash("Invalid credentials.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     if user['user_password'] and bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
         session['user_fname'] = user['user_fname']
         session['user_role'] = user['user_role']
 
-    return redirect(url_for('store.storeIndex'))
+    # return redirect(url_for('store.storeIndex'))
 
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('store.storeIndex'))
+    # return redirect(url_for('store.storeIndex'))
 
 
-# -----------------------------
-# FAN / THRESHOLD ROUTES
-# -----------------------------
 @app.route('/fan', methods=['POST'])
 def toggle_fan():
     data = request.get_json()
@@ -298,9 +321,6 @@ def update_threshold():
     return jsonify({"status": "ok", "summary": summary})
 
 
-# -----------------------------
-# INBOX
-# -----------------------------
 @app.route("/inbox", endpoint='viewInbox')
 def storeInbox():
     try:
@@ -313,9 +333,6 @@ def storeInbox():
     return render_template("viewInbox.html", emails=emails)
 
 
-# -----------------------------
-# ADMIN DASHBOARD
-# -----------------------------
 @app.route('/admin-dashboard')
 def adminDashboard():
     storeDb = db.getDB()
@@ -355,14 +372,11 @@ def adminDashboard():
         db_stats=db_stats
     )
 
-# -----------------------------
-# ADMIN USER UPDATE / DELETE
-# -----------------------------
 @app.route('/admin/user/<int:user_id>/update', methods=['POST'])
 def adminUpdateUser(user_id):
     if session.get('user_role') != 'admin':
         flash("Unauthorized.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     role = request.form.get('role')
     verified = request.form.get('verified') == 'on'
@@ -376,14 +390,14 @@ def adminUpdateUser(user_id):
     storeDb.close()
 
     flash("User updated successfully.", "success")
-    return redirect(url_for('store.adminDashboard'))
+    # return redirect(url_for('store.adminDashboard'))
 
 
 @app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
 def adminDeleteUser(user_id):
     if session.get('user_role') != 'admin':
         flash("Unauthorized.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     storeDb = db.getDB()
     storeDb.execute('DELETE FROM users WHERE user_id = ?', (user_id,))
@@ -391,12 +405,9 @@ def adminDeleteUser(user_id):
     storeDb.close()
 
     flash("User deleted successfully.", "success")
-    return redirect(url_for('store.adminDashboard'))
+    # return redirect(url_for('store.adminDashboard'))
 
 
-# -----------------------------
-# PRODUCTS / CART / CHECKOUT
-# -----------------------------
 @app.route('/products-gallery')
 def productGallery():
     storeDb = db.getDB()
@@ -414,7 +425,7 @@ def productGallery():
 def cartPage():
     if 'user_email' not in session:
         flash("You need to log in to view your cart.", "warning")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     storeDb = db.getDB()
     user = storeDb.execute("SELECT user_id FROM users WHERE user_email = ?", (session['user_email'],)).fetchone()
@@ -439,7 +450,7 @@ def cartPage():
 def addToCart():
     if 'user_email' not in session:
         flash("Please log in to add items to cart.", "warning")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     product_id = request.form.get('product_id')
     quantity = int(request.form.get('quantity', 1))
@@ -450,7 +461,7 @@ def addToCart():
     if not user:
         storeDb.close()
         flash("User not found.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     cart = storeDb.execute("SELECT * FROM cart WHERE user_id = ?", (user['user_id'],)).fetchone()
     if not cart:
@@ -482,7 +493,7 @@ def addToCart():
     storeDb.commit()
     storeDb.close()
     flash("Product added to cart!", "success")
-    return redirect(request.referrer or url_for('store.productGallery'))
+    # return redirect(request.referrer or url_for('store.productGallery'))
 
 
 @app.route('/self-checkout')

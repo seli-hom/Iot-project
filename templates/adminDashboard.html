@@ -2,25 +2,20 @@
 
 {% block content %}
 <div class="container-fluid">
+    {% include "adminSidebar.html" with context %}
     <div class="row">
-
-        <!-- SIDEBAR -->
-        {% include "adminSidebar.html" with context %}
-
-        <!-- MAIN CONTENT -->
-        <div class="col-md-9 col-lg-10" 
+        <div id="admin-dashboard" 
              data-bs-spy="scroll" 
              data-bs-target="#navbar-example3" 
              data-bs-offset="100" 
              tabindex="0">
 
-            <h2 class="mb-4">Admin Dashboard</h2>
+            <h2 class="dashboard-title">Admin Dashboard</h2>
 
             <div class="dashboard-grid d-grid gap-4" style="
                  grid-template-columns: repeat(3, 1fr);
                  grid-auto-rows: minmax(200px, auto);">
 
-                <!-- ALL USERS (spans 2 columns) -->
                 <div id="all-users-section" class="card shadow-sm p-4 dashboard-card" style="grid-column: span 2;">
                     <h5>All Users</h5>
                     <div class="table-responsive mt-2">
@@ -71,7 +66,6 @@
                     </div>
                 </div>
 
-                <!-- DATABASE OVERVIEW (1 column) -->
                 <div id="db-overview-section" class="card shadow-sm p-4 dashboard-card">
                     <h5>Database Overview</h5>
                     <ul class="list-group list-group-flush mt-2">
@@ -82,7 +76,6 @@
                     </ul>
                 </div>
 
-                <!-- NOTIFICATIONS (1 column) -->
                 <div id="notifications-section" class="card shadow-sm p-4 dashboard-card">
                     <b>User Notifications</b>
                     <div id="notifications-container" class="notif-section-inner overflow-auto mt-2" style="max-height:300px;">
@@ -94,7 +87,6 @@
                     </div>
                 </div>
 
-                <!-- STAFF USERS (spans 2 columns) -->
                 <div id="staff-section" class="card shadow-sm p-4 dashboard-card" style="grid-column: span 2;">
                     <h5>Admins & Employees</h5>
                     <div class="table-responsive mt-2">

@@ -7,19 +7,14 @@
         {'temp_min': 3, 'temp_max': 7, 'hum_min': 55, 'hum_max': 70}
     ] %}
     {% set fan = {'on': false} %}
+    {% include "adminSidebar.html" with context %}
 
     <div class="row">
-
-        <!-- SIDEBAR -->
-        {% include "adminSidebar.html" with context %}
-
-        <!-- MAIN CONTENT -->
-        <div class="col-md-9 col-lg-10" data-bs-spy="scroll" data-bs-target="#navbar-example3" data-bs-offset="100" tabindex="0">
-            <h2 class="mb-4">Store Room Dashboard</h2>
+        <div id="store-dashboard" data-bs-spy="scroll" data-bs-target="#navbar-example3" data-bs-offset="100" tabindex="0">
+            <h2 class="dashboard-title">Store Room Dashboard</h2>
 
             <div class="dashboard-grid">
 
-                <!-- FRIDGE 1 -->
                 <div id="frig-1" class="card shadow-sm p-4 dashboard-card frig1">
                     <h5><i class="bi bi-snow2 me-2"></i> Fridge 1</h5>
                     <div id="frig-1-temp" class="row text-center">
@@ -52,7 +47,6 @@
                     </div>
                 </div>
 
-                <!-- FAN -->
                 <div id="fan-section" class="card shadow-sm p-4 dashboard-card fan">
                     <div class="fan-section-inner d-flex align-items-center justify-content-between">
                         <div>
@@ -65,7 +59,6 @@
                     </div>
                 </div>
 
-                <!-- NOTIFICATIONS -->
                 <div id="notifications-section" class="card shadow-sm p-4 dashboard-card notifications">
                     <div class="d-flex flex-column">
                         <b>Notifications</b>
@@ -74,7 +67,6 @@
                     </div>
                 </div>
 
-                <!-- FRIDGE 2 -->
                 <div id="frig-2" class="card shadow-sm p-4 dashboard-card frig2">
                     <h5><i class="bi bi-snow2 me-2"></i> Fridge 2</h5>
                     <div id="frig-2-temp" class="row text-center">

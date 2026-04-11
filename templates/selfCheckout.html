@@ -3,23 +3,16 @@
 {% block content %}
 
 <div class="container checkout-page">
+    <h1 class="mb-4">Self Checkout</h1>
+    {% if not cart_items %}
+    <p>Your cart is empty. Scan items to begin checkout.</p>
+    {% else %}
 
-<h1 class="mb-4">Self Checkout</h1>
-
-{% if not cart_items %}
-<p>Your cart is empty. Scan items to begin checkout.</p>
-{% else %}
-
-<div class="checkout-grid">
-
-
-<div class="order-summary">
-
-<h2>Scanned Items</h2>
-
-<ul class="summary-items">
-
-{% for item in cart_items %}
+    <div class="checkout-grid">
+        <div class="order-summary">
+            <h2>Scanned Items</h2>
+            <ul class="summary-items">
+                {% for item in cart_items %}
 <li class="summary-item">
 <span>
 {{ item.product_name }} (x{{ item.item_quantity }})

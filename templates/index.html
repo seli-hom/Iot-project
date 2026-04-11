@@ -1,22 +1,222 @@
-{% extends "base.html" %} {% block content %}
-<!-- <h2>Home Page</h2> -->
-<!-- <br /> -->
-<!-- <a href="{{ url_for('store.customersRegistration') }}">Go To Customer Registration</a> -->
-<!-- <a href="{{url_for('store.customersList')}}"> Turn red light on </a> -->
+  {% extends "base.html" %} {% block content %}
 
-<div class="page-content text-center">
-  <div class="container py-5">
-    <h1 class="text-secondary mb-4">Welcome to the Smart Store!</h1>
-    <!-- <h3>Please login to continue</h3> -->
-    <!-- <p><b>OR</b></p> -->
-    <!-- <br> -->
-    <a href="{{ url_for('store.customersRegistration') }}" class="btn btn-primary btn-lg mb-3">
-      Register New Customer
-    </a>
-    <br>
-    <a href="{{ url_for('store.customersList') }}" class="btn btn-secondary">
-      View Existing Customers
-    </a>
+  <div class="hero-carousel">
+    <div
+      id="heroCarousel"
+      class="carousel slide carousel-fade"
+      data-bs-ride="carousel"
+      data-bs-interval="5000"
+    >
+      <div class="carousel-indicators">
+        <button
+          type="button"
+          data-bs-target="#heroCarousel"
+          data-bs-slide-to="0"
+          class="active"
+        ></button>
+        <button
+          type="button"
+          data-bs-target="#heroCarousel"
+          data-bs-slide-to="1"
+        ></button>
+        <button
+          type="button"
+          data-bs-target="#heroCarousel"
+          data-bs-slide-to="2"
+        ></button>
+      </div>
+
+      <div class="carousel-inner">
+
+        <div class="carousel-item active">
+          <div class="hero-slide hero-slide-1">
+            <div class="hero-content">
+              <h2>Smart Beauty Technology</h2>
+              <p>Discover next‑generation makeup solutions</p>
+
+              <div class="hero-buttons">
+                <a href="#" class="btn btn-primary">Shop Now</a>
+                <a href="#" class="btn btn-outline-dark">Learn More</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="carousel-item">
+          <div class="hero-slide hero-slide-2">
+            <div class="hero-content">
+              <h2>Premium Smart Skincare</h2>
+              <p>Luxury cosmetics powered by innovation</p>
+
+              <div class="hero-buttons">
+                <a href="#" class="btn btn-primary">Browse Products</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="carousel-item">
+          <div class="hero-slide hero-slide-3">
+            <div class="hero-content">
+              <h2>Exclusive Smart Deals</h2>
+              <p>Limited‑time offers on smart beauty devices</p>
+
+              <div class="hero-buttons">
+                <a href="#" class="btn btn-primary">View Deals</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button
+        class="carousel-control-prev"
+        type="button"
+        data-bs-target="#heroCarousel"
+        data-bs-slide="prev"
+      >
+        <span class="carousel-control-prev-icon"></span>
+      </button>
+
+      <button
+        class="carousel-control-next"
+        type="button"
+        data-bs-target="#heroCarousel"
+        data-bs-slide="next"
+      >
+        <span class="carousel-control-next-icon"></span>
+      </button>
+    </div>
   </div>
-</div>
-{% endblock %}
+
+  <div class="feature-strip">
+    <div class="feature-box feature-box-1">
+      <i class="bi bi-award"></i>
+      <h5>We Care</h5>
+      <p>
+        We take care of our products and store them in pristine conditions so the
+        quality never drops!
+      </p>
+    </div>
+    <div class="feature-box feature-box-2">
+      <i class="bi bi-stars"></i>
+      <h5>Loyalty Points</h5>
+      <p>
+        Sign up and login to start gaining loyalty points and get great deals and
+        rewards today!
+      </p>
+    </div>
+    <div class="feature-box feature-box-3">
+      <i class="bi bi-truck"></i>
+      <h5>Self-Checkout</h5>
+      <p>
+        Shop your way with our self-checkout system. No hassle, get what you want
+        when you want it!
+      </p>
+    </div>
+    <div class="feature-box feature-box-4">
+      <i class="bi bi-gem"></i>
+      <h5>Exclusive</h5>
+      <p>Members only deals, and notifications when new products are added!</p>
+    </div>
+  </div>
+
+  <div class="categories-div">
+    <h2 class="div-title">Shop Categories</h2>
+    <div class="categories-content">
+      <div
+        class="categories-wrapper"
+        style="
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          gap: 20px;
+        "
+      >
+        {% for category in categories %}
+        <div class="category-card-wrapper col-md-3">
+          <div class="category-card">
+            <div class="category-icon"><i class="bi bi-box-seam"></i></div>
+            <h4>{{ category.category_type }}</h4>
+            <p>{{ category.category_desc_summary }}</p>
+            <a
+              href="/category/{{ category.category_id }}"
+              class="btn btn-outline-primary"
+              >Browse Collection</a
+            >
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="categories-image">
+        <img
+          src="https://img.freepik.com/free-photo/photo-pleased-dreamy-woman-bites-finger-looks-away-with-pensive-expression-applies-pink-hydrogel-patches-skin-treatment-isolated-beige-background-mockup-space-your-promotion_273609-60709.jpg"
+          alt="Shop Categories"
+          style="width: 300px; height: 300px; object-fit: cover"
+        />
+      </div>
+    </div>
+  </div>
+
+  <h2 class="div-title">Best Sellers</h2>
+
+  <div class="products-div">
+    <div class="row products-grid">
+      {% for product in products %}
+      <div class="col-md-4">
+        <div class="product-card">
+          <div
+            class="product-image"
+            style="background-image: url('{{ product.image_url }}');"
+          ></div>
+          <div class="product-info">
+            <h5>{{ product.product_name }}</h5>
+            <p>{{ product.product_description }}</p>
+            <div class="product-actions">
+              <span class="product-price">${{ product.product_price }}</span>
+              <a
+                href="/product/{{ product.product_id }}"
+                class="btn btn-primary btn-sm"
+                >View Product</a
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="loyalty-div">
+    <div
+      class="loyalty-wrapper"
+      style="
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      "
+    >
+      <div class="loyalty-image">
+        <img
+          src="https://img.freepik.com/free-photo/beauty-portrait-sensual-ginger-woman-with-long-hair-posing-sideways-while-looking-away-holding-cosmetics-brush_171337-944.jpg"
+          alt="Earn Beauty Points"
+          style="width: 250px; height: 250px; object-fit: cover"
+        />
+      </div>
+      <div class="loyalty-content">
+        <h2>Earn Beauty Points</h2>
+        <p>
+          Join our loyalty program to get points on every purchase and unlock
+          exclusive rewards!
+        </p>
+        <div class="loyalty-form">
+          <a href="/register" class="btn btn-primary btn-lg">Create Account</a>
+          <a href="/login" class="btn btn-outline-primary btn-lg">Sign In</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% endblock %}
