@@ -546,6 +546,7 @@ def selfCheckoutSubmit():
 # RFID ROUTES
 # -----------------------------
 
+# Test function
 rfid_service = RFIDService()
 
 @app.route('/api/scan-rfid', methods=['GET'])
