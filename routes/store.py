@@ -606,22 +606,15 @@ def add_barcode(code):
     storeDb.close()
 
     if product:
-        cart = session.get('cart_items', [])
-        
-        # Add the barcode item to the current session list
-        cart.append({
+        # different session key for barcode scans
+        manual_cart = session.get('manual_items', [])
+        manual_cart.append({
             'product_name': product['product_name'],
             'product_price': product['product_price'],
             'product_company': product['product_company'],
-            'item_quantity': 1
+            'source': 'barcode' # Helpful for debugging
         })
-        
-        # Recalculate the total so the UI updates correctly
-        new_total = sum(item['product_price'] for item in cart)
-        
-        session['cart_items'] = cart
-        session['cart_total'] = new_total
+        session['manual_items'] = manual_cart
         session.modified = True
         return jsonify({"status": "success"}), 200
-        
     return jsonify({"status": "not_found"}), 404

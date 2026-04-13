@@ -10,52 +10,40 @@
 
     <h1 class="mb-4">Self Checkout</h1>
 
-    {% if not cart_items %}
-    <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
+    {% set rfid_items = session.get('cart_items', []) %}
+    {% set manual_items = session.get('manual_items', []) %}
+    {% set all_items = rfid_items + manual_items %}
+
+    {% if not all_items %}
+        <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
     {% else %}
 
     <div class="checkout-grid">
 
 
     <div class="order-summary">
+        <h2>Scanned Items</h2>
 
-    <h2>Scanned Items</h2>
+        {# Create the combined list and calculate total #}
+        {% set rfid_items = session.get('cart_items', []) %}
+        {% set manual_items = session.get('manual_items', []) %}
+        {% set all_items = rfid_items + manual_items %}
+        {% set display_total = all_items | map(attribute='product_price') | sum %}
+        
+        <ul class="summary-items">
+            {# 2. IMPORTANT: Loop through all_items, not just cart_items #}
+            {% for item in all_items %}
+            <li class="summary-item">
+                <span>{{ item.product_name }}</span>
+                <strong>${{ "%.2f"|format(item.product_price) }}</strong>
+            </li>
+            {% endfor %}
+        </ul>
 
-    <ul class="summary-items">
-
-    <!-- {% for item in cart_items %}
-    <li class="summary-item">
-    <span>
-    {{ item.product_name }} (x{{ item.item_quantity | default(1) }})</span>
-
-    <strong>
-    ${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}</strong>
-    </li>
-    {% endfor %} -->
-
-    {% for item in cart_items %}
-    <li class="summary-item">
-        <span>
-            {{ item.product_name }} (x{{ item.item_quantity | default(1) }})
-        </span>
-        <strong>
-            ${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}
-        </strong>
-    </li>
-    {% endfor %}
-
-    </ul>
-
-    <div class="summary-total">
-
-    <strong>Total:</strong>
-
-    <span>
-    ${{ "%.2f"|format(cart_total) }}
-    </span>
-
-    </div>
-
+        <div class="summary-total">
+            <strong>Total:</strong>
+            <span>${{ "%.2f"|format(display_total) }}</span>
+        </div>
     </div>
 
 
@@ -139,37 +127,6 @@
 </div>
 
 <script>
-    function getUIItemCount() {
-        const items = document.querySelectorAll('.summary-item');
-        return items ? items.length : 0;
-    }
-
-    let currentItemCount = getUIItemCount();
-    console.log("Initial items on page:", currentItemCount);
-
-    // BARCODE SCANNER LOGIC
-    const gate = document.getElementById('barcode-gate');
-
-    // Focus the barcode field whenever the user interacts with the self-checkout or products page
-    document.addEventListener('keydown', () => gate.focus());
-    document.addEventListener('click', () => gate.focus());
-
-    gate.addEventListener('keypress', async function (e) {
-        if (e.key === 'Enter') {    
-            const code = gate.value.trim();
-            gate.value = ''; 
-            if (code) {
-                console.log("Barcode Scanned:", code);
-                const response = await fetch(`/api/add-barcode/${code}`, { method: 'POST' });
-                if (response.ok) {
-                    location.reload(); // Refresh to show the new item
-                } else {
-                    console.error("Product not found in barcode database.");
-                }
-            }
-        }
-    })
-
     async function loadNotifications() {
         const container = document.getElementById('notifications-container');
         
@@ -195,34 +152,67 @@
         }
     }
 
+    function getUIItemCount() {
+        return document.querySelectorAll('.summary-item').length;
+    }
+
+    let currentItemCount = getUIItemCount();
+    console.log("Initial items on page:", currentItemCount);
+
+    // BARCODE SCANNER LOGIC
+    const gate = document.getElementById('barcode-gate');
+
+    // Focus management
+    function grabFocus() {
+        if (document.activeElement.tagName !== 'INPUT' || document.activeElement.id === 'barcode-gate') {
+            gate.focus();
+        }
+    }
+    document.addEventListener('keydown', grabFocus);
+    document.addEventListener('click', grabFocus);
+
+    gate.addEventListener('keypress', async function (e) {
+        if (e.key === 'Enter') {    
+            const code = gate.value.trim();
+            gate.value = ''; 
+            if (code) {
+                try {
+                    const response = await fetch(`/api/add-barcode/${code}`, { method: 'POST' });
+                    if (response.ok) {
+                        location.reload(); 
+                    }
+                } catch (err) {
+                    console.error("Barcode fetch failed", err);
+                }
+            }
+        }
+    });
+
     async function pollRFID() {
         try {
             const response = await fetch('/api/scan-basket');
             if (!response.ok) return;
 
             const data = await response.json();
-            
-            // If the scanner found nothing, but the UI has items, reload to clear it
-            if (!data.items && currentItemCount > 0) {
-                location.reload();
-                return;
-            }
 
-            // If the number of items changes, reload to show the new list
-            if (data.item_count !== currentItemCount) {
-                console.log("Hardware change detected. Refreshing...");
-                location.reload(); 
+            // We inject the Jinja value into a clean JS variable first
+            const manualCount = Number("{{ session.get('manual_items', []) | length }}");
+            const rfidCount = data.item_count || 0;
+            const expectedTotal = rfidCount + manualCount;
+            
+            if (expectedTotal !== currentItemCount) {
+                console.log("Change detected. RFID:", rfidCount, "Manual:", manualCount);
+                location.reload();
             }
         } catch (err) {
-            console.debug("Polling RFID...");
+            console.debug("Polling RFID error or hardware busy...");
         }
     }
 
     // Check for changes every 5 seconds
     setInterval(pollRFID, 5000);
     gate.focus();
+    
 </script>
-
-<input type="text" id="barcode-gate" style="position: absolute; left: -9999px;">
 
 {% endblock %}
