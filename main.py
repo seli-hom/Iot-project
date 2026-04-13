@@ -5,13 +5,15 @@ from flask_mail import Mail
 from models import database as db
 from routes.store import app as store
 from services import CheckoutManager
+import os
 
 db.init_db()
 
 app = Flask(__name__)
 app.register_blueprint(store)
 
-app.secret_key = "iotprojectsmartstore"
+# app.secret_key = "iotprojectsmartstore"
+app.secret_key = os.urandom(24)
 
 app.config['MAIL_USERNAME'] = 'project.smartstore@gmail.com'
 app.config['MAIL_PASSWORD'] = 'lumsadlznehrqsuv'
