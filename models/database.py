@@ -37,6 +37,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS customers (
             customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE NOT NULL,
+            membership_number TEXT UNIQUE,
             customer_phone TEXT,
             customer_address TEXT,
             customer_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -87,8 +88,6 @@ def init_db():
         CREATE TABLE IF NOT EXISTS categories (
             category_id INTEGER PRIMARY KEY AUTOINCREMENT,
             category_type TEXT NOT NULL,
-            category_desc_summary TEXT NOT NULL,
-            category_desc_extended TEXT NOT NULL,
             category_created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -101,6 +100,7 @@ def init_db():
             product_name TEXT NOT NULL,
             product_description TEXT DEFAULT NULL,
             product_price REAL NOT NULL,
+            product_company TEXT,
             product_stock_quantity INTEGER DEFAULT 0,
             product_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             product_updated_at DATETIME,
@@ -191,7 +191,64 @@ def init_db():
     ''')
 
     # Populating the database
+    storeDb.execute('''
+        INSERT INTO categories (category_type)
+        VALUES 
+            ('Makeup'),
+            ('Fragrance'),
+            ('Lip Sets');
+    ''')
 
+    products_to_add = [
+        ("Solo Shadow Cream Eyeshadow", "Makeup", 35.00, "Merit Beauty", "6989880828680", "A00000000000000000004954"),
+        ("Apple Love Eau de Parfum", "Fragrance", 161.00, "Ellis Brooklyn", "3063474108488", "A00000000000000000004955"),
+        ("Dew Blush Liquid Blush", "Makeup", 35.00, "Saie", "4565162111323", "A00000000000000000004953"),
+        ("The Sweet Pink Duo", "Lip Sets", 52.00, "Summer Fridays", "3898267675041", "A00000000000000000004959")
+    ]
+
+    # Map the names to the IDs you just created
+    cat_map = {"Makeup": 1, "Fragrance": 2, "Lip Sets": 3}
+
+    for name, cat_name, price, company, barcode, rfid in products_to_add:
+        category_id = cat_map.get(cat_name)
+
+        # 1. Use INSERT OR IGNORE for the product
+        # If the product_name is already there, it won't add a duplicate
+        cursor = storeDb.execute('''
+            INSERT OR IGNORE INTO products (product_name, product_price, product_company, category_id, product_stock_quantity)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (name, price, company, category_id, 10))
+
+        # 2. Get the ID of the product we just inserted (or the one that already existed)
+        if cursor.rowcount > 0:
+            # This was a fresh insert
+            new_id = cursor.lastrowid
+        else:
+            # Product already exists, fetch its ID so we can check barcode/rfid
+            res = storeDb.execute("SELECT product_id FROM products WHERE product_name = ?", (name,)).fetchone()
+            new_id = res['product_id']
+
+        # 3. Insert Barcode and RFID only if they aren't already linked
+        storeDb.execute('''
+            INSERT OR IGNORE INTO product_barcode (product_id, barcode_num)
+            VALUES (?, ?)
+        ''', (new_id, barcode))
+
+        storeDb.execute('''
+            INSERT OR IGNORE INTO product_rfid (product_id, rfid_tag)
+            VALUES (?, ?)
+        ''', (new_id, rfid))
+
+    # print("Database checked: New items added or existing items skipped.")
+
+    # storeDb.execute('''
+    #     INSERT INTO products (product_name, product_price, product_company, product_stock_quantity)
+    #     VALUES 
+    #         ("Solo Shadow Cream Eyeshadow", "Makeup", 35.00, "Merit Beauty", "6989880828680", "A00000000000000000004954"),
+    #         ("Apple Love Eau de Parfum", "Fragrance", 161.00, "Ellis Brooklyn", "3063474108488", "A00000000000000000004955"),
+    #         ("Dew Blush Liquid Blush", "Makeup", 35.00, "Saie", "4565162111323", "A00000000000000000004953"),
+    #         ("The Sweet Pink Duo", "Lip Sets", 52.00, "Summer Fridays", "3898267675041", "A00000000000000000004959")
+    # ''')
 
     storeDb.commit()
     storeDb.close()

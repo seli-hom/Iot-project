@@ -3,6 +3,8 @@ from models import database as db
 from models import customers, users
 from services import email_service
 import bcrypt
+from services.rfid_service import RFIDService
+from services.email_manager import EmailAlertSystem
 
 app = Blueprint('store', __name__)
 
@@ -496,10 +498,78 @@ def addToCart():
     # return redirect(request.referrer or url_for('store.productGallery'))
 
 
+# @app.route('/self-checkout')
+# def selfCheckout():
+#     storeDb = db.getDB()
+#     cart_items = []
+#     cart_total = 0.0
+#     storeDb.close()
+#     return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
 @app.route('/self-checkout')
 def selfCheckout():
-    storeDb = db.getDB()
-    cart_items = []
-    cart_total = 0.0
-    storeDb.close()
-    return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
+    # Pull data from session instead of triggering a new hardware scan
+    cart_items = session.get('cart_items', [])
+    cart_total = session.get('cart_total', 0.0)
+
+    return render_template('selfCheckout.html', 
+                           cart_items=cart_items, 
+                           cart_total=cart_total)
+
+@app.route('/self-checkout/submit', methods=['POST'])
+def selfCheckoutSubmit():
+    # Get user info from the form
+    customer_email = request.form.get('email')
+    payment_method = request.form.get('payment_method')
+    
+    # Clear the session now that they've paid
+    session.pop('cart_items', None)
+    session.pop('cart_total', None)
+    #send receipts
+    receipt_sender = EmailAlertSystem(
+    sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
+    password="hapc ypha dcwh ewbc",                        # AND HERE
+    receiver_email=customer_email                  # AND HERE
+                   # AND HERE
+    )
+    receipt_sender.send_receipt_email(customer_email)
+    # redirect
+    flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
+    return redirect(url_for('store.storeIndex'))
+
+# -----------------------------
+# RFID ROUTES
+# -----------------------------
+
+rfid_service = RFIDService()
+
+@app.route('/api/scan-rfid', methods=['GET'])
+def scan_rfid():
+    raw_tags = ["A00000000000000000004954", "A00000000000000000004955", "A00000000000000000004953", "A00000000000000000004959"] 
+    
+    # Process the scan
+    products = rfid_service.get_products_from_scan(raw_tags)
+    
+    # Return the shopping list
+    return jsonify({
+        "items": products,
+        "count": len(products)
+    })
+
+@app.route('/api/scan-basket')
+def scan_basket():
+    tags = rfid_service.perform_basket_scan(scan_duration=2.0)
+    
+    # Get the product data
+    receipt = rfid_service.manager.process_simultaneous_scan(tags)
+    
+    if receipt:
+        session['cart_items'] = receipt['items']
+        session['cart_total'] = receipt['total']
+        session.modified = True
+    else:
+        session.pop('cart_items', None)
+        session.pop('cart_total', None)
+        
+    return jsonify(receipt if receipt else {"item_count": 0})
+
+rfid_service = RFIDService()
