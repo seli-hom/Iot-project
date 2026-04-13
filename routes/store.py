@@ -589,3 +589,39 @@ def scan_basket():
     return jsonify(receipt if receipt else {"item_count": 0})
 
 rfid_service = RFIDService()
+
+@app.route('/api/add-barcode/<code>', methods=['POST'])
+def add_barcode(code):
+    # Change getDB() to db.getDB()
+    storeDb = db.getDB() 
+    
+    query = '''
+        SELECT p.product_name, p.product_price, p.product_company 
+        FROM products p
+        JOIN product_barcode pb ON p.product_id = pb.product_id
+        WHERE pb.barcode_num = ?
+    '''
+    
+    product = storeDb.execute(query, (code,)).fetchone()
+    storeDb.close()
+
+    if product:
+        cart = session.get('cart_items', [])
+        
+        # Add the barcode item to the current session list
+        cart.append({
+            'product_name': product['product_name'],
+            'product_price': product['product_price'],
+            'product_company': product['product_company'],
+            'item_quantity': 1
+        })
+        
+        # Recalculate the total so the UI updates correctly
+        new_total = sum(item['product_price'] for item in cart)
+        
+        session['cart_items'] = cart
+        session['cart_total'] = new_total
+        session.modified = True
+        return jsonify({"status": "success"}), 200
+        
+    return jsonify({"status": "not_found"}), 404
