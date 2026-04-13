@@ -48,10 +48,33 @@ class EmailAlertSystem:
         return False
     
 
-    def send_receipt_email(self, customer_email):
-        body = f"Thank you for your purchase!"
+    def send_receipt_email(self, customer_email, receipt_data):
+        # Build the dynamic list of products
+        items_text = ""
+        for item in receipt_data.get('items', []):
+            items_text += f"- {item['product_name']}: ${item['product_price']:.2f}\n"
+        
+        # Body of the email
+
+
+        body = f"""
+Thank you for your purchase at Smart Makeup Store!\n
+Items Purchased:
+---------------------------------
+
+{items_text}
+---------------------------------
+Subtotal: ${receipt_data['subtotal']:.2f}
+GST (5%): ${receipt_data['gst']:.2f}
+QST (9.975%): ${receipt_data['qst']:.2f}
+Total: ${receipt_data['total']:.2f}
+
+Date: {receipt_data['timestamp']}
+
+Thank you for shopping with us!
+        """
         msg = MIMEText(body)
-        msg["Subject"] = "Receipt Alert"
+        msg["Subject"] = "Your receipt from Smart Makeup Store"
         msg["From"] = self.sender_email
         msg["To"] = customer_email
 
@@ -62,6 +85,7 @@ class EmailAlertSystem:
                 # Send the message
                 server.send_message(msg)
             self.last_email_time = time.time()
+            print(f"Receipt sent successfully to {customer_email}")
             # Start checking for a reply
         except Exception as e:
             print(f"Email Send Error: {e}")

@@ -4,7 +4,7 @@ from models import customers, users
 from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
-from services.email_manager import EmailAlertSystem
+from services.receipt_service import EmailAlertSystem
 
 app = Blueprint('store', __name__)
 
@@ -519,19 +519,36 @@ def selfCheckout():
 def selfCheckoutSubmit():
     # Get user info from the form
     customer_email = request.form.get('email')
-    payment_method = request.form.get('payment_method')
     
-    # Clear the session now that they've paid
-    session.pop('cart_items', None)
-    session.pop('cart_total', None)
+    # Retrieve the receipt data stored in the session
+    # Rebuild the dictionary structure the email service expects
+    receipt_data = {
+        'items': session.get('cart_items', []),
+        'total': session.get('cart_total', 0.0),
+        'subtotal': session.get('cart_subtotal', 0.0),
+        'gst': session.get('cart_gst', 0.0),
+        'qst': session.get('cart_qst', 0.0),
+        'timestamp': session.get('cart_timestamp', 'N/A')
+    }
+
+    if not receipt_data['items']:
+        flash("No items found in basket.", "danger")
+        return redirect(url_for('store.selfCheckout'))
+
+    # Clear the session once paid
+    keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
+    for key in keys_to_clear:
+        session.pop(key, None)
     #send receipts
     receipt_sender = EmailAlertSystem(
     sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
-    password="hapc ypha dcwh ewbc",                        # AND HERE
-    receiver_email=customer_email                  # AND HERE
-                   # AND HERE
+    password="hapc ypha dcwh ewbc",         # AND HERE
+    receiver_email=customer_email           # AND HERE
     )
-    receipt_sender.send_receipt_email(customer_email)
+    receipt_sender.send_receipt_email(customer_email, receipt_data)
+
+    session.clear
+
     # redirect
     flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
     return redirect(url_for('store.storeIndex'))
@@ -540,6 +557,7 @@ def selfCheckoutSubmit():
 # RFID ROUTES
 # -----------------------------
 
+# Test function
 rfid_service = RFIDService()
 
 @app.route('/api/scan-rfid', methods=['GET'])
@@ -564,11 +582,20 @@ def scan_basket():
     
     if receipt:
         session['cart_items'] = receipt['items']
+        session['cart_subtotal'] = receipt['subtotal']
         session['cart_total'] = receipt['total']
+        session['cart_gst'] = receipt['gst']
+        session['cart_qst'] = receipt['qst']
+        session['cart_total'] = receipt['total']
+        session['cart_timestamp'] = receipt['timestamp']
+
+        # Ensures flask saves
         session.modified = True
     else:
-        session.pop('cart_items', None)
-        session.pop('cart_total', None)
+        # Clear session if the basket is empty
+        keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
+        for key in keys_to_clear:
+            session.pop(key, None)
         
     return jsonify(receipt if receipt else {"item_count": 0})
 
