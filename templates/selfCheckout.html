@@ -189,8 +189,16 @@
             if (code) {
                 try {
                     const response = await fetch(`/api/add-barcode/${code}`, { method: 'POST' });
+                    
                     if (response.ok) {
+                        // Item found! Refresh to show it
                         location.reload(); 
+                    } else if (response.status === 404) {
+                        // Item not in database!
+                        alert("Unknown product scanned: " + code);
+                    } else {
+                        // General error (server down, etc.)
+                        console.error("Server error occurred.");
                     }
                 } catch (err) {
                     console.error("Barcode fetch failed", err);
