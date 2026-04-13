@@ -506,40 +506,57 @@ def selfCheckout():
 
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
-    # Get user info from the form
     customer_email = request.form.get('email')
     
-    # Retrieve the receipt data stored in the session
-    # Rebuild the dictionary structure the email service expects
-    receipt_data = {
-        'items': session.get('cart_items', []),
-        'total': session.get('cart_total', 0.0),
-        'subtotal': session.get('cart_subtotal', 0.0),
-        'gst': session.get('cart_gst', 0.0),
-        'qst': session.get('cart_qst', 0.0),
-        'timestamp': session.get('cart_timestamp', 'N/A')
-    }
+    # 1. GATHER DATA FROM BOTH SOURCES
+    rfid_items = session.get('cart_items', [])
+    manual_items = session.get('manual_items', [])
+    all_items = rfid_items + manual_items
 
-    if not receipt_data['items']:
+    if not all_items:
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
-    # Clear the session once paid
-    keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
-    for key in keys_to_clear:
-        session.pop(key, None)
-    #send receipts
-    receipt_sender = EmailAlertSystem(
-    sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
-    password="hapc ypha dcwh ewbc",         # AND HERE
-    receiver_email=customer_email           # AND HERE
-    )
-    receipt_sender.send_receipt_email(customer_email, receipt_data)
+    # 2. CALCULATE TOTALS (Mirroring your HTML logic)
+    subtotal = sum(item['product_price'] for item in all_items)
+    gst = subtotal * 0.05
+    qst = subtotal * 0.09975
+    total = subtotal + gst + qst
 
-    session.clear
+    # 3. BUILD THE RECEIPT DATA (Include all_items)
+    receipt_data = {
+        'items': all_items,
+        'total': total,
+        'subtotal': subtotal,
+        'gst': gst,
+        'qst': qst,
+        'timestamp': session.get('cart_timestamp', 'N/A')
+    }
 
-    # redirect
-    flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
+    try:
+        # 4. SEND EMAIL
+        receipt_sender = EmailAlertSystem(
+            sender_email="taliamuro3@gmail.com",
+            password="hapc ypha dcwh ewbc",
+            receiver_email=customer_email
+        )
+        receipt_sender.send_receipt_email(customer_email, receipt_data)
+        
+        # 5. CLEAR EVERYTHING (Both RFID and Manual keys)
+        session.pop('cart_items', None)
+        session.pop('manual_items', None)
+        # Also clear the specific tax/total keys if you used them
+        keys_to_clear = ['cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
+        for key in keys_to_clear:
+            session.pop(key, None)
+            
+        session.modified = True
+        flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
+        
+    except Exception as e:
+        print(f"Checkout Error: {e}")
+        flash("There was an error processing your receipt, but your order is complete.", "warning")
+
     return redirect(url_for('store.storeIndex'))
 
 # -----------------------------
@@ -618,3 +635,16 @@ def add_barcode(code):
         session.modified = True
         return jsonify({"status": "success"}), 200
     return jsonify({"status": "not_found"}), 404
+
+@app.route('/api/remove-barcode/<int:index>', methods=['POST'])
+def remove_barcode(index):
+    manual_cart = session.get('manual_items', [])
+    
+    # Check if the index is valid
+    if 0 <= index < len(manual_cart):
+        manual_cart.pop(index)
+        session['manual_items'] = manual_cart
+        session.modified = True
+        return jsonify({"status": "success"}), 200
+        
+    return jsonify({"status": "error", "message": "Item not found"}), 404

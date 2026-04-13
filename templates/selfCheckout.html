@@ -31,12 +31,23 @@
         {% set display_total = all_items | map(attribute='product_price') | sum %}
         
         <ul class="summary-items">
-            {# 2. IMPORTANT: Loop through all_items, not just cart_items #}
+            {% set rfid_count = session.get('cart_items', []) | length %}
+            {# Loop through all_items, not just cart_items #}
             {% for item in all_items %}
             <li class="summary-item">
                 <span>{{ item.product_name }}</span>
                 <strong>${{ "%.2f"|format(item.product_price) }}</strong>
             </li>
+            <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
+                {# If the current loop index is higher than the RFID count, it's a manual item #}
+                {% if loop.index0 >= rfid_count %}
+                    {% set manual_index = loop.index0 - rfid_count %}
+                    <button type="button" 
+                            onclick="removeItem('{{ manual_index }}')" 
+                            class="btn-remove">
+                        &times;
+                    </button>
+                {% endif %}
             {% endfor %}
         </ul>
 
@@ -212,7 +223,28 @@
     // Check for changes every 5 seconds
     setInterval(pollRFID, 5000);
     gate.focus();
-    
+
+    async function removeItem(indexStr) {
+        const index = parseInt(indexStr); // Convert it back to a number for Python
+        
+        // Optional: add a confirm so you don't accidentally delete items
+        if (!confirm("Remove this manual scan?")) return;
+
+        try {
+            const response = await fetch(`/api/remove-barcode/${index}`, { 
+                method: 'POST' 
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                console.error("Failed to remove item.");
+            }
+        } catch (err) {
+            console.error("Error communicating with server:", err);
+        }
+    }
+
 </script>
 
 {% endblock %}
