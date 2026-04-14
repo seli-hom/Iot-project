@@ -410,7 +410,7 @@ def adminDeleteUser(user_id):
     # return redirect(url_for('store.adminDashboard'))
 
 
-@app.route('/products-gallery')
+@app.route('/product-gallery')
 def productGallery():
     storeDb = db.getDB()
     products = storeDb.execute('''
@@ -423,80 +423,206 @@ def productGallery():
     return render_template('productGallery.html', products=products, categories=categories)
 
 
+@app.route('/product/<int:product_id>')
+def productDetails(product_id):
+    storeDb = db.getDB()
+
+    product = storeDb.execute("""
+        SELECT p.*, c.category_type
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        WHERE p.product_id = ?
+    """, (product_id,)).fetchone()
+
+    storeDb.close()
+
+    if not product:
+        return "Product not found", 404
+
+    return render_template("productDetails.html", product=product)
+
 @app.route('/cart')
 def cartPage():
-    if 'user_email' not in session:
-        flash("You need to log in to view your cart.", "warning")
-        # return redirect(url_for('store.storeIndex'))
 
-    storeDb = db.getDB()
-    user = storeDb.execute("SELECT user_id FROM users WHERE user_email = ?", (session['user_email'],)).fetchone()
     cart_items = []
 
-    if user:
-        cart = storeDb.execute("SELECT * FROM cart WHERE user_id = ?", (user['user_id'],)).fetchone()
-        if cart:
+    if 'user_email' in session:
+
+        storeDb = db.getDB()
+
+        user = storeDb.execute(
+            "SELECT user_id FROM users WHERE user_email = ?",
+            (session['user_email'],)
+        ).fetchone()
+
+        if user:
             cart_items = storeDb.execute("""
-                SELECT cp.cart_product_id, cp.cart_product_quantity, cp.cart_product_price, p.product_name, p.product_id
+                SELECT 
+                    p.product_id,
+                    p.product_name,
+                    cp.cart_product_quantity,
+                    cp.cart_product_price
                 FROM cart_products cp
+                JOIN cart c ON cp.cart_id = c.cart_id
                 JOIN products p ON cp.product_id = p.product_id
-                WHERE cp.cart_id = ?
-            """, (cart['cart_id'],)).fetchall()
+                WHERE c.user_id = ?
+            """, (user['user_id'],)).fetchall()
 
-    cart_total = sum(item['cart_product_quantity'] * item['cart_product_price'] for item in cart_items)
-    storeDb.close()
-    return render_template('cart.html', cart_items=cart_items, cart_total=cart_total)
+        storeDb.close()
 
+
+    subtotal = sum(
+        item["cart_product_price"] * item["cart_product_quantity"]
+        for item in cart_items
+    )
+
+    gst = round(subtotal * 0.05, 2)
+    qst = round(subtotal * 0.09975, 2)
+    total = round(subtotal + gst + qst, 2)
+
+    totals = {
+        "subtotal": subtotal,
+        "gst": gst,
+        "qst": qst,
+        "total": total
+    }
+
+    return render_template(
+        "cart.html",
+        cart=cart_items,
+        totals=totals
+    )
 
 @app.route('/cart/add', methods=['POST'])
 def addToCart():
+
     if 'user_email' not in session:
-        flash("Please log in to add items to cart.", "warning")
-        # return redirect(url_for('store.storeIndex'))
+        return {"success": False, "message": "Login required"}
 
     product_id = request.form.get('product_id')
     quantity = int(request.form.get('quantity', 1))
 
     storeDb = db.getDB()
-    user = storeDb.execute("SELECT user_id FROM users WHERE user_email = ?", (session['user_email'],)).fetchone()
+
+    user = storeDb.execute(
+        "SELECT user_id FROM users WHERE user_email = ?",
+        (session['user_email'],)
+    ).fetchone()
 
     if not user:
         storeDb.close()
-        flash("User not found.", "danger")
-        # return redirect(url_for('store.storeIndex'))
+        return {"success": False, "message": "User not found"}
 
-    cart = storeDb.execute("SELECT * FROM cart WHERE user_id = ?", (user['user_id'],)).fetchone()
+    cart = storeDb.execute(
+        "SELECT * FROM cart WHERE user_id = ?",
+        (user['user_id'],)
+    ).fetchone()
+
     if not cart:
-        cur = storeDb.execute("INSERT INTO cart (user_id) VALUES (?)", (user['user_id'],))
+        cur = storeDb.execute(
+            "INSERT INTO cart (user_id) VALUES (?)",
+            (user['user_id'],)
+        )
         storeDb.commit()
         cart_id = cur.lastrowid
     else:
         cart_id = cart['cart_id']
+
 
     cart_product = storeDb.execute("""
         SELECT * FROM cart_products
         WHERE cart_id = ? AND product_id = ?
     """, (cart_id, product_id)).fetchone()
 
+
     if cart_product:
+
         new_qty = cart_product['cart_product_quantity'] + quantity
+
         storeDb.execute("""
             UPDATE cart_products
             SET cart_product_quantity = ?
             WHERE cart_product_id = ?
         """, (new_qty, cart_product['cart_product_id']))
+
     else:
-        product_price = storeDb.execute("SELECT product_price FROM products WHERE product_id = ?", (product_id,)).fetchone()['product_price']
+
+        product_price = storeDb.execute(
+            "SELECT product_price FROM products WHERE product_id = ?",
+            (product_id,)
+        ).fetchone()['product_price']
+
         storeDb.execute("""
-            INSERT INTO cart_products (cart_id, product_id, cart_product_quantity, cart_product_price)
+            INSERT INTO cart_products
+            (cart_id, product_id, cart_product_quantity, cart_product_price)
             VALUES (?, ?, ?, ?)
         """, (cart_id, product_id, quantity, product_price))
 
+
     storeDb.commit()
     storeDb.close()
-    flash("Product added to cart!", "success")
-    # return redirect(request.referrer or url_for('store.productGallery'))
 
+    return {"success": True}
+
+@app.route('/cart/update', methods=['POST'])
+def updateCart():
+
+    if 'user_email' not in session:
+        return {"success": False}
+
+    product_id = request.form.get('product_id')
+    quantity = int(request.form.get('quantity'))
+
+    storeDb = db.getDB()
+
+    user = storeDb.execute(
+        "SELECT user_id FROM users WHERE user_email = ?",
+        (session['user_email'],)
+    ).fetchone()
+
+    storeDb.execute("""
+        UPDATE cart_products
+        SET cart_product_quantity = ?
+        WHERE product_id = ?
+        AND cart_id = (
+            SELECT cart_id FROM cart
+            WHERE user_id = ?
+        )
+    """, (quantity, product_id, user['user_id']))
+
+    storeDb.commit()
+    storeDb.close()
+
+    return {"success": True}
+
+@app.route('/cart/remove', methods=['POST'])
+def removeFromCart():
+
+    if 'user_email' not in session:
+        return {"success": False}
+
+    product_id = request.form.get('product_id')
+
+    storeDb = db.getDB()
+
+    user = storeDb.execute(
+        "SELECT user_id FROM users WHERE user_email = ?",
+        (session['user_email'],)
+    ).fetchone()
+
+    storeDb.execute("""
+        DELETE FROM cart_products
+        WHERE product_id = ?
+        AND cart_id = (
+            SELECT cart_id FROM cart
+            WHERE user_id = ?
+        )
+    """, (product_id, user['user_id']))
+
+    storeDb.commit()
+    storeDb.close()
+
+    return {"success": True}
 
 # @app.route('/self-checkout')
 # def selfCheckout():
@@ -505,18 +631,55 @@ def addToCart():
 #     cart_total = 0.0
 #     storeDb.close()
 #     return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
+# @app.route('/self-checkout')
+# def selfCheckout():
+#     # Pull data from session instead of triggering a new hardware scan
+#     cart_items = session.get('cart_items', [])
+#     cart_total = session.get('cart_total', 0.0)
+
+#     return render_template('selfCheckout.html', 
+#                            cart_items=cart_items, 
+#                            cart_total=cart_total)
+
+# adding placeholder data for now for testing purposes:
 @app.route('/self-checkout')
 def selfCheckout():
-    # Pull data from session instead of triggering a new hardware scan
-    cart_items = session.get('cart_items', [])
-    cart_total = session.get('cart_total', 0.0)
 
-    return render_template('selfCheckout.html', 
-                           cart_items=cart_items, 
-                           cart_total=cart_total)
+    cart_items = [
+        {
+            "product_name": "Solo Shadow Cream Eyeshadow",
+            "product_price": 35.00,
+            "item_quantity": 2
+        },
+        {
+            "product_name": "Apple Love Eau de Parfum",
+            "product_price": 161.00,
+            "item_quantity": 1
+        },
+        {
+            "product_name": "Dew Blush Liquid Blush",
+            "product_price": 35.00,
+            "item_quantity": 3
+        }
+    ]
 
+    cart_total = sum(item["product_price"] * item["item_quantity"] for item in cart_items)
+
+    return render_template(
+        'selfCheckout.html',
+        cart_items=cart_items,
+        cart_total=cart_total
+    )
+
+# * Sorry i know i said i wouldn't change it but it needs to be updated to match the frontend design ...
+# * It should still work though i mostly only added a try-catch and changed the redirect, all other logic remains intact  
+# ! anyone should be able to use the self-checkout system whether they have an account or not. 
+#   -> If they do not have an account then they simply dont get to collect points.
+#   -> all users should be redirected to a /receipt route where an email is sent to users
+#   -> and the page will display the receipt info along with a button to download the txt or pdf file 
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
+
     # Get user info from the form
     customer_email = request.form.get('email')
     
@@ -539,19 +702,103 @@ def selfCheckoutSubmit():
     keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
     for key in keys_to_clear:
         session.pop(key, None)
-    #send receipts
-    receipt_sender = EmailAlertSystem(
-    sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
-    password="hapc ypha dcwh ewbc",         # AND HERE
-    receiver_email=customer_email           # AND HERE
-    )
-    receipt_sender.send_receipt_email(customer_email, receipt_data)
 
-    session.clear
+    # ! adding a check to attemp sending email receipts
+    try:
+        #send receipts
+        receipt_sender = EmailAlertSystem(
+            sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
+            password="hapc ypha dcwh ewbc",         # AND HERE
+            receiver_email=customer_email           # AND HERE
+        )
+        receipt_sender.send_receipt_email(customer_email, receipt_data)
+    except Exception as e:
+        print("[ERROR] Receipt email failed to send: ", e)
+
+        
+    # session.clear #! shouldn't this be a method call? correct me if wrong pls
+    session.clear()
 
     # redirect
     flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
-    return redirect(url_for('store.storeIndex'))
+    
+    # return redirect(url_for('store.storeIndex'))
+    return redirect(url_for('store.receiptPage')) #! redirecting to receipt page instead of index
+
+# ! adding missing receipt route:
+@app.route('/receipt')
+def receiptPage():
+    storeDb = db.getDB()
+
+    session_items = session.get('cart_items', [])
+
+    if session_items:
+        items = session_items
+    else:
+        products = storeDb.execute("""
+            SELECT product_name, product_price
+            FROM products
+            LIMIT 7
+        """).fetchall()
+
+        items = [
+            {
+                "product_name": p["product_name"],
+                "cart_product_quantity": 1,
+                "cart_product_price": p["product_price"]
+            }
+            for p in products
+        ]
+
+    storeDb.close()
+
+    receipt_data = {
+        "items": items,
+        "subtotal": sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items),
+        "gst": round(sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items) * 0.05, 2),
+        "qst": round(sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items) * 0.09975, 2),
+        "total": round(sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items) * 1.14975, 2),
+        "timestamp": "Order #0000 - " + str(session.get("cart_timestamp", "2026-04-13"))
+    }
+
+    return render_template("receipt.html", receipt=receipt_data)
+
+# ! adding missing download-receipt route:
+@app.route('/receipt/download')
+def downloadReceipt():
+    receipt_data = {
+        'items': session.get('cart_items', []),
+        'total': session.get('cart_total', 0.0),
+        'subtotal': session.get('cart_subtotal', 0.0),
+        'gst': session.get('cart_gst', 0.0),
+        'qst': session.get('cart_qst', 0.0),
+        'timestamp': session.get('cart_timestamp', 'N/A')
+    }
+
+    # Build txt file content
+    lines = []
+    lines.append("==== RECEIPT ====")
+    lines.append(f"Date: {receipt_data['timestamp']}\n")
+
+    for item in receipt_data['items']:
+        name = item.get('product_name', 'Item')
+        qty = item.get('cart_product_quantity', 1)
+        price = item.get('cart_product_price', 0)
+        lines.append(f"{name} x{qty} - ${price}")
+
+    lines.append("\n----------------")
+    lines.append(f"Subtotal: ${receipt_data['subtotal']}")
+    lines.append(f"GST: ${receipt_data['gst']}")
+    lines.append(f"QST: ${receipt_data['qst']}")
+    lines.append(f"TOTAL: ${receipt_data['total']}")
+
+    text = "\n".join(lines)
+
+    response = make_response(text)
+    response.headers["Content-Disposition"] = "attachment; filename=receipt.txt"
+    response.headers["Content-Type"] = "text/plain"
+
+    return response
 
 # -----------------------------
 # RFID ROUTES

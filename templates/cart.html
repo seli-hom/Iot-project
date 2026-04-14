@@ -2,272 +2,83 @@
 
 {% block content %}
 
-<div class="container admin-page">
+<div class="cart-page py-5">
 
-<h1 class="mb-4">Admin Dashboard</h1>
+<div class="card cart-card">
 
+<div class="card-body p-4">
 
-<!-- DATABASE OVERVIEW -->
-<div class="card mb-4">
-<div class="card-body">
+<div class="cart-header">
 
-<h4>Database Overview</h4>
-
-<ul class="list-group list-group-flush mt-3">
-<li class="list-group-item">
-Total Users: {{ db_stats.total_users }}
-</li>
-
-<li class="list-group-item">
-Verified Users: {{ db_stats.verified_users }}
-</li>
-
-<li class="list-group-item">
-Latest User:
-{{ db_stats.latest_user.first_name }}
-{{ db_stats.latest_user.last_name }}
-</li>
-
-<li class="list-group-item">
-Most Popular User:
-{{ db_stats.most_popular_user.first_name }}
-{{ db_stats.most_popular_user.last_name }}
-</li>
-</ul>
-
+<div>
+<h3 class="cart-title">Your Cart</h3>
+<p class="cart-subtitle">Review your items before checkout</p>
 </div>
+
+<div class="cart-count">
+{{ cart|length }} Items
+</div>
+
 </div>
 
 
+<div class="mb-4">
 
-<!-- ALL USERS -->
-<div class="card mb-4">
-<div class="card-body">
+<h5 class="section-title">Items</h5>
 
-<h4>All Users</h4>
+{% if cart %}
 
-<div class="table-responsive mt-3">
-<table class="table table-hover align-middle">
+<div class="cart-list">
 
-<thead>
-<tr>
-<th>#</th>
-<th>Name</th>
-<th>Email</th>
-<th>Role</th>
-<th>Verified</th>
-<th>Actions</th>
-</tr>
-</thead>
+{% for item in cart %}
 
-<tbody>
-{% for u in all_users %}
+<div class="cart-item">
 
-<tr>
+<div class="cart-item-left">
 
-<td>{{ u.id }}</td>
+<strong>{{ item.product_name }}</strong>
 
-<td>
-{{ u.first_name }}
-{{ u.last_name }}
-</td>
+<div class="text-muted small">
+${{ item.cart_product_price }}
+</div>
 
-<td>{{ u.email }}</td>
+</div>
 
-<td>
+
+<div class="cart-item-right">
+
 <form method="POST"
-action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
-
-<select name="role"
-class="form-select form-select-sm"
-onchange="this.form.submit()">
-
-<option value="customer"
-{% if u.role == 'customer' %}selected{% endif %}>
-Customer
-</option>
-
-<option value="employee"
-{% if u.role == 'employee' %}selected{% endif %}>
-Employee
-</option>
-
-<option value="admin"
-{% if u.role == 'admin' %}selected{% endif %}>
-Admin
-</option>
-
-</select>
+action="{{ url_for('store.updateCart') }}"
+class="cart-quantity-form">
 
 <input type="hidden"
-name="verified"
-value="{{ u.verified }}">
+name="product_id"
+value="{{ item.product_id }}">
 
-</form>
-</td>
-
-<td>
-<form method="POST"
-action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
-
-<input type="checkbox"
-name="verified"
-value="1"
-{% if u.verified %}checked{% endif %}
+<input type="number"
+name="quantity"
+value="{{ item.cart_product_quantity }}"
+min="1"
+class="form-control form-control-sm cart-qty"
 onchange="this.form.submit()">
 
 </form>
-</td>
 
-<td>
+
 <form method="POST"
-action="{{ url_for('store.adminDeleteUser', id=u.id) }}"
-onsubmit="return confirm('Delete this user?')">
+action="{{ url_for('store.removeFromCart') }}">
 
-<button class="btn btn-sm btn-danger">
-Delete
+<input type="hidden"
+name="product_id"
+value="{{ item.product_id }}">
+
+<button class="btn btn-sm btn-outline-danger">
+Remove
 </button>
 
 </form>
-</td>
-
-</tr>
-
-{% endfor %}
-</tbody>
-
-</table>
-</div>
 
 </div>
-</div>
-
-
-
-<!-- STAFF USERS -->
-<div class="card mb-4">
-<div class="card-body">
-
-<h4>Admins & Employees</h4>
-
-<div class="table-responsive mt-3">
-<table class="table table-hover align-middle">
-
-<thead>
-<tr>
-<th>#</th>
-<th>Name</th>
-<th>Email</th>
-<th>Role</th>
-<th>Verified</th>
-<th>Actions</th>
-</tr>
-</thead>
-
-<tbody>
-
-{% for u in staff %}
-
-<tr>
-
-<td>{{ u.id }}</td>
-
-<td>
-{{ u.first_name }}
-{{ u.last_name }}
-</td>
-
-<td>{{ u.email }}</td>
-
-<td>
-<form method="POST"
-action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
-
-<select name="role"
-class="form-select form-select-sm"
-onchange="this.form.submit()">
-
-<option value="employee"
-{% if u.role == 'employee' %}selected{% endif %}>
-Employee
-</option>
-
-<option value="admin"
-{% if u.role == 'admin' %}selected{% endif %}>
-Admin
-</option>
-
-</select>
-
-<input type="hidden"
-name="verified"
-value="{{ u.verified }}">
-
-</form>
-</td>
-
-<td>
-<form method="POST"
-action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
-
-<input type="checkbox"
-name="verified"
-value="1"
-{% if u.verified %}checked{% endif %}
-onchange="this.form.submit()">
-
-</form>
-</td>
-
-<td>
-<form method="POST"
-action="{{ url_for('store.adminDeleteUser', id=u.id) }}"
-onsubmit="return confirm('Delete this user?')">
-
-<button class="btn btn-sm btn-danger">
-Delete
-</button>
-
-</form>
-</td>
-
-</tr>
-
-{% endfor %}
-
-</tbody>
-
-</table>
-</div>
-
-</div>
-</div>
-
-
-
-<!-- NOTIFICATIONS -->
-<div class="card mb-4">
-<div class="card-body">
-
-<h4>User Notifications</h4>
-
-<div style="max-height:300px; overflow:auto;" class="mt-3">
-
-{% for n in notifications %}
-
-<div class="border rounded p-2 mb-2 bg-light">
-
-<strong>{{ n.title }}</strong>
-
-<br>
-
-{{ n.msg_summary }}
-
-<br>
-
-<small class="text-muted">
-{{ n.created_at }}
-</small>
 
 </div>
 
@@ -275,7 +86,60 @@ Delete
 
 </div>
 
+{% else %}
+
+<div class="alert alert-light">
+Your cart is empty
 </div>
+
+{% endif %}
+
+</div>
+
+
+<div class="cart-summary">
+
+<div class="summary-row">
+<span>Subtotal</span>
+<strong>${{ totals.subtotal }}</strong>
+</div>
+
+<div class="summary-row">
+<span>GST</span>
+<strong>${{ totals.gst }}</strong>
+</div>
+
+<div class="summary-row">
+<span>QST</span>
+<strong>${{ totals.qst }}</strong>
+</div>
+
+<hr>
+
+<div class="summary-row total">
+<span>Total</span>
+<strong>${{ totals.total }}</strong>
+</div>
+
+</div>
+
+
+<div class="cart-actions">
+
+<a href="{{ url_for('store.selfCheckout') }}"
+class="btn btn-checkout">
+Proceed to Checkout
+</a>
+
+<a href="{{ url_for('store.productGallery') }}"
+class="btn btn-continue">
+Continue Shopping
+</a>
+
+</div>
+
+</div>
+
 </div>
 
 

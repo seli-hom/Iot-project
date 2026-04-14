@@ -2,182 +2,128 @@
 
 {% block content %}
 
-<div id="notifications-container"></div>
+<div class="self-checkout-bento">
 
-<div class="container checkout-page">
-    <h1 class="mb-4">Self Checkout</h1>
-    {% if not cart_items %}
-    <p>Your cart is empty. Scan items to begin checkout.</p>
-    {% else %}
+{% if not cart_items %}
 
-    <div class="checkout-grid">
-        <div class="order-summary">
-            <h2>Scanned Items</h2>
-            <ul class="summary-items">
-                {% for item in cart_items %}
-<li class="summary-item">
-    <span>
-        {{ item.product_name }} (x{{ item.item_quantity | default(1) }})
-    </span>
-    <strong>
-        ${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}
-    </strong>
-</li>
-{% endfor %}
-
-</ul>
-
-<div class="summary-total">
-
-<strong>Total:</strong>
-
-<span>
-${{ "%.2f"|format(cart_total) }}
-</span>
-
+<div class="empty-state-card">
+    <h2>No items scanned</h2>
+    <p>Scan products to begin checkout</p>
 </div>
 
-</div>
+{% else %}
 
+<div class="bento-grid">
 
+    <div class="bento-card cart-card">
 
+        <h2>Cart</h2>
 
-<form method="POST"
-action="{{ url_for('store.selfCheckoutSubmit') }}"
-class="checkout-form">
+        <div class="cart-items">
+            {% for item in cart_items %}
+            <div class="cart-item">
+                <div>
+                    <strong>{{ item.product_name }}</strong>
+                    <div class="muted">Qty: {{ item.item_quantity }}</div>
+                </div>
 
-<h2>Customer Confirmation</h2>
+                <div class="price">
+                    ${{ "%.2f"|format(item.product_price * item.item_quantity) }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
 
-<label>
-Email for Receipt
-<br>
-<input
-type="email"
-name="email"
-required
->
-</label>
+    </div>
 
-<label>
-Phone (optional)
-<br>
-<input
-type="text"
-name="phone"
->
-</label>
+    <div class="bento-card loyalty-card">
 
+        <h2>Loyalty Points</h2>
 
-<h2>Payment Method</h2>
+        {% if session.get('user_email') %}
 
-<label>
-<input
-type="radio"
-name="payment_method"
-value="tap"
-checked
->
-Tap / NFC
-</label>
+            {% set current_points = session.get('loyalty_points', 120) %}
 
-<label>
-<input
-type="radio"
-name="payment_method"
-value="card">
-Chip / Card
-</label>
+            {% set earned_points = (cart_total * 0.1)|round(0, 'floor') %}
 
-<label>
-<input
-type="radio"
-name="payment_method"
-value="mobile">
-Mobile Pay
-</label>
+            <div class="loyalty-info">
 
+                <p>Current Points: <strong>{{ current_points }}</strong></p>
 
-<div class="payment-placeholder">
-<p>
-Tap your card on the reader to complete payment
-</p>
-</div>
+                <p>Points from this purchase:</p>
+                <h3>+{{ earned_points }}</h3>
 
-<button
-type="submit"
-class="checkout-submit btn btn-primary mt-3">
+                <p class="muted">
+                    New Total:
+                    <strong>{{ current_points + earned_points }}</strong>
+                </p>
 
-Complete Self Checkout
+            </div>
 
-</button>
+        {% else %}
 
-</form>
+            <div class="login-prompt">
+                <p>Login or create an account to earn loyalty points</p>
+
+                <a href="{{ url_for('store.login') }}" class="btn btn-primary">
+                    Login
+                </a>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+    <div class="bento-card summary-card">
+
+        <h2>Summary</h2>
+
+        <div class="summary-line">
+            <span>Subtotal</span>
+            <strong>${{ "%.2f"|format(cart_total / 1.14975) }}</strong>
+        </div>
+
+        <div class="summary-line">
+            <span>GST</span>
+            <strong>${{ "%.2f"|format(cart_total * 0.05) }}</strong>
+        </div>
+
+        <div class="summary-line">
+            <span>QST</span>
+            <strong>${{ "%.2f"|format(cart_total * 0.09975) }}</strong>
+        </div>
+
+        <hr>
+
+        <div class="summary-total">
+            <span>Total</span>
+            <strong>${{ "%.2f"|format(cart_total) }}</strong>
+        </div>
+
+        <form method="POST"
+              action="{{ url_for('store.selfCheckoutSubmit') }}">
+
+            <input type="email"
+                   name="email"
+                   placeholder="Email for receipt"
+                   required>
+
+            <input type="text"
+                   name="phone"
+                   placeholder="Phone (optional)">
+
+            <button type="submit" class="btn btn-primary pay-btn">
+                Pay Now
+            </button>
+
+        </form>
+
+    </div>
 
 </div>
 
 {% endif %}
 
 </div>
-
-<script>
-    function getUIItemCount() {
-        const items = document.querySelectorAll('.summary-item');
-        return items ? items.length : 0;
-    }
-
-    let currentItemCount = getUIItemCount();
-    console.log("Initial items on page:", currentItemCount);
-
-    async function loadNotifications() {
-        const container = document.getElementById('notifications-container');
-        
-        if (!container) {
-            return; 
-        }
-
-        try {
-            const response = await fetch('/api/notifications');
-            if (!response.ok) return;
-            
-            const data = await response.json();
-            
-            // only run if 'container' exists
-            container.innerHTML = data.map(n => `
-                <div class="notif-item">
-                    <strong>${n.notif_title}</strong>
-                    <p>${n.notif_msg_summary}</p>
-                </div>
-            `).join('');
-        } catch (err) {
-            console.debug("Notifications not available.");
-        }
-    }
-
-    async function pollRFID() {
-        try {
-            const response = await fetch('/api/scan-basket');
-            if (!response.ok) return;
-
-            const data = await response.json();
-            
-            // If the scanner found nothing, but the UI has items, reload to clear it
-            if (!data.items && currentItemCount > 0) {
-                location.reload();
-                return;
-            }
-
-            // If the number of items changes, reload to show the new list
-            if (data.item_count !== currentItemCount) {
-                console.log("Hardware change detected. Refreshing...");
-                location.reload(); 
-            }
-        } catch (err) {
-            console.debug("Polling RFID...");
-        }
-    }
-
-    // Check for changes every 5 seconds
-    setInterval(pollRFID, 5000);
-</script>
 
 {% endblock %}

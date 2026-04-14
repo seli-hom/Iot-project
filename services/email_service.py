@@ -5,24 +5,104 @@ import imaplib
 import email
 from email.header import decode_header
 
-def get_users_by_roles(roles):
+# email services include verification system, IoT admin notifications and security alerts.
 
-    db = getDB()
+# uses send_email() to send a registration email to a newly registered user
+def send_registration_email(user_fname, user_lname, user_email, user_id):
 
-    placeholders = ','.join(['?'] * len(roles))
+    verification_url = url_for(
+        'store.customerVerification',
+        user_id=user_id,
+        _external=True
+    )
 
-    query = f'''
-        SELECT user_email
-        FROM users
-        WHERE user_role IN ({placeholders})
-        AND user_verified = 1
-    '''
+    send_email(
+        "Welcome to Smart Store",
+        f"Verify your account: {verification_url}",
+        f"""
+        <h3>Welcome {user_fname} {user_lname}</h3>
 
-    users = db.execute(query, roles).fetchall()
-    db.close()
+        <p>Please verify your account:</p>
 
-    return [u["user_email"] for u in users]
+        <a href="{verification_url}"
+        style="padding:12px;background:#d8aeb7;color:white;border-radius:6px;text-decoration:none;">
+        Verify Account
+        </a>
+        """,
+        recipients=[user_email]
+    )
 
+# uses send_email() to send admin and employees an alert when a new user is registered
+def send_new_customer_notification(user_fname, user_lname, user_email):
+
+    send_email(
+        "New Customer Verified",
+        f"{user_fname} verified",
+        f"""
+        <h3>New Customer Verified</h3>
+
+        Name: {user_fname} {user_lname}<br>
+        Email: {user_email}
+        """,
+        roles=["admin"]
+    )
+
+# uses send_email() to send admin and employees an alert the fan is turned on/off
+def send_fan_toggle_email(is_on):
+
+    status = "ON" if is_on else "OFF"
+
+    send_email(
+        f"Fan Turned {status}",
+        f"Fan {status}",
+        f"""
+        <h3>Fan Turned {status}</h3>
+
+        The fan has been turned {status}
+        """,
+        roles=["admin", "employee"]
+    )
+
+# uses send_email() to send admin and employees an alert the guage thresholds are changed
+def send_threshold_update_email(fridge, t_min, t_max, h_min, h_max):
+
+    send_email(
+        f"Fridge {fridge} Alert",
+        "Threshold exceeded",
+        f"""
+        <h3>Fridge {fridge} Alert</h3>
+
+        Temperature: {t_min}-{t_max}°C<br>
+        Humidity: {h_min}-{h_max}%
+        """,
+        roles=["admin", "employee"]
+    )
+
+# uses send_email() to send admin and employees a warning when temperatures reach dangerous levels
+def send_security_alert_notification(temperature):
+
+    if temperature <= 0:
+        status = "Freezing Risk"
+    elif temperature >= 10:
+        status = "Overheating Risk"
+    else:
+        status = "Normal"
+
+    send_email(
+        "Security Alert",
+        f"Temperature {temperature}",
+        f"""
+        <h3>Security Alert</h3>
+
+        Temperature: {temperature}°C<br>
+        Status: {status}
+        """,
+        roles=["admin", "employee"]
+    )
+
+
+# Helper functions -----------------------------
+# General function to send an email
 def send_email(subject, body, html=None, recipients=None, roles=None):
 
     try:
@@ -60,73 +140,26 @@ def send_email(subject, body, html=None, recipients=None, roles=None):
         print("[EMAIL ERROR]")
         traceback.print_exc()
 
-def send_registration_email(user_fname, user_lname, user_email, user_id):
+# Gets users by their role
+def get_users_by_roles(roles):
 
-    verification_url = url_for(
-        'store.customerVerification',
-        user_id=user_id,
-        _external=True
-    )
+    db = getDB()
 
-    send_email(
-        "Welcome to Smart Store",
-        f"Verify your account: {verification_url}",
-        f"""
-        <h3>Welcome {user_fname} {user_lname}</h3>
+    placeholders = ','.join(['?'] * len(roles))
 
-        <p>Please verify your account:</p>
+    query = f'''
+        SELECT user_email
+        FROM users
+        WHERE user_role IN ({placeholders})
+        AND user_verified = 1
+    '''
 
-        <a href="{verification_url}"
-        style="padding:12px;background:#d8aeb7;color:white;border-radius:6px;text-decoration:none;">
-        Verify Account
-        </a>
-        """,
-        recipients=[user_email]
-    )
+    users = db.execute(query, roles).fetchall()
+    db.close()
 
-def send_new_customer_notification(user_fname, user_lname, user_email):
+    return [u["user_email"] for u in users]
 
-    send_email(
-        "New Customer Verified",
-        f"{user_fname} verified",
-        f"""
-        <h3>New Customer Verified</h3>
-
-        Name: {user_fname} {user_lname}<br>
-        Email: {user_email}
-        """,
-        roles=["admin"]
-    )
-
-def send_fan_toggle_email(is_on):
-
-    status = "ON" if is_on else "OFF"
-
-    send_email(
-        f"Fan Turned {status}",
-        f"Fan {status}",
-        f"""
-        <h3>Fan Turned {status}</h3>
-
-        The fan has been turned {status}
-        """,
-        roles=["admin", "employee"]
-    )
-
-def send_threshold_update_email(fridge, t_min, t_max, h_min, h_max):
-
-    send_email(
-        f"Fridge {fridge} Alert",
-        "Threshold exceeded",
-        f"""
-        <h3>Fridge {fridge} Alert</h3>
-
-        Temperature: {t_min}-{t_max}°C<br>
-        Humidity: {h_min}-{h_max}%
-        """,
-        roles=["admin", "employee"]
-    )
-
+# Only sends alerts to admins and employees
 def send_system_alert_email(title, message):
 
     send_email(
@@ -139,27 +172,7 @@ def send_system_alert_email(title, message):
         roles=["admin", "employee"]
     )
 
-def send_security_alert_notification(temperature):
-
-    if temperature <= 0:
-        status = "Freezing Risk"
-    elif temperature >= 10:
-        status = "Overheating Risk"
-    else:
-        status = "Normal"
-
-    send_email(
-        "Security Alert",
-        f"Temperature {temperature}",
-        f"""
-        <h3>Security Alert</h3>
-
-        Temperature: {temperature}°C<br>
-        Status: {status}
-        """,
-        roles=["admin", "employee"]
-    )
-
+# Used to display admin email's
 def fetch_store_emails():
 
     emails = []
