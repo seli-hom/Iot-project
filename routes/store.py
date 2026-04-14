@@ -3,7 +3,7 @@ from models import database as db
 from models import customers, users
 from services import email_service
 import bcrypt
-from public.assets.python import phase_2
+#from public.assets.python import phase_2
 
 app = Blueprint('store', __name__)
 
@@ -88,15 +88,15 @@ def customersRegistration():
             new_user_id = cur.lastrowid
     
             # Then create the customer profile
-            from models import customers
-            customer_id = customers.add_new_customer(
-                new_user_id,
-                request.form['phone'],
-                request.form['address']
-            )
+           # from models import customers
+            #customer_id = customers.add_new_customer(
+              #  new_user_id,
+              #  request.form['phone'],
+              #  request.form['address']
+            #)
 
-            if not customer_id:
-                raise Exception("Failed to create customer profile")
+          #  if not customer_id:
+             #   raise Exception("Failed to create customer profile")
 
             # Send verification email
             try:
@@ -181,11 +181,10 @@ def login():
         WHERE email = ?
     ''', (email,)).fetchone()
     storeDb.close()
-    print(user['email'])
     if not user:
         return redirect(url_for('store.storeIndex'))
     
-    if bcrypt.checkpw(password.encode('utf-8'), user['password']):
+    if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
         session['user_email'] = user['email']
         session['user_first_name'] = user['first_name']
         session['user_role'] = user['role']

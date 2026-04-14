@@ -20,7 +20,7 @@
           <div class="ms-auto text-white d-flex align-items-center">
             {% if session.get('user_first_name') %}
               <!-- logged-in view -->
-              <span class="me-2">Welcome {{ session['user_first_name'] }}</span>
+              <span class="me-2">Welcome {{ session.get('user_first_name') }}</span>
               <form method="GET" action="{{ url_for('store.logout') }}">
                 <button type="submit" class="btn btn-danger btn-sm">Logout</button>
               </form>
