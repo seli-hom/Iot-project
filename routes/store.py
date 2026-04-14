@@ -507,7 +507,14 @@ def selfCheckout():
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
     customer_email = request.form.get('email')
-    
+    # If customer exists in the database, we can assign loyalty points to them based on their purchase
+    customer = users.get_user_by_email(customer_email)
+    current_points = 0
+   
+    if customer:
+        current_points = customer['user_loyalty_points']
+        
+    total_points = current_points
     # 1. GATHER DATA FROM BOTH SOURCES
     rfid_items = session.get('cart_items', [])
     manual_items = session.get('manual_items', [])
@@ -519,10 +526,26 @@ def selfCheckoutSubmit():
 
     # 2. CALCULATE TOTALS (Mirroring your HTML logic)
     subtotal = sum(item['product_price'] for item in all_items)
+    if current_points > 50:
+        flash(f"You have {current_points} loyalty points! Would you like to save 5$ on your purchase?", "info")
+        answer = request.form.get('loyalty_discount')
+        if answer == True:
+            flash("5$ discount applied!", "success")
+            # Apply discount to the total
+            # Get the carts subtotal and give a 5$ discount
+            subtotal = subtotal - 5
+            # Deduct points
+            total_points = current_points - 50
+            users.update_loyalty_points(customer['user_id'], total_points)
     gst = subtotal * 0.05
     qst = subtotal * 0.09975
     total = subtotal + gst + qst
 
+    # Create a variable to store loyalty points earned and assign them to the customer if he has an account
+    points_earned = int(subtotal // 10)  
+    
+    
+         
     # 3. BUILD THE RECEIPT DATA (Include all_items)
     receipt_data = {
         'items': all_items,
@@ -533,6 +556,12 @@ def selfCheckoutSubmit():
         'timestamp': session.get('cart_timestamp', 'N/A')
     }
 
+    if customer:
+        current_points = customer['user_loyalty_points'] or 0
+        new_points = total_points + points_earned
+        users.update_loyalty_points(customer['user_id'], new_points)
+        receipt_data['Collected Point:'] = points_earned
+        receipt_data['Total Points:'] = new_points
     try:
         # 4. SEND EMAIL
         receipt_sender = EmailAlertSystem(
