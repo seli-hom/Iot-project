@@ -242,7 +242,7 @@ def check_email():
 # MQTT SETUP
 # ---------------------------
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.connect(BROKER, 1883)
+#client.connect(BROKER, 1883)
 
 client.subscribe("Temperature/Kitchen")
 client.subscribe("Temperature/Room")

@@ -43,9 +43,9 @@ def select_customers():
     storeDb = db.getDB()
     try:
         customers = storeDb.execute('''
-            SELECT customers.*, users.first_name, users.last_name, users.email, users.role, users.verified
-            FROM customers
-            JOIN users ON customers.user_id = users.id
+            SELECT users.*
+            FROM users
+            where role = 'customer'
         ''').fetchall()
         return customers
     finally:

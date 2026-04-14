@@ -7,6 +7,7 @@ from public.assets.python import phase_2
 
 app = Blueprint('store', __name__)
 
+
 @app.route('/')
 def storeIndex():
     return render_template('index.html')
@@ -67,6 +68,7 @@ def get_notifications():
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
+    print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
 @app.route('/customers/registration', methods=['GET', 'POST'])
@@ -78,12 +80,13 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
-                INSERT INTO users (first_name, last_name, email, role, verified)
-                VALUES (?, ?, ?, 'customer', 0)
-            ''', (request.form['first_name'], request.form['last_name'], request.form['email']))
+                INSERT INTO users (first_name, last_name, email, password, role, verified)
+                VALUES (?, ?, ?, ?, 'customer', 0)
+            ''', (request.form['first_name'], request.form['last_name'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
+   
             storeDb.commit()
             new_user_id = cur.lastrowid
-
+    
             # Then create the customer profile
             from models import customers
             customer_id = customers.add_new_customer(
@@ -173,22 +176,20 @@ def login():
 
     storeDb = db.getDB()
     user = storeDb.execute('''
-        SELECT users.*, customers.phone, customers.address
+        SELECT users.*
         FROM users
-        JOIN customers ON users.id = customers.id
-        WHERE users.email = ?
+        WHERE email = ?
     ''', (email,)).fetchone()
     storeDb.close()
-
+    print(user['email'])
     if not user:
         return redirect(url_for('store.storeIndex'))
-
+    
     if bcrypt.checkpw(password.encode('utf-8'), user['password']):
         session['user_email'] = user['email']
         session['user_first_name'] = user['first_name']
         session['user_role'] = user['role']
-
-    return redirect(url_for('store.storeIndex'))
+        return redirect(url_for('store.storeIndex'))
 
 @app.route('/logout')
 def logout():
@@ -267,9 +268,9 @@ def storeInbox():
 
 @app.route('/admin-dashboard')
 def adminDashboard():
-    # if session.get('user_role') != 'admin':
-    #     flash("Unauthorized access.", "danger")
-    #     return redirect(url_for('store.storeIndex'))
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('store.storeIndex'))
 
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY created_at DESC').fetchall()
