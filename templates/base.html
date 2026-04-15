@@ -44,7 +44,7 @@
                     <div class="mb-3">
                       <label class="form-label">Email address</label>
                       <input type="email"
-                            name="email"
+                            name="user_email"
                             class="form-control"
                             placeholder="email@example.com"
                             required>
@@ -52,7 +52,7 @@
                     <div class="mb-3">
                       <label class="form-label">Password</label>
                       <input type="password"
-                            name="password"
+                            name="user_password"
                             class="form-control"
                             placeholder="Password"
                             required>
@@ -71,39 +71,10 @@
                     </button>
                     <div class="dropdown-menu dropdown-menu-end p-4 shadow"
                         aria-labelledby="loginDropdown"
-                        style="min-width: 320px;">
-                    <form method="POST" action="{{ url_for('store.login') }}">
-                        <div class="mb-3">
-                        <label class="form-label">Email address</label>
-                        <input type="email"
-                                name="email"
-                                class="form-control"
-                                placeholder="email@example.com"
-                                required>
-                        </div>
-                        <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password"
-                                name="password"
-                                class="form-control"
-                                placeholder="Password"
-                                required>
-                        </div>
-                        <div class="form-check mb-3">
-                        <input type="checkbox"
-                                name="remember"
-                                class="form-check-input"
-                                id="rememberCheck">
-                        <label class="form-check-label" for="rememberCheck">
-                            Remember me
-                        </label>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                        Sign in
-                        </button>
-                    </form>
+                        style="min-width: 320px;">                
                     </div>
                 </div>
+            </form>
                 {% endif %}
             </div>
             </div>

@@ -46,10 +46,10 @@ def select_customers():
     """
     storeDb = db.getDB()
     try:
-        customers = storeDb.execute('''
+        customers_list = storeDb.execute('''
             SELECT users.*
             FROM users
-            where role = 'customer'
+            where user_role = 'customer'
         ''').fetchall()
         return customers_list
     finally:

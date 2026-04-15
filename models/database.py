@@ -33,9 +33,9 @@ def init_db():
     ''')
 
 
-    storeDb.execute('''
-        ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
-    ''')
+    #storeDb.execute('''
+    #    ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
+   # ''')
     
 # !I think we will need to scratch this after since we are using the users table for registration and such
     # Customers table
