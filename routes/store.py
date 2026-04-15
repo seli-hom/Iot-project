@@ -567,9 +567,9 @@ def selfCheckoutSubmit():
             total_points = current_points - 50
             storeDb.execute('''
                 UPDATE customer_loyalty 
-                SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
+                SET loyalty_points = loyalty_points - ?, loyalty_updated_at = CURRENT_TIMESTAMP
                 WHERE customer_id = ?
-            ''', (points_earned, customer_loyalty_id))
+            ''', (50, customer_loyalty_id))
 
     # Calculate and round taxes/total
     gst = round(subtotal * 0.05, 2)
