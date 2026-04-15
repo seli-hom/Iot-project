@@ -530,7 +530,7 @@ def selfCheckoutSubmit():
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
-    # Calculate and round taxes/total consistently
+    # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
     gst = round(subtotal * 0.05, 2)
     qst = round(subtotal * 0.09975, 2)
@@ -540,17 +540,17 @@ def selfCheckoutSubmit():
     try:
         # 1. ATTEMPT TO FIND THE USER
         user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
-        user_id = user['user_id'] if user else None # Will be None for unregistered users
+        user_id = user['user_id'] if user else None # for unregistered users
 
-        # 2. CREATE THE ORDER (Now happens for everyone)
-        # Note: user_id will be NULL in the database for guest checkouts
+        # Create the order
+        # user_id will be NULL for guest checkout
         cur = storeDb.execute('''
             INSERT INTO orders (user_id, order_total, payment_method, order_status)
             VALUES (?, ?, ?, 'COMPLETED')
         ''', (user_id, total, payment_method))
         order_id = cur.lastrowid
 
-        # 3. ADD PRODUCTS TO ORDER (Now happens for everyone)
+        # 3. add products to order table
         for item in all_items:
             pid = item.get('product_id') 
             if not pid:
@@ -563,7 +563,7 @@ def selfCheckoutSubmit():
                     VALUES (?, ?, 1, ?)
                 ''', (order_id, pid, item['product_price']))
 
-        # 4. LOYALTY LOGIC (Only if user exists)
+        # Loylaty logic if user exists
         if user_id:
             points_earned = int(subtotal)
             customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
@@ -583,7 +583,7 @@ def selfCheckoutSubmit():
 
         storeDb.commit()
 
-        # 5. SEND EMAIL RECEIPT
+        # send email receipt
         receipt_data = {
             'items': all_items,
             'total': total,
@@ -599,7 +599,7 @@ def selfCheckoutSubmit():
         )
         receipt_sender.send_receipt_email(customer_email, receipt_data)
         
-        # 6. CLEAR SESSION
+        # Clear session
         session.pop('cart_items', None)
         session.pop('manual_items', None)
         session.modified = True
@@ -618,6 +618,7 @@ def selfCheckoutSubmit():
         storeDb.close()
 
     return redirect(url_for('store.storeIndex'))
+
 # -----------------------------
 # RFID ROUTES
 # -----------------------------
