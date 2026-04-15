@@ -95,7 +95,7 @@ def init_db():
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS categories (
             category_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_type TEXT NOT NULL,
+            category_type TEXT UNIQUE NOT NULL,
             category_created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -198,14 +198,15 @@ def init_db():
         )
     ''')
 
-    # Populating the database
-    storeDb.execute('''
-        INSERT INTO categories (category_type)
-        VALUES 
-            ('Makeup'),
-            ('Fragrance'),
-            ('Lip Sets');
-    ''')
+    # INSERT OR IGNORE for categories if they already exist
+    # To be safest, we check if they exist first
+    categories = ['Makeup', 'Fragrance', 'Lip Sets']
+    for cat in categories:
+        storeDb.execute("INSERT OR IGNORE INTO categories (category_type) VALUES (?)", (cat,))
+    
+    # Refresh the map dynamically so IDs are always correct
+    cat_rows = storeDb.execute("SELECT category_id, category_type FROM categories").fetchall()
+    cat_map = {row['category_type']: row['category_id'] for row in cat_rows}
 
     products_to_add = [
         ("Solo Shadow Cream Eyeshadow", "Makeup", 35.00, "Merit Beauty", "6989880828680", "A00000000000000000004954"),
@@ -214,38 +215,28 @@ def init_db():
         ("The Sweet Pink Duo", "Lip Sets", 52.00, "Summer Fridays", "3898267675041", "A00000000000000000004959")
     ]
 
-    # Map the names to the IDs you just created
-    cat_map = {"Makeup": 1, "Fragrance": 2, "Lip Sets": 3}
-
     for name, cat_name, price, company, barcode, rfid in products_to_add:
         category_id = cat_map.get(cat_name)
 
-        # 1. Use INSERT OR IGNORE for the product
-        # If the product_name is already there, it won't add a duplicate
-        cursor = storeDb.execute('''
-            INSERT OR IGNORE INTO products (product_name, product_price, product_company, category_id, product_stock_quantity)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (name, price, company, category_id, 10))
+        # Look for the specific product/company combo
+        existing = storeDb.execute(
+            "SELECT product_id FROM products WHERE product_name = ? AND product_company = ?", 
+            (name, company)
+        ).fetchone()
 
-        # 2. Get the ID of the product we just inserted (or the one that already existed)
-        if cursor.rowcount > 0:
-            # This was a fresh insert
+        if not existing:
+            # Only insert if it's actually missing
+            cursor = storeDb.execute('''
+                INSERT INTO products (product_name, product_price, product_company, category_id, product_stock_quantity)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (name, price, company, category_id, 10))
             new_id = cursor.lastrowid
+            
+            # Since the product is new, add the identifiers
+            storeDb.execute('INSERT OR IGNORE INTO product_barcode (product_id, barcode_num) VALUES (?, ?)', (new_id, barcode))
+            storeDb.execute('INSERT OR IGNORE INTO product_rfid (product_id, rfid_tag) VALUES (?, ?)', (new_id, rfid))
         else:
-            # Product already exists, fetch its ID so we can check barcode/rfid
-            res = storeDb.execute("SELECT product_id FROM products WHERE product_name = ?", (name,)).fetchone()
-            new_id = res['product_id']
-
-        # 3. Insert Barcode and RFID only if they aren't already linked
-        storeDb.execute('''
-            INSERT OR IGNORE INTO product_barcode (product_id, barcode_num)
-            VALUES (?, ?)
-        ''', (new_id, barcode))
-
-        storeDb.execute('''
-            INSERT OR IGNORE INTO product_rfid (product_id, rfid_tag)
-            VALUES (?, ?)
-        ''', (new_id, rfid))
+            pass
 
     # print("Database checked: New items added or existing items skipped.")
 
