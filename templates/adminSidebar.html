@@ -4,7 +4,10 @@
     <nav class="nav flex-column">
 
       <!-- Admin Panel -->
-      <span class="text-primary fw-bold mb-2">Admin Panel</span>
+      
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}">
+        <span class="text-primary fw-bold mb-2">Admin Panel</span>
+      </a>
       <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#staff-section">Admins & Employees</a>
       <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#all-users-section">All Users</a>
       <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#notifications-section">Notifications</a>
@@ -13,7 +16,9 @@
       <br>
       <br>
       <!-- Store Panel -->
-      <span class="text-primary fw-bold mt-2 mb-2">Store Panel</span>
+      <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.storeDashboard') }}">
+        <span class="text-primary fw-bold mt-2 mb-2">Store Panel</span>
+      </a>
       <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-1">Frig 1</a>
       <a class="nav-link px-4 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-1-temp">Temperature</a>
       <a class="nav-link px-4 py-1 rounded" href="{{ url_for('store.storeDashboard') }}#frig-1-humidity">Humidity</a>
