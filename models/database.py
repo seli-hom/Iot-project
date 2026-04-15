@@ -8,6 +8,19 @@ def getDB():
     conn = sqlite3.connect('store.db', check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
+def add_column_safe(table_name, column_name, column_type, default_value=None):
+    # Checks if column exists before adding it to the table
+    storeDb = getDB()
+    cursor = storeDb.execute(f"PRAGMA table_info({table_name})")
+    columns = [col['name'] for col in cursor.fetchall()]
+    if column_name not in columns:
+        if default_value is not None:
+            storeDb.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type} DEFAULT {default_value}")
+        else:
+            storeDb.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+    storeDb.commit()
+    storeDb.close()
+
 
 def init_db():
     """
@@ -33,9 +46,10 @@ def init_db():
     ''')
 
 
-    storeDb.execute('''
-        ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
-    ''')
+    # storeDb.execute('''
+    #     ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
+    # ''')
+    add_column_safe('users', 'user_loyalty_points', 'INTEGER', default_value=0)
     
 # !I think we will need to scratch this after since we are using the users table for registration and such
     # Customers table
