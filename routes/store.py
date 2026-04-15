@@ -94,7 +94,24 @@ def customersRegistration():
    
             storeDb.commit()
             new_user_id = cur.lastrowid
-    
+            #  * Should create the customer loyalty as well
+            new_customer = store.db.execute('''
+                INSERT INTO customers (user_id, customer_phone, customer_address)
+                VALUES (?, ?, ?)
+                
+            ''', (new_user_id, request.form['phone'], request.form['address']))
+            storeDb.commit()
+            if not new_customer:
+                raise Exception("Failed to create customer profile")
+            new_customer_id = new_customer.lastrowid
+            loyalty_customer = storeDb.execute('''
+                                            INSERT INTO customer_loyalty (customer_id, loyalty_points)
+                                            VALUES (?, 0)
+                                        ''', (new_customer_id,))
+            if not loyalty_customer:
+                raise Exception("Failed to create customer loyalty profile")
+            
+          
             # Then create the customer profile
            # from models import customers
             #customer_id = customers.add_new_customer(
