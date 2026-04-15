@@ -520,7 +520,7 @@ def selfCheckout():
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
     customer_email = request.form.get('email')
-    answer = request.form.get('loyalty_discount');
+    answer = request.form.get('loyalty_discount') == 'true'  # Checkbox returns 'true' if checked, otherwise None;
     # If customer exists in the database, we can assign loyalty points to them based on their purchase
     customer = users.get_user_by_email(customer_email)
     current_points = 0
@@ -528,6 +528,7 @@ def selfCheckoutSubmit():
     if customer:
         current_points = customer['user_loyalty_points']
         
+    session['customer_points'] = current_points  # Store current points in session for use in the template
     total_points = current_points
     # 1. GATHER DATA FROM BOTH SOURCES
     rfid_items = session.get('cart_items', [])
@@ -540,7 +541,7 @@ def selfCheckoutSubmit():
 
     # 2. CALCULATE TOTALS (Mirroring your HTML logic)
     subtotal = sum(item['product_price'] for item in all_items)
-    if current_points > 50 and answer == 'true':
+    if current_points > 50 and answer:
         # answer = request.form.get('loyalty_discount')
         # if answer == True :
             flash("5$ discount applied!", "success")
