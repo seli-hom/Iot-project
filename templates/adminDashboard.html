@@ -2,27 +2,42 @@
 
 {% block content %}
 <div class="container-fluid">
+
     {% include "adminSidebar.html" with context %}
+
     <div class="row">
-        <div id="admin-dashboard" 
-             data-bs-spy="scroll" 
-             data-bs-target="#navbar-example3" 
-             data-bs-offset="100" 
+        <div id="admin-dashboard"
+             data-bs-spy="scroll"
+             data-bs-target="#navbar-example3"
+             data-bs-offset="100"
              tabindex="0">
 
             <h2 class="dashboard-title">Admin Dashboard</h2>
 
-            <div class="dashboard-grid d-grid gap-4" style="
-                 grid-template-columns: repeat(3, 1fr);
-                 grid-auto-rows: minmax(200px, auto);">
+            <!-- FLASH MESSAGES -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
 
-                <div id="all-users-section" class="card shadow-sm p-4 dashboard-card" style="grid-column: span 2;">
+            <div class="dashboard-grid d-grid gap-4"
+                 style="grid-template-columns: repeat(3, 1fr); grid-auto-rows: minmax(200px, auto);">
+
+                <!-- USERS -->
+                <div class="card shadow-sm p-4" style="grid-column: span 2;">
                     <h5>All Users</h5>
+
                     <div class="table-responsive mt-2">
                         <table class="table table-hover align-middle">
                             <thead>
                                 <tr>
-                                    <th>#</th>
+                                    <th>ID</th>
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
@@ -30,15 +45,19 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 {% for u in all_users %}
                                 <tr>
                                     <td>{{ u.user_id }}</td>
                                     <td>{{ u.user_fname }} {{ u.user_lname }}</td>
                                     <td>{{ u.user_email }}</td>
+
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
-                                            <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
+                                        <form method="POST"
+                                              action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
+                                            <select name="role" class="form-select form-select-sm"
+                                                    onchange="this.form.submit()">
                                                 <option value="customer" {% if u.user_role == 'customer' %}selected{% endif %}>Customer</option>
                                                 <option value="employee" {% if u.user_role == 'employee' %}selected{% endif %}>Employee</option>
                                                 <option value="admin" {% if u.user_role == 'admin' %}selected{% endif %}>Admin</option>
@@ -46,98 +65,256 @@
                                             <input type="hidden" name="verified" value="{{ u.user_verified }}">
                                         </form>
                                     </td>
+
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
-                                            <input type="checkbox" name="verified" value="1" {% if u.verified %}checked{% endif %} onchange="this.form.submit()">
+                                        <form method="POST"
+                                              action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
+                                            <input type="checkbox"
+                                                   name="verified"
+                                                   value="1"
+                                                   {% if u.user_verified %}checked{% endif %}
+                                                   onchange="this.form.submit()">
                                         </form>
                                     </td>
+
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminDeleteUser', user_id=u.user_id) }}" onsubmit="return confirm('Delete this user?')">
+                                        <form method="POST"
+                                              action="{{ url_for('store.adminDeleteUser', user_id=u.user_id) }}"
+                                              onsubmit="return confirm('Delete this user?')">
                                             <button class="btn btn-sm btn-danger">Delete</button>
-                                            <!--TODO: add a popup modal to confirm that the employee/admin does want to delete this specific user -->
-                                            <!--? If the user is an employee, only admins should be able to delete them -->
-                                            <!--? If the user is an admin, the user cannot be deleted unless they are converted to an employee/customer user first -->
                                         </form>
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
+
                         </table>
                     </div>
                 </div>
 
-                <div id="db-overview-section" class="card shadow-sm p-4 dashboard-card">
+                <!-- DATABASE OVERVIEW -->
+                <div class="card shadow-sm p-4">
                     <h5>Database Overview</h5>
+
                     <ul class="list-group list-group-flush mt-2">
                         <li class="list-group-item">Total Users: {{ db_stats.total_users }}</li>
                         <li class="list-group-item">Verified Users: {{ db_stats.verified_users }}</li>
-                        <li class="list-group-item">Latest User: {{ db_stats.latest_user.user_fname }} {{ db_stats.latest_user.user_lname }}</li>
-                        <li class="list-group-item">Most Popular User: {{ db_stats.most_popular_user.user_fname }} {{ db_stats.most_popular_user.user_lname }}</li>
+
+                        <li class="list-group-item">
+                            Latest User:
+                            {% if db_stats.latest_user %}
+                                {{ db_stats.latest_user.user_fname }} {{ db_stats.latest_user.user_lname }}
+                            {% else %}None{% endif %}
+                        </li>
+
+                        <li class="list-group-item">
+                            Most Popular User:
+                            {% if db_stats.most_popular_user %}
+                                {{ db_stats.most_popular_user.user_fname }} {{ db_stats.most_popular_user.user_lname }}
+                            {% else %}None{% endif %}
+                        </li>
                     </ul>
                 </div>
 
-                <div id="notifications-section" class="card shadow-sm p-4 dashboard-card">
-                    <b>User Notifications</b>
-                    <div id="notifications-container" class="notif-section-inner overflow-auto mt-2" style="max-height:300px;">
+                <!-- NOTIFICATIONS -->
+                <div class="card shadow-sm p-4">
+                    <h5>Notifications</h5>
+
+                    <div style="max-height:300px; overflow:auto;">
                         {% for n in notifications %}
-                        <div class="notif-item p-2 mb-1 border rounded bg-light">
-                            <b>{{ n.notif_title }}</b> - {{ n.notif_msg_summary }} <small class="text-muted">{{ n.notif_created_at }}</small>
+                        <div class="border p-2 mb-2 bg-light rounded">
+                            <b>{{ n.notif_title }}</b><br>
+                            {{ n.notif_msg_summary }}
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
-                <div id="staff-section" class="card shadow-sm p-4 dashboard-card" style="grid-column: span 2;">
-                    <h5>Admins & Employees</h5>
-                    <div class="table-responsive mt-2">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Verified</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% print(staff[0]['user_id']) %}
-                                {% for u in staff %}
-                                <tr>
-                                    <td>{{ u.user_id }}</td>
-                                    <td>{{ u.user_fname }} {{ u.user_lname }}</td>
-                                    <td>{{ u.user_email }}</td>
-                                    <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id = u.user_id) }}">
-                                            <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
-                                                <option value="employee" {% if u.role == 'employee' %}selected{% endif %}>Employee</option>
-                                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
-                                            </select>
-                                            <input type="hidden" name="verified" value="{{ u.user_verified }}">
-                                        </form>
-                                    </td>
-                                    <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id = u.user_id) }}">
-                                            <input type="checkbox" name="verified" value="1" {% if u.user_verified %}checked{% endif %} onchange="this.form.submit()">
-                                        </form>
-                                    </td>
-                                    <td>
-                                        <!-- !See contraints above look at users card -->
-                                        <form method="POST" action="{{ url_for('store.adminDeleteUser', user_id = u.user_id) }}" onsubmit="return confirm('Delete this user?')">
-                                            <button class="btn btn-sm btn-danger">Delete</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                <!-- STAFF -->
+                <div class="card shadow-sm p-4" style="grid-column: span 2;">
+                    <h5>Staff</h5>
+
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Verified</th><th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for u in staff %}
+                            <tr>
+                                <td>{{ u.user_id }}</td>
+                                <td>{{ u.user_fname }} {{ u.user_lname }}</td>
+                                <td>{{ u.user_email }}</td>
+
+                                <td>
+                                    <form method="POST"
+                                          action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
+                                        <select name="role" onchange="this.form.submit()">
+                                            <option value="employee" {% if u.user_role == 'employee' %}selected{% endif %}>Employee</option>
+                                            <option value="admin" {% if u.user_role == 'admin' %}selected{% endif %}>Admin</option>
+                                        </select>
+                                        <input type="hidden" name="verified" value="{{ u.user_verified }}">
+                                    </form>
+                                </td>
+
+                                <td>
+                                    <form method="POST"
+                                          action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
+                                        <input type="checkbox"
+                                               name="verified"
+                                               {% if u.user_verified %}checked{% endif %}
+                                               onchange="this.form.submit()">
+                                    </form>
+                                </td>
+
+                                <td>
+                                    <form method="POST"
+                                          action="{{ url_for('store.adminDeleteUser', user_id=u.user_id) }}"
+                                          onsubmit="return confirm('Delete?')">
+                                        <button class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
 
-            </div> <!-- dashboard-grid -->
-        </div> <!-- main content col -->
-    </div> <!-- row -->
-</div> <!-- container-fluid -->
+                <!-- PRODUCTS CRUD -->
+                <div class="card shadow-sm p-4" style="grid-column: span 3;">
+                    <h5>Products</h5>
+
+                    <button class="btn btn-primary btn-sm mb-2"
+                            data-bs-toggle="modal"
+                            data-bs-target="#createProductModal">
+                        + Add Product
+                    </button>
+
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>Name</th><th>Category</th><th>Company</th><th>Price</th><th>Stock</th><th>Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for p in products %}
+                            <tr>
+                                <td>{{ p.product_id }}</td>
+                                <td>{{ p.product_name }}</td>
+                                <td>{{ p.category_type or "Uncategorized" }}</td>
+                                <td>{{ p.product_company }}</td>
+                                <td>${{ "%.2f"|format(p.product_price) }}</td>
+                                <td>{{ p.product_stock_quantity }}</td>
+
+                                <td>
+                                    <form method="POST"
+                                          action="/admin/product/{{ p.product_id }}/delete"
+                                          onsubmit="return confirm('Delete product?')">
+                                        <button class="btn btn-sm btn-danger">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- CATEGORIES CRUD -->
+                <div class="card shadow-sm p-4">
+                    <h5>Categories</h5>
+
+                    <form method="POST" action="/admin/category/create" class="mb-2">
+                        <input name="category_type" class="form-control mb-2" placeholder="New category">
+                        <button class="btn btn-success btn-sm">Add</button>
+                    </form>
+
+                    <table class="table table-sm">
+                        <thead>
+                            <tr><th>ID</th><th>Name</th><th>Products</th><th></th></tr>
+                        </thead>
+
+                        <tbody>
+                            {% for c in categories %}
+                            <tr>
+                                <td>{{ c.category_id }}</td>
+                                <td>{{ c.category_type }}</td>
+                                <td>{{ c.product_count }}</td>
+                                <td>
+                                    <form method="POST"
+                                          action="/admin/category/{{ c.category_id }}/delete"
+                                          onsubmit="return confirm('Delete category?')">
+                                        <button class="btn btn-sm btn-danger">X</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ORDERS -->
+                <div class="card shadow-sm p-4" style="grid-column: span 2;">
+                    <h5>Orders</h5>
+
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th><th>User</th><th>Total</th><th>Payment</th><th>Status</th><th>Date</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for o in orders %}
+                            <tr>
+                                <td>{{ o.order_id }}</td>
+                                <td>{{ o.user_fname }} {{ o.user_lname }}</td>
+                                <td>${{ "%.2f"|format(o.order_total) }}</td>
+                                <td>{{ o.payment_method }}</td>
+                                <td>{{ o.order_status }}</td>
+                                <td>{{ o.order_created_at }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="modal fade" id="createProductModal">
+    <div class="modal-dialog">
+        <form method="POST" action="/admin/product/create" class="modal-content">
+
+            <div class="modal-header">
+                <h5>Create Product</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <input name="product_name" class="form-control mb-2" placeholder="Name">
+                <input name="product_price" class="form-control mb-2" placeholder="Price">
+                <input name="product_company" class="form-control mb-2" placeholder="Company">
+                <input name="product_stock_quantity" class="form-control mb-2" placeholder="Stock">
+
+                <select name="category_id" class="form-select">
+                    {% for c in categories %}
+                        <option value="{{ c.category_id }}">{{ c.category_type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-success">Create</button>
+            </div>
+
+        </form>
+    </div>
+</div>
 
 {% endblock %}

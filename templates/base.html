@@ -619,5 +619,14 @@
         }
       });
     </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (window.location.pathname === "/self-checkout") {
+          document.body.classList.add("no-scroll");
+          document.documentElement.classList.add("no-scroll");
+        }
+      });
+    </script>
   </body>
 </html>

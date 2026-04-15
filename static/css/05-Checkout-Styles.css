@@ -367,8 +367,20 @@
 /* ========================= */
 
 .checkout-page {
-  width: 100%;
-  padding: 2rem 1rem;
+ width: 100%;
+  padding: 3rem 2rem;
+  background: linear-gradient(var(--nude-light), var(--nude-dark)), url(https://img.freepik.com/premium-photo/smooth-texture-blank-paper-white-color-seamless-square-ba_463999-10203.jpg?semt=ais_incoming&w=740&q=80);
+  min-width: 100vw;
+  height: 100%;
+  position: relative;
+  border: 2px solid rebeccapurple;
+  left: 50%;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: stretch;
+  transform: translate(-50%, -10%);
+  z-index: 9999;
 }
 
 /* GRID WRAPPER */
@@ -377,7 +389,7 @@
   grid-template-columns: 2fr 1fr;
   grid-template-rows: auto auto;
   gap: 1.5rem;
-  max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   align-items: start;
 }
@@ -393,8 +405,8 @@
 }
 
 /* RIGHT SIDE CARDS */
-.checkout-grid .bento-card {
-  background: linear-gradient(145deg, var(--primary-light, #fff), #fff);
+.checkout-grid {
+  background: var(--primary);
   border-radius: 1.25rem;
   padding: 1.25rem;
   box-shadow: 0 0.75rem 2rem var(--shadow-deep);
@@ -405,6 +417,7 @@
 .loyalty-card {
   grid-column: 2;
   grid-row: 1;
+  background-color: var(--highlight) !important;
 }
 
 /* SUMMARY / TAX CARD POSITION */
@@ -424,7 +437,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-height: 60vh;
   overflow-y: auto;
 }
 
@@ -459,7 +471,7 @@
 .checkout-form input {
   padding: 0.6rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--shadow-soft);
+  border: 1px solid var(--primary);
 }
 
 .checkout-form input:focus {
@@ -468,9 +480,18 @@
   box-shadow: 0 0 0.25rem var(--highlight-glow);
 }
 
-/* ========================= */
-/* RESPONSIVE               */
-/* ========================= */
+.placeholder {
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(90deg, var(--accent), var(--highlight-light), var(--accent-light), var(--highlight-light), var(--accent));
+    background-size: 300% 300%;
+    animation: loading 9s infinite;
+}
+
+@keyframes loading {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
 
 @media (max-width: 900px) {
   .checkout-grid {
@@ -484,4 +505,204 @@
     grid-column: auto;
     grid-row: auto;
   }
+}
+
+.order-summary {
+  max-height: 85vh;
+}
+ .summary-card {
+  min-height: 65vh;
+  max-height: 65vh;
+}
+
+/* Make all checkout cards feel consistent with your app theme */
+.checkout-page .order-summary,
+.checkout-page .loyalty-card,
+.checkout-page .summary-card {
+  border-radius: 1.5rem;
+  background: linear-gradient(145deg, var(--nude-light), #ffffff);
+  box-shadow: 0 12px 30px var(--shadow-deep);
+  border: 1px solid var(--highlight-glow);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  padding: 1.5rem;
+}
+
+/* Hover consistency (matches your other cards like admin/receipt/cart) */
+.checkout-page .order-summary:hover,
+.checkout-page .loyalty-card:hover,
+.checkout-page .summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 45px var(--shadow-deep);
+}
+
+/* Fix grid spacing so it doesn’t feel cramped or “random” */
+.checkout-grid {
+  align-items: stretch;
+}
+
+/* LEFT COLUMN: make cart feel primary */
+.checkout-page .order-summary {
+  position: relative;
+}
+
+/* RIGHT COLUMN: stack spacing between cards */
+.checkout-page .loyalty-card {
+  margin-bottom: 1.5rem;
+}
+
+/* Card headers feel more intentional */
+.checkout-page h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-top: -1rem;
+}
+
+/* Items list readability upgrade */
+.checkout-page .summary-item {
+  background: var(--primary-light);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.checkout-page .summary-item:hover {
+  background: var(--highlight-light);
+  transform: translateY(-2px);
+}
+
+.checkout-page .self-checkout-subtotal {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: 1px solid var(--shadow-soft);
+  background: linear-gradient(145deg, var(--primary-light), #fff);
+  box-shadow: inset 0 1px var(--highlight-glow);
+}
+
+.checkout-page .summary-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+}
+
+.order-summary > .summary-line { 
+  position: absolute;
+  border-top: 3px solid var(--highlight-dark);
+  bottom: -0.1rem;
+  background-color: var(--highlight-light);
+  border-bottom-left-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+  width: 100.5%;
+  margin-left: -1.75rem;
+  padding: 2rem 2.2rem !important;
+}
+
+.checkout-btn-wrapper { 
+  position: absolute;
+  border-top: 3px solid var(--highlight-dark);
+  bottom: -0.1rem;
+  background-color: var(--highlight-light);
+  border-bottom-left-radius: 1.5rem;
+  border-bottom-right-radius: 1.5rem;
+  width: 100.75%;
+  margin-left: -1.75rem;
+  padding: 0.6rem 2.2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Total emphasis */
+.checkout-page .summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--gold);
+  margin-top: 0.5rem;
+}
+
+/* Loyalty card polish */
+.checkout-page .loyalty-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.95rem;
+}
+
+/* Payment placeholder should feel intentional, not empty */
+.checkout-page .payment-placeholder {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--nude-light);
+  font-size: 0.9rem;
+  text-align: center;
+  opacity: 0.8;
+}
+
+/* Make checkout button feel like a primary action */
+.checkout-page .checkout-submit {
+  margin-top: 1rem;
+  border-radius: 0.9rem;
+  padding: 0.9rem 1rem;
+  font-weight: 700;
+  background: linear-gradient(120deg, var(--accent), var(--gold));
+  border: none;
+  color: var(--text-dark);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.checkout-page .checkout-submit:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px var(--shadow-deep);
+}
+
+/* Make the 3-card layout visually balanced */
+.checkout-grid {
+  grid-template-columns: 2fr 1fr;
+  gap: 1.75rem;
+}
+
+/* Right column becomes a clean vertical stack */
+.checkout-grid > .loyalty-card,
+.checkout-grid > .summary-card {
+  display: block;
+  position: relative  ;
+}
+
+.payment-types {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    list-style: none;
+    align-content: center;
+    justify-content: space-between;
+    & > li > label {
+      display: flex;
+    }
+    & > li > label > input {
+      max-height: 1rem;
+    }
+
+}
+.label-text {
+  min-width: 6vw;
+  margin-left: 1rem;
+}
+
+.manual-barcode-wrapper {
+    margin-top: 1rem;
+}
+
+#barcodeInputWrap {
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    background: var(--nude-light);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }

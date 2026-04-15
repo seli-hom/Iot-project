@@ -49,6 +49,12 @@ body, html {
   scroll-behavior: smooth;
   color: var(--text-dark);
   overflow-x: hidden;
+  position: relative;
+}
+
+body.no-scroll,
+html.no-scroll {
+  overflow-y: hidden;
 }
 
 h2 {

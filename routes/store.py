@@ -62,6 +62,26 @@ def storeDashboard():
     #     ORDER BY notif_created_at DESC
     #     LIMIT 5
     # ''').fetchall()
+
+    try:
+        kitchen_temp
+    except NameError:
+        kitchen_temp = 4
+
+    try:
+        kitchen_hum
+    except NameError:
+        kitchen_hum = 65
+
+    try:
+        room_temp
+    except NameError:
+        room_temp = 5
+
+    try:
+        room_hum
+    except NameError:
+        room_hum = 60
     storeDb.close()
     return render_template(
         'storeDashboard.html',
@@ -252,13 +272,13 @@ def login():
 
     if not user:
         flash("Invalid credentials.", "danger")
-        return redirect(url_for('store.customersList'))
+        # return redirect(url_for('store.customersList'))
     
     if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
         session['user_first_name'] = user['user_fname']
         session['user_role'] = user['user_role']
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
 
 @app.route('/logout')
@@ -335,25 +355,63 @@ def storeInbox():
 
     return render_template("viewInbox.html", emails=emails)
 
-
 @app.route('/admin-dashboard')
 def adminDashboard():
     if session.get('user_role') != 'admin':
         flash("Unauthorized access.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        # return redirect(url_for('store.storeIndex'))
 
     storeDb = db.getDB()
-    all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
-    staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
-    user_notifications = storeDb.execute('''
+
+    all_users = storeDb.execute(
+        'SELECT * FROM users ORDER BY user_created_at DESC'
+    ).fetchall()
+
+    staff = storeDb.execute('''
+        SELECT * FROM users 
+        WHERE user_role IN ("admin","employee")
+    ''').fetchall()
+
+    notifications = storeDb.execute('''
         SELECT * FROM notifications
-        WHERE notif_id IS NOT NULL
         ORDER BY notif_created_at DESC
         LIMIT 5
     ''').fetchall()
-    total_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
-    verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
-    latest_user = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1').fetchone()
+
+    products = storeDb.execute('''
+        SELECT p.*, c.category_type
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        ORDER BY p.product_created_at DESC
+    ''').fetchall()
+
+    categories = storeDb.execute('''
+        SELECT c.category_id,
+               c.category_type,
+               COUNT(p.product_id) AS product_count
+        FROM categories c
+        LEFT JOIN products p ON p.category_id = c.category_id
+        GROUP BY c.category_id
+    ''').fetchall()
+
+    orders = storeDb.execute('''
+        SELECT o.*,
+               u.user_fname,
+               u.user_lname,
+               u.user_email
+        FROM orders o
+        LEFT JOIN users u ON o.user_id = u.user_id
+        ORDER BY o.order_created_at DESC
+        LIMIT 20
+    ''').fetchall()
+
+    stats_total = storeDb.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
+    stats_verified = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
+
+    latest_user = storeDb.execute('''
+        SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1
+    ''').fetchone()
+
     popular_user = storeDb.execute('''
         SELECT users.*, COUNT(customers.customer_id) as posts
         FROM users
@@ -362,22 +420,76 @@ def adminDashboard():
         ORDER BY posts DESC
         LIMIT 1
     ''').fetchone()
-    storeDb.close()
+
 
     db_stats = {
-        "total_users": total_users,
-        "verified_users": verified_users,
+        "total_users": stats_total,
+        "verified_users": stats_verified,
         "latest_user": latest_user,
         "most_popular_user": popular_user
     }
-    print(staff[0]['user_id'])
+
+    storeDb.close()
+
     return render_template(
         'adminDashboard.html',
         all_users=all_users,
         staff=staff,
-        notifications=user_notifications,
-        db_stats=db_stats
+        notifications=notifications,
+        db_stats=db_stats,
+        products=products,
+        categories=categories,
+        orders=orders
     )
+
+# Old admin dashboard (works but is missind data): 
+# @app.route('/admin-dashboard')
+# def adminDashboard():
+#     if session.get('user_role') != 'admin':
+#         flash("Unauthorized access.", "danger")
+#         # return redirect(url_for('store.storeIndex'))
+
+#     storeDb = db.getDB()
+#     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
+#     staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
+#     user_notifications = storeDb.execute('''
+#         SELECT * FROM notifications
+#         WHERE notif_id IS NOT NULL
+#         ORDER BY notif_created_at DESC
+#         LIMIT 5
+#     ''').fetchall()
+#     total_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
+#     verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
+#     latest_user = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1').fetchone()
+#     popular_user = storeDb.execute('''
+#         SELECT users.*, COUNT(customers.customer_id) as posts
+#         FROM users
+#         LEFT JOIN customers ON users.user_id = customers.user_id
+#         GROUP BY users.user_id
+#         ORDER BY posts DESC
+#         LIMIT 1
+#     ''').fetchone()
+#     storeDb.close()
+
+#     db_stats = {
+#         "total_users": total_users,
+#         "verified_users": verified_users,
+#         "latest_user": latest_user,
+#         "most_popular_user": popular_user
+#     }
+
+#     if staff:
+#         print(staff[0]['user_id'])
+#     else:
+#         print("No staff users found")
+
+#     return render_template(
+#         'adminDashboard.html',
+#         all_users=all_users,
+#         staff=staff,
+#         notifications=user_notifications,
+#         db_stats=db_stats
+#     )
 
 @app.route('/admin/user/<int:user_id>/update', methods=['POST'])
 def adminUpdateUser(user_id):
@@ -629,52 +741,50 @@ def removeFromCart():
 
     return {"success": True}
 
-# @app.route('/self-checkout')
-# def selfCheckout():
-#     storeDb = db.getDB()
-#     cart_items = []
-#     cart_total = 0.0
-#     storeDb.close()
-#     return render_template('selfCheckout.html', cart_items=cart_items, cart_total=cart_total)
-# @app.route('/self-checkout')
-# def selfCheckout():
-#     # Pull data from session instead of triggering a new hardware scan
-#     cart_items = session.get('cart_items', [])
-#     cart_total = session.get('cart_total', 0.0)
-
-#     return render_template('selfCheckout.html', 
-#                            cart_items=cart_items, 
-#                            cart_total=cart_total)
-
-# adding placeholder data for now for testing purposes:
 @app.route('/self-checkout')
 def selfCheckout():
+    # Pull data from session instead of triggering a new hardware scan
+    cart_items = session.get('cart_items', [])
+    cart_total = session.get('cart_total', 0.0)
 
-    cart_items = [
-        {
-            "product_name": "Solo Shadow Cream Eyeshadow",
-            "product_price": 35.00,
-            "item_quantity": 2
-        },
-        {
-            "product_name": "Apple Love Eau de Parfum",
-            "product_price": 161.00,
-            "item_quantity": 1
-        },
-        {
-            "product_name": "Dew Blush Liquid Blush",
-            "product_price": 35.00,
-            "item_quantity": 3
-        }
-    ]
+    return render_template('selfCheckout.html', 
+                           cart_items=cart_items, 
+                           cart_total=cart_total)
 
-    cart_total = sum(item["product_price"] * item["item_quantity"] for item in cart_items)
+# adding placeholder data for now for testing purposes:
+# @app.route('/self-checkout')
+# def selfCheckout():
 
-    return render_template(
-        'selfCheckout.html',
-        cart_items=cart_items,
-        cart_total=cart_total
-    )
+#     rfid_items = session.get('cart_items', [])
+#     manual_items = session.get('manual_items', [])
+
+#     all_items = []
+
+#     # RFID items
+#     for item in rfid_items:
+#         all_items.append({
+#             "product_name": item.get("product_name"),
+#             "product_price": float(item.get("product_price", 0)),
+#             "quantity": item.get("item_quantity", 1),
+#             "source": "rfid"
+#         })
+
+#     # Barcode items
+#     for item in manual_items:
+#         all_items.append({
+#             "product_name": item.get("product_name"),
+#             "product_price": float(item.get("product_price", 0)),
+#             "quantity": 1,
+#             "source": "barcode"
+#         })
+
+#     cart_total = sum(i["product_price"] * i["quantity"] for i in all_items)
+
+#     return render_template(
+#         "selfCheckout.html",
+#         cart_items=all_items,
+#         cart_total=cart_total
+#     )
 
 # * Sorry i know i said i wouldn't change it but it needs to be updated to match the frontend design ...
 # * It should still work though i mostly only added a try-catch and changed the redirect, all other logic remains intact  
