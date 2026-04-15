@@ -741,50 +741,43 @@ def removeFromCart():
 
     return {"success": True}
 
-@app.route('/self-checkout')
-def selfCheckout():
-    # Pull data from session instead of triggering a new hardware scan
-    cart_items = session.get('cart_items', [])
-    cart_total = session.get('cart_total', 0.0)
-
-    return render_template('selfCheckout.html', 
-                           cart_items=cart_items, 
-                           cart_total=cart_total)
-
-# adding placeholder data for now for testing purposes:
 # @app.route('/self-checkout')
 # def selfCheckout():
+#     # Pull data from session instead of triggering a new hardware scan
+#     cart_items = session.get('cart_items', [])
+#     cart_total = session.get('cart_total', 0.0)
 
-#     rfid_items = session.get('cart_items', [])
-#     manual_items = session.get('manual_items', [])
+#     return render_template('selfCheckout.html', 
+#                            cart_items=cart_items, 
+#                            cart_total=cart_total)
 
-#     all_items = []
 
-#     # RFID items
-#     for item in rfid_items:
-#         all_items.append({
-#             "product_name": item.get("product_name"),
-#             "product_price": float(item.get("product_price", 0)),
-#             "quantity": item.get("item_quantity", 1),
-#             "source": "rfid"
-#         })
+@app.route('/self-checkout')
+def selfCheckout():
 
-#     # Barcode items
-#     for item in manual_items:
-#         all_items.append({
-#             "product_name": item.get("product_name"),
-#             "product_price": float(item.get("product_price", 0)),
-#             "quantity": 1,
-#             "source": "barcode"
-#         })
+    rfid_items = session.get('cart_items', [])
+    manual_items = session.get('manual_items', [])
 
-#     cart_total = sum(i["product_price"] * i["quantity"] for i in all_items)
+    all_items = []
 
-#     return render_template(
-#         "selfCheckout.html",
-#         cart_items=all_items,
-#         cart_total=cart_total
-#     )
+    for item in rfid_items:
+        item['source'] = 'rfid'
+        all_items.append(item)
+
+    for item in manual_items:
+        item['source'] = 'barcode'
+        all_items.append(item)
+
+    cart_total = sum(
+        float(item.get("product_price", 0))
+        for item in all_items
+    )
+
+    return render_template(
+        "selfCheckout.html",
+        cart_items=all_items,
+        cart_total=cart_total
+    )
 
 # * Sorry i know i said i wouldn't change it but it needs to be updated to match the frontend design ...
 # * It should still work though i mostly only added a try-catch and changed the redirect, all other logic remains intact  
