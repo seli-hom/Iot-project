@@ -24,11 +24,17 @@
     <div class="order-summary">
         <h2>Scanned Items</h2>
 
-        {# Create the combined list and calculate total #}
+        {# Calculate subtotal #}
         {% set rfid_items = session.get('cart_items', []) %}
         {% set manual_items = session.get('manual_items', []) %}
         {% set all_items = rfid_items + manual_items %}
-        {% set display_total = all_items | map(attribute='product_price') | sum %}
+        {% set subtotal = all_items | map(attribute='product_price') | sum %}
+
+        {# Calculate taxes}
+        {# 2. Calculate Taxes #}
+        {% set gst = subtotal * 0.05 %}
+        {% set qst = subtotal * 0.09975 %}
+        {% set total = subtotal + gst + qst %}
         
         <ul class="summary-items">
             {% set rfid_count = session.get('cart_items', []) | length %}
@@ -52,8 +58,23 @@
         </ul>
 
         <div class="summary-total">
-            <strong>Total:</strong>
-            <span>${{ "%.2f"|format(display_total) }}</span>
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${{ "%.2f"|format(subtotal) }}</span>
+            </div>
+            <div class="total-row">
+                <span>GST (5%):</span>
+                <span>${{ "%.2f"|format(gst) }}</span>
+            </div>
+            <div class="total-row">
+                <span>QST (9.975%):</span>
+                <span>${{ "%.2f"|format(qst) }}</span>
+            </div>
+            <hr>
+            <div class="total-row final-total">
+                <strong>Total:</strong>
+                <strong>${{ "%.2f"|format(total) }}</strong>
+            </div>
         </div>
     </div>
 
