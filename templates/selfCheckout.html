@@ -110,13 +110,10 @@
         <p>Tap your card on the reader to complete payment</p>
       </div>
 
-      {% comment %}
-      <input type="hidden" name="loyalty_discount" value="false" /> {%
-      endcomment %} {% comment %} {% if session.get('customer_points', 0) > 50
-      %} {% endcomment %} {% comment %}?? I have a question since the customer
-      points logic happens after the submission it will not be able to ask to
-      use the loyalty points? Unless its like gas stations where it is
-      automatically applied? {% endcomment %}
+      {% comment %}?? I have a question since the customer points logic happens
+      after the submission it will not be able to ask to use the loyalty points?
+      Unless its like gas stations where it is automatically applied? {%
+      endcomment %}
       <label>
         {% comment %} !! If the customer checks this it will automatically give
         them a discoount if they have enough points {% endcomment %}
@@ -130,7 +127,7 @@
     </form>
   </div>
 
-  {% endif %}
+  {% comment %} {% endif %} {% endcomment %}
 </div>
 
 <script>
