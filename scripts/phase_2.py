@@ -8,17 +8,18 @@ from email.mime.text import MIMEText
 from gpiozero import OutputDevice
 
 # YOUR DATABASE IMPORT
-from database import getDB
+# from database import getDB
 
 # ---------------------------
 # CONFIG
 # ---------------------------
+#BROKER = "10.79.90.179"
 BROKER = "192.168.2.163"
 
-SENDER_EMAIL_ADDR = "nwantolyLuke@gmail.com"
-SENDER_PASSWORD = "dwjiapckhjltbxre"
+SENDER_EMAIL_ADDR = "taliamuro3@gmail.com"
+SENDER_PASSWORD = "hapc ypha dcwh ewbc"
 
-RECEIVER_EMAIL_ADDR = "lnwantoly@gmail.com"
+RECEIVER_EMAIL_ADDR = "efremselihom1@gmail.com"
 
 SMTP_SERVER = "smtp.gmail.com"
 IMAP_SERVER = "imap.gmail.com"
@@ -29,27 +30,27 @@ TEMP_THRESHOLD = 20   # °C
 # ---------------------------
 # DATABASE LOGGER (YOUR WORK)
 # ---------------------------
-def save_notification(title, summary, details):
+# def save_notification(title, summary, details):
 
-    try:
-        db = getDB()
+#     try:
+#         db = getDB()
 
-        db.execute("""
-            INSERT INTO notifications
-            (type, title, msg_summary, msg_extended)
-            VALUES (?, ?, ?, ?)
-        """, (
-            "alert",
-            title,
-            summary,
-            details
-        ))
+#         db.execute("""
+#             INSERT INTO notifications
+#             (type, title, msg_summary, msg_extended)
+#             VALUES (?, ?, ?, ?)
+#         """, (
+#             "alert",
+#             title,
+#             summary,
+#             details
+#         ))
 
-        db.commit()
-        db.close()
+#         db.commit()
+#         db.close()
 
-    except Exception as e:
-        print("Database Error:", e)
+#     except Exception as e:
+#         print("Database Error:", e)
 
 
 # ---------------------------
@@ -242,7 +243,7 @@ def check_email():
 # MQTT SETUP
 # ---------------------------
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-client.connect(BROKER, 1883)
+#client.connect(BROKER, 1883)
 
 client.subscribe("Temperature/Kitchen")
 client.subscribe("Temperature/Room")

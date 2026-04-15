@@ -17,47 +17,57 @@
             <b>Smart Makeup Store</b>
             </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
-            aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarContent">
-            <!-- Left-aligned links -->
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('store.storeIndex') }}">Home</a>
-                </li>
-                <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('store.productGallery') }}">Products</a>
-                </li>
-                <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('store.cartPage') }}">
-                    Cart
-                    {% if session.get('cart_count') %}
-                    <span class="badge bg-warning text-dark">{{ session['cart_count'] }}</span>
-                    {% endif %}
-                </a>
-                </li>
-            </ul>
-
-            <!-- Right-aligned login/logout -->
-            <div class="d-flex align-items-center">
-                {% if session.get('user_fname') %}
-                <span class="text-white me-2">Welcome {{ session['user_fname'] }}</span>
-                <form method="GET" action="{{ url_for('store.logout') }}">
-                    <button type="submit" class="btn btn-danger btn-sm">Logout</button>
-                </form>
-                {% else %}
-                <span class="text-white me-2">Welcome Anon</span>
-                <div class="dropdown">
-                    <button class="btn btn-primary dropdown-toggle"
-                            type="button"
-                            id="loginDropdown"
-                            data-bs-toggle="dropdown"
-                            data-bs-auto-close="outside"
-                            aria-expanded="false">
-                    Please login
+          <div class="ms-auto text-white d-flex align-items-center">
+            {% if session.get('user_first_name') %}
+              <!-- logged-in view -->
+              <span class="me-2">Welcome {{ session.get('user_first_name') }}</span>
+              <form method="GET" action="{{ url_for('store.logout') }}">
+                <button type="submit" class="btn btn-danger btn-sm">Logout</button>
+              </form>
+            {% else %}
+              <!-- logged-out view -->
+              <span class="me-2">Welcome Anon</span>
+              <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle"
+                        type="button"
+                        id="loginDropdown"
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside"
+                        aria-expanded="false">
+                  Please login
+                </button>
+                <div class="dropdown-menu dropdown-menu-end p-4 shadow"
+                    aria-labelledby="loginDropdown"
+                    style="min-width: 320px;">
+                  <!-- login form -->
+                  <form method="POST" action="{{ url_for('store.login') }}">
+                    <div class="mb-3">
+                      <label class="form-label">Email address</label>
+                      <input type="email"
+                            name="email"
+                            class="form-control"
+                            placeholder="email@example.com"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label">Password</label>
+                      <input type="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="Password"
+                            required>
+                    </div>
+                    <div class="form-check mb-3">
+                      <input type="checkbox"
+                            name="remember"
+                            class="form-check-input"
+                            id="rememberCheck">
+                      <label class="form-check-label" for="rememberCheck">
+                        Remember me
+                      </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                      Sign in
                     </button>
                     <div class="dropdown-menu dropdown-menu-end p-4 shadow"
                         aria-labelledby="loginDropdown"

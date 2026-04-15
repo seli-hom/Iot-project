@@ -30,7 +30,11 @@ def storeDashboard():
         # notifications=notifications,
         temp=4,
         hm=65,
-        type="Notice"
+        type="Notice",
+        kitchen_temp=kitchen_temp,
+        kitchen_hum=kitchen_hum,
+        room_temp=room_temp,
+        room_hum=room_hum,
     )
 
 
@@ -72,6 +76,7 @@ def get_notifications():
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
+    print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
 
@@ -83,19 +88,25 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
-                INSERT INTO users 
-                (user_fname, user_lname, user_email, user_role, user_verified)
-                VALUES (?, ?, ?, 'customer', 0)
-            ''', (
-                request.form['user_fname'],
-                request.form['user_lname'],
-                request.form['user_email']
-            ))
-
+                INSERT INTO users (first_name, last_name, email, password, role, verified)
+                VALUES (?, ?, ?, ?, 'customer', 0)
+            ''', (request.form['first_name'], request.form['last_name'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
+   
             storeDb.commit()
             new_user_id = cur.lastrowid
-            print("User created:", new_user_id)
+    
+            # Then create the customer profile
+           # from models import customers
+            #customer_id = customers.add_new_customer(
+              #  new_user_id,
+              #  request.form['phone'],
+              #  request.form['address']
+            #)
 
+          #  if not customer_id:
+             #   raise Exception("Failed to create customer profile")
+
+            # Send verification email
             try:
                 # -------------------------------
                 # Send registration email
@@ -215,23 +226,20 @@ def login():
 
     storeDb = db.getDB()
     user = storeDb.execute('''
-        SELECT users.*, customers.customer_phone, customers.customer_address
+        SELECT users.*
         FROM users
-        LEFT JOIN customers ON users.user_id = customers.user_id
-        WHERE users.user_email = ?
+        WHERE email = ?
     ''', (email,)).fetchone()
     storeDb.close()
-
     if not user:
         flash("Invalid credentials.", "danger")
         return redirect(url_for('store.storeIndex'))
-
-    if user['user_password'] and bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
-        session['user_email'] = user['user_email']
-        session['user_fname'] = user['user_fname']
-        session['user_role'] = user['user_role']
-
-    return redirect(url_for('store.storeIndex'))
+    
+    if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+        session['user_email'] = user['email']
+        session['user_first_name'] = user['first_name']
+        session['user_role'] = user['role']
+        return redirect(url_for('store.storeIndex'))
 
 
 @app.route('/logout')
@@ -320,6 +328,10 @@ def storeInbox():
 # -----------------------------
 @app.route('/admin-dashboard')
 def adminDashboard():
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('store.storeIndex'))
+
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
     staff_users = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
