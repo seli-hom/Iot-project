@@ -95,6 +95,7 @@ def customersRegistration():
             storeDb.commit()
             new_user_id = cur.lastrowid
             storeDb.execute('''UPDATE users SET user_loyalty_points = 5 WHERE user_id = ?''', (new_user_id,))
+            storeDb.commit()
             print(f"New user created with ID {new_user_id} and 5 loyalty points assigned.")
     # !!not to sure we are using it tbh creates the customer in customer table
             # customer = storeDb.execute("''' INSERT INTO customers (user_id, customer_phone, customer_address) VALUES (?, ?, ?)'''", (new_user_id, request.form['phone'], request.form['address']))
