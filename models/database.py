@@ -153,7 +153,7 @@ def init_db():
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
+            user_id INTEGER,
             order_total REAL NOT NULL,
             payment_method TEXT,
             order_status TEXT DEFAULT 'PENDING',

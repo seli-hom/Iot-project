@@ -530,53 +530,52 @@ def selfCheckoutSubmit():
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
+    # Calculate and round taxes/total consistently
     subtotal = sum(item['product_price'] for item in all_items)
-    gst = subtotal * 0.05
-    qst = subtotal * 0.09975
-    total = subtotal + gst + qst
+    gst = round(subtotal * 0.05, 2)
+    qst = round(subtotal * 0.09975, 2)
+    total = round(subtotal + gst + qst, 2)
 
     storeDb = db.getDB()
     try:
-        # 1. FIND THE USER
+        # 1. ATTEMPT TO FIND THE USER
         user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
-        
-        if user:
-            user_id = user['user_id']
-            # 2. CREATE THE ORDER
-            cur = storeDb.execute('''
-                INSERT INTO orders (user_id, order_total, payment_method, order_status)
-                VALUES (?, ?, ?, 'COMPLETED')
-            ''', (user_id, total, payment_method))
-            order_id = cur.lastrowid
+        user_id = user['user_id'] if user else None # Will be None for unregistered users
 
-            # 3. ADD PRODUCTS TO ORDER
-            for item in all_items:
-                # We need the product_id. Assuming it's in the item dict from the scan service
-                pid = item.get('product_id') 
-                if not pid: # Fallback: Look up by name if ID isn't in session
-                    res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
-                    pid = res['product_id'] if res else None
-                
-                if pid:
-                    storeDb.execute('''
-                        INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
-                        VALUES (?, ?, 1, ?)
-                    ''', (order_id, pid, item['product_price']))
+        # 2. CREATE THE ORDER (Now happens for everyone)
+        # Note: user_id will be NULL in the database for guest checkouts
+        cur = storeDb.execute('''
+            INSERT INTO orders (user_id, order_total, payment_method, order_status)
+            VALUES (?, ?, ?, 'COMPLETED')
+        ''', (user_id, total, payment_method))
+        order_id = cur.lastrowid
 
-            # 4. UPDATE LOYALTY POINTS (e.g., 1 point per dollar)
+        # 3. ADD PRODUCTS TO ORDER (Now happens for everyone)
+        for item in all_items:
+            pid = item.get('product_id') 
+            if not pid:
+                res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
+                pid = res['product_id'] if res else None
+            
+            if pid:
+                storeDb.execute('''
+                    INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
+                    VALUES (?, ?, 1, ?)
+                ''', (order_id, pid, item['product_price']))
+
+        # 4. LOYALTY LOGIC (Only if user exists)
+        if user_id:
             points_earned = int(subtotal)
             customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
             
             if customer:
                 cid = customer['customer_id']
-                # Update total points
                 storeDb.execute('''
                     UPDATE customer_loyalty 
                     SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
                     WHERE customer_id = ?
                 ''', (points_earned, cid))
                 
-                # Record the transaction
                 storeDb.execute('''
                     INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
                     VALUES (?, 'EARN', ?, ?)
@@ -584,7 +583,7 @@ def selfCheckoutSubmit():
 
         storeDb.commit()
 
-        # 5. SEND EMAIL RECEIPT (Using your existing EmailAlertSystem)
+        # 5. SEND EMAIL RECEIPT
         receipt_data = {
             'items': all_items,
             'total': total,
@@ -605,17 +604,20 @@ def selfCheckoutSubmit():
         session.pop('manual_items', None)
         session.modified = True
         
-        flash(f"Success! Order recorded and receipt sent to {customer_email}.", "success")
+        message = "Success! Receipt sent."
+        if user_id:
+            message = f"Success! {points_earned} points added and receipt sent."
+        
+        flash(message, "success")
         
     except Exception as e:
         storeDb.rollback()
         print(f"Checkout Database Error: {e}")
-        flash("Order completed, but there was an error updating your loyalty profile.", "warning")
+        flash("Order completed, but there was an error updating your profile.", "warning")
     finally:
         storeDb.close()
 
     return redirect(url_for('store.storeIndex'))
-
 # -----------------------------
 # RFID ROUTES
 # -----------------------------
