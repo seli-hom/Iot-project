@@ -524,9 +524,22 @@ def selfCheckoutSubmit():
     answer = request.form.get('loyalty_discount') == 'true'  # Checkbox returns 'true' if checked, otherwise None;
     # If customer exists in the database, we can assign loyalty points to them based on their purchase
     storeDb = db.getDB()
-
-    customer = users.get_user_by_email(customer_email)
     current_points = 0
+    customer_loyalty_id = 0
+    if answer:
+        try:
+            customer = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
+            if customer:
+                user_id = customer['user_id']
+                customer_loyalty_exists = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
+                customer_loyalty_id = customer_loyalty_exists['customer_id'] if customer_loyalty_exists else 0
+                customer_loyalty = storeDb.execute('SELECT loyalty_points FROM customer_loyalty WHERE customer_id = ?', (customer_loyalty_id,)).fetchone()
+                if customer_loyalty:
+                    current_points = customer_loyalty['loyalty_points']
+        except Exception as e:
+            storeDb.rollback()
+            print(f"Checkout Database Error: {e}")
+            flash("Order completed, but there was an error updating your profile.", "warning")
    
     if customer:
         current_points = customer['user_loyalty_points']
@@ -552,7 +565,11 @@ def selfCheckoutSubmit():
             subtotal = subtotal - 5
             # Deduct points
             total_points = current_points - 50
-            users.update_loyalty_points(customer['user_id'], total_points)
+            storeDb.execute('''
+                UPDATE customer_loyalty 
+                SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
+                WHERE customer_id = ?
+            ''', (points_earned, customer_loyalty_id))
 
     # Calculate and round taxes/total
     gst = round(subtotal * 0.05, 2)

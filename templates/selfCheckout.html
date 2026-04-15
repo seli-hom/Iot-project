@@ -21,58 +21,53 @@
     <div class="order-summary">
       <h2>Scanned Items</h2>
 
-        {# Calculate subtotal #}
-        {% set rfid_items = session.get('cart_items', []) %}
-        {% set manual_items = session.get('manual_items', []) %}
-        {% set all_items = rfid_items + manual_items %}
-        {% set subtotal = all_items | map(attribute='product_price') | sum %}
+      {# Calculate subtotal #} {% set rfid_items = session.get('cart_items', [])
+      %} {% set manual_items = session.get('manual_items', []) %} {% set
+      all_items = rfid_items + manual_items %} {% set subtotal = all_items |
+      map(attribute='product_price') | sum %} {# Calculate taxes} {# 2.
+      Calculate Taxes #} {% set gst = subtotal * 0.05 %} {% set qst = subtotal *
+      0.09975 %} {% set total = subtotal + gst + qst %}
 
-        {# Calculate taxes}
-        {# 2. Calculate Taxes #}
-        {% set gst = subtotal * 0.05 %}
-        {% set qst = subtotal * 0.09975 %}
-        {% set total = subtotal + gst + qst %}
-        
-        <ul class="summary-items">
-            {% set rfid_count = session.get('cart_items', []) | length %}
-            {# Loop through all_items, not just cart_items #}
-            {% for item in all_items %}
-            <li class="summary-item">
-                <span>{{ item.product_name }}</span>
-                <strong>${{ "%.2f"|format(item.product_price) }}</strong>
-            </li>
-            <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
-                {# If the current loop index is higher than the RFID count, it's a manual item #}
-                {% if loop.index0 >= rfid_count %}
-                    {% set manual_index = loop.index0 - rfid_count %}
-                    <button type="button" 
-                            onclick="removeItem('{{ manual_index }}')" 
-                            class="btn-remove">
-                        &times;
-                    </button>
-                {% endif %}
-            {% endfor %}
-        </ul>
+      <ul class="summary-items">
+        {% set rfid_count = session.get('cart_items', []) | length %} {# Loop
+        through all_items, not just cart_items #} {% for item in all_items %}
+        <li class="summary-item">
+          <span>{{ item.product_name }}</span>
+          <strong>${{ "%.2f"|format(item.product_price) }}</strong>
+        </li>
+        <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
+        {# If the current loop index is higher than the RFID count, it's a
+        manual item #} {% if loop.index0 >= rfid_count %} {% set manual_index =
+        loop.index0 - rfid_count %}
+        <button
+          type="button"
+          onclick="removeItem('{{ manual_index }}')"
+          class="btn-remove"
+        >
+          &times;
+        </button>
+        {% endif %} {% endfor %}
+      </ul>
 
-        <div class="summary-total">
-            <div class="total-row">
-                <span>Subtotal:</span>
-                <span>${{ "%.2f"|format(subtotal) }}</span>
-            </div>
-            <div class="total-row">
-                <span>GST (5%):</span>
-                <span>${{ "%.2f"|format(gst) }}</span>
-            </div>
-            <div class="total-row">
-                <span>QST (9.975%):</span>
-                <span>${{ "%.2f"|format(qst) }}</span>
-            </div>
-            <hr>
-            <div class="total-row final-total">
-                <strong>Total:</strong>
-                <strong>${{ "%.2f"|format(total) }}</strong>
-            </div>
+      <div class="summary-total">
+        <div class="total-row">
+          <span>Subtotal:</span>
+          <span>${{ "%.2f"|format(subtotal) }}</span>
         </div>
+        <div class="total-row">
+          <span>GST (5%):</span>
+          <span>${{ "%.2f"|format(gst) }}</span>
+        </div>
+        <div class="total-row">
+          <span>QST (9.975%):</span>
+          <span>${{ "%.2f"|format(qst) }}</span>
+        </div>
+        <hr />
+        <div class="total-row final-total">
+          <strong>Total:</strong>
+          <strong>${{ "%.2f"|format(total) }}</strong>
+        </div>
+      </div>
     </div>
 
     <form
@@ -123,6 +118,8 @@
       use the loyalty points? Unless its like gas stations where it is
       automatically applied? {% endcomment %}
       <label>
+        {% comment %} !! If the customer checks this it will automatically give
+        them a discoount if they have enough points {% endcomment %}
         <input type="checkbox" name="loyalty_discount" value="true" />
         I already have a membership here!
       </label>
