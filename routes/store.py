@@ -94,6 +94,8 @@ def customersRegistration():
    
             storeDb.commit()
             new_user_id = cur.lastrowid
+            storeDb.execute('''UPDATE users SET user_loyalty_points = 5 WHERE user_id = ?''', (new_user_id,))
+            print(f"New user created with ID {new_user_id} and 5 loyalty points assigned.")
     # * creates the customer in customer table
             customer = storeDb.execute("''' INSERT INTO customers (user_id, customer_phone, customer_address) VALUES (?, ?, ?)'''", (new_user_id, request.form['phone'], request.form['address']))
             storeDb.commit()
@@ -101,7 +103,7 @@ def customersRegistration():
             # *create the loyalty customer
             loyalty = storeDb.execute("''' INSERT INTO customer_loyalty (customer_id, loyalty_points) VALUES (?, 0)'''", (customer_id,5))
             loyalty_id = loyalty.lastrowid
-            flash("New customer loyalty card successfully created! 5 points have been assigned as registration bonus", "success")
+            flash("New customer loyalty card with ID " + str(loyalty_id) + " successfully created! 5 points have been assigned as registration bonus", "success")
             storeDb.commit()
             # Then create the customer profile
            # from models import customers

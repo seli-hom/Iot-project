@@ -50,7 +50,7 @@ def init_db():
         )
     ''')
 
-
+    add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)
     #storeDb.execute('''
     #    ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
    # ''')

@@ -61,7 +61,7 @@ def send_email(subject, body, html=None, recipients=None, roles=None):
 # -----------------------------
 # Send registration email
 # -----------------------------
-def send_registration_email(user_fname, user_lname, user_email, user_id):
+def send_registration_email(user_fname, user_lname, user_email, user_id, ):
     verification_url = url_for('store.customerVerification', user_id=user_id, _external=True)
     send_email(
         "Welcome to the Smart Store!",
