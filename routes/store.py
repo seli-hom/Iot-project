@@ -94,7 +94,15 @@ def customersRegistration():
    
             storeDb.commit()
             new_user_id = cur.lastrowid
-    
+    # * creates the customer in customer table
+            customer = storeDb.execute("''' INSERT INTO customers (user_id, customer_phone, customer_address) VALUES (?, ?, ?)'''", (new_user_id, request.form['phone'], request.form['address']))
+            storeDb.commit()
+            customer_id = customer.lastrowid
+            # *create the loyalty customer
+            loyalty = storeDb.execute("''' INSERT INTO customer_loyalty (customer_id, loyalty_points) VALUES (?, 0)'''", (customer_id,5))
+            loyalty_id = loyalty.lastrowid
+            flash("New customer loyalty card successfully created! 5 points have been assigned as registration bonus", "success")
+            storeDb.commit()
             # Then create the customer profile
            # from models import customers
             #customer_id = customers.add_new_customer(
@@ -522,13 +530,30 @@ def selfCheckoutSubmit():
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
     loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
-    
+    current_points = 0
     if loyalty_card:
         storeDb = db.getDB()
-        customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_email = ?', (customer_email,)).fetchone()['customer_id']
-        storeDb.commit()
-        storeDb.close()
-        print("Customer with ID", customer, "has a loyalty card.")
+        user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
+       
+        if user:
+            user_id = user['user_id']
+            customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
+            if customer:
+                customer_id = customer['customer_id']
+                loyalty_card = storeDb.execute('SELECT * FROM customer_loyalty WHERE customer_id = ?', (customer_id,)).fetchone()#*finds the loyalty card based on the found customer
+                # loyalty_id = loyalty_card['loyalty_id']
+                if loyalty_card:
+                    loyalty_id = loyalty_card['loyalty_id']
+                    current_points = loyalty_card['loyalty_points']
+                    print("Customer with ID", customer, " has a loyalty card with ", current_points, " points.")
+                    storeDb.commit()
+                    storeDb.close()
+                else:
+                    print("Loyalty card not found for customer with email:", customer_email)
+            else:
+                print("No customer found with user ID:", user_id)       
+        else:
+            print("No user found with email:", customer_email)
     rfid_items = session.get('cart_items', [])
     manual_items = session.get('manual_items', [])
     all_items = rfid_items + manual_items
