@@ -1,161 +1,221 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    /* General Layout */
+    .checkout-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        align-items: start;
+        margin-top: 20px;
+    }
+
+    /* Scanned Items List */
+    .order-summary {
+        background: #fdfdfd;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .summary-items {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 20px;
+    }
+
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .item-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .item-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .item-price {
+        color: #666;
+        font-size: 0.95rem;
+    }
+
+    /* Remove Button Styling */
+    .btn-remove {
+        background: #ffeded;
+        color: #ff4d4d;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 18px;
+        line-height: 1;
+        margin-left: 15px;
+    }
+
+    .btn-remove:hover {
+        background: #ff4d4d;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    /* Totals Section */
+    .summary-total {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        color: #555;
+    }
+
+    .final-total {
+        font-size: 1.2rem;
+        color: #000;
+        padding-top: 10px;
+    }
+
+    /* Customer Form */
+    .checkout-form {
+        background: white;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .form-group { margin-bottom: 15px; }
+    
+    .checkout-form h2 {
+        font-size: 1.25rem;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        display: inline-block;
+        padding-bottom: 5px;
+    }
+
+    .payment-placeholder {
+        border: 2px dashed #ccc;
+        padding: 15px;
+        text-align: center;
+        border-radius: 8px;
+        background: #fafafa;
+        margin: 20px 0;
+    }
+</style>
 
 <div id="notifications-container"></div>
-
 <input type="text" id="barcode-gate" style="position: absolute; opacity: 0; pointer-events: none;">
 
-<div class="container checkout-page">
-
-    <h1 class="mb-4">Self Checkout</h1>
+<div class="container py-5">
+    <h1 class="display-5 mb-4">Self Checkout</h1>
 
     {% set rfid_items = session.get('cart_items', []) %}
     {% set manual_items = session.get('manual_items', []) %}
     {% set all_items = rfid_items + manual_items %}
 
     {% if not all_items %}
-        <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
+        <div class="alert text-center p-5">
+            <h3>Your cart is empty</h3>
+            <p>Scan RFID items or use the barcode reader to begin.</p>
+        </div>
     {% else %}
 
     <div class="checkout-grid">
+        <div class="order-summary">
+            <h2>Scanned Items</h2>
 
+            {% set rfid_count = rfid_items | length %}
+            {% set subtotal = all_items | map(attribute='product_price') | sum %}
+            {% set gst = subtotal * 0.05 %}
+            {% set qst = subtotal * 0.09975 %}
+            {% set total = subtotal + gst + qst %}
+            
+            <div class="summary-items">
+                {% for item in all_items %}
+                <div class="item-row">
+                    <div class="item-info">
+                        <span class="item-name">{{ item.product_name }}</span>
+                        <span class="item-price">${{ "%.2f"|format(item.product_price) }}</span>
+                    </div>
 
-    <div class="order-summary">
-        <h2>Scanned Items</h2>
-
-        {# Calculate subtotal #}
-        {% set rfid_items = session.get('cart_items', []) %}
-        {% set manual_items = session.get('manual_items', []) %}
-        {% set all_items = rfid_items + manual_items %}
-        {% set subtotal = all_items | map(attribute='product_price') | sum %}
-
-        {# Calculate taxes}
-        {# 2. Calculate Taxes #}
-        {% set gst = subtotal * 0.05 %}
-        {% set qst = subtotal * 0.09975 %}
-        {% set total = subtotal + gst + qst %}
-        
-        <ul class="summary-items">
-            {% set rfid_count = session.get('cart_items', []) | length %}
-            {# Loop through all_items, not just cart_items #}
-            {% for item in all_items %}
-            <li class="summary-item">
-                <span>{{ item.product_name }}</span>
-                <strong>${{ "%.2f"|format(item.product_price) }}</strong>
-            </li>
-            <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
-                {# If the current loop index is higher than the RFID count, it's a manual item #}
-                {% if loop.index0 >= rfid_count %}
-                    {% set manual_index = loop.index0 - rfid_count %}
-                    <button type="button" 
-                            onclick="removeItem('{{ manual_index }}')" 
-                            class="btn-remove">
-                        &times;
-                    </button>
-                {% endif %}
-            {% endfor %}
-        </ul>
-
-        <div class="summary-total">
-            <div class="total-row">
-                <span>Subtotal:</span>
-                <span>${{ "%.2f"|format(subtotal) }}</span>
+                    {% if loop.index0 >= rfid_count %}
+                        {% set manual_index = loop.index0 - rfid_count %}
+                        <button type="button" 
+                                onclick="removeItem('{{ manual_index }}')" 
+                                class="btn-remove"
+                                title="Remove item">
+                            &times;
+                        </button>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
-            <div class="total-row">
-                <span>GST (5%):</span>
-                <span>${{ "%.2f"|format(gst) }}</span>
-            </div>
-            <div class="total-row">
-                <span>QST (9.975%):</span>
-                <span>${{ "%.2f"|format(qst) }}</span>
-            </div>
-            <hr>
-            <div class="total-row final-total">
-                <strong>Total:</strong>
-                <strong>${{ "%.2f"|format(total) }}</strong>
+
+            <div class="summary-total">
+                <div class="total-row"><span>Subtotal</span><span>${{ "%.2f"|format(subtotal) }}</span></div>
+                <div class="total-row"><span>GST (5%)</span><span>${{ "%.2f"|format(gst) }}</span></div>
+                <div class="total-row"><span>QST (9.975%)</span><span>${{ "%.2f"|format(qst) }}</span></div>
+                <hr>
+                <div class="total-row final-total">
+                    <strong>Total</strong>
+                    <strong>${{ "%.2f"|format(total) }}</strong>
+                </div>
             </div>
         </div>
+
+        <form method="POST" action="{{ url_for('store.selfCheckoutSubmit') }}" class="checkout-form">
+            <h2>Customer Details</h2>
+            <div class="form-group mb-3">
+                <label class="form-label">Email for Receipt</label>
+                <input type="email" name="email" class="form-control" required placeholder="name@example.com">
+            </div>
+
+            <div class="form-group mb-4">
+                <label class="form-label">Phone (optional)</label>
+                <input type="text" name="phone" class="form-control" placeholder="(555) 000-0000">
+            </div>
+
+            <h2>Payment Method</h2>
+            <div class="payment-options mt-2">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="payment_method" value="tap" id="payTap" checked>
+                    <label class="form-check-label" for="payTap">Tap / NFC</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="payment_method" value="card" id="payCard">
+                    <label class="form-check-label" for="payCard">Chip / Card</label>
+                </div>
+            </div>
+
+            <div class="payment-placeholder">
+                <p class="m-0 text-muted small">Tap your card on the reader to complete payment</p>
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg w-100 mt-2">
+                Complete Purchase
+            </button>
+        </form>
     </div>
-
-
-
-
-    <form method="POST"
-    action="{{ url_for('store.selfCheckoutSubmit') }}"
-    class="checkout-form">
-
-    <h2>Customer Confirmation</h2>
-
-    <label>
-    Email for Receipt
-    <br>
-    <input
-    type="email"
-    name="email"
-    required
-    >
-    </label>
-
-    <label>
-    Phone (optional)
-    <br>
-    <input
-    type="text"
-    name="phone"
-    >
-    </label>
-
-
-    <h2>Payment Method</h2>
-
-    <label>
-    <input
-    type="radio"
-    name="payment_method"
-    value="tap"
-    checked
-    >
-    Tap / NFC
-    </label>
-
-    <label>
-    <input
-    type="radio"
-    name="payment_method"
-    value="card">
-    Chip / Card
-    </label>
-
-    <label>
-    <input
-    type="radio"
-    name="payment_method"
-    value="mobile">
-    Mobile Pay
-    </label>
-
-
-    <div class="payment-placeholder">
-    <p>
-    Tap your card on the reader to complete payment
-    </p>
-    </div>
-
-    <button
-    type="submit"
-    class="checkout-submit btn btn-primary mt-3">
-
-    Complete Self Checkout
-
-    </button>
-
-    </form>
-
-    </div>
-
     {% endif %}
-
 </div>
 
 <script>
@@ -213,7 +273,7 @@
                     
                     if (response.ok) {
                         // Item found! Refresh to show it
-                        location.reload(); 
+                        window.location.href = window.location.href;
                     } else if (response.status === 404) {
                         // Item not in database!
                         alert("Unknown product scanned: " + code);
