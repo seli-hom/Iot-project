@@ -8,6 +8,24 @@ def getDB():
     conn = sqlite3.connect('store.db', check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
+def add_column_if_not_exists(table_name, column_name, column_type, default_value=None):
+    """
+    Adds a column to a table if it doesn't already exist
+    """
+    storeDb = getDB()
+    # Check if the column already exists
+    existing_columns = storeDb.execute(f"PRAGMA table_info({table_name})").fetchall()
+    column_names = [col['name'] for col in existing_columns]
+
+    if column_name not in column_names:
+        alter_query = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+        if default_value is not None:
+            alter_query += f" DEFAULT {default_value}"
+        storeDb.execute(alter_query)
+        storeDb.commit()
+        print(f"Column '{column_name}' added to '{table_name}'")
+    else:
+        print(f"Column '{column_name}' already exists in '{table_name}'")
 
 def init_db():
     """
@@ -50,7 +68,7 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     ''')
-    
+    add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)
     # !Not needed as loyalty points can be added to users table as a column
     # Initializing customer loyalty table
     storeDb.execute('''
