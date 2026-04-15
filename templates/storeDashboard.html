@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -26,9 +27,9 @@
                             </div>
                             <div class="mt-2">
                                 Threshold:
-                                <input type="number" id="tempMin1" value="{{ fridges[0].temp_min }}" style="width:50px;">
+                                <input type="number" id="tempMin1" value="{{ kitchen_temp }}" style="width:50px;">
                                 -
-                                <input type="number" id="tempMax1" value="{{ fridges[0].temp_max }}" style="width:50px;"> °C
+                                <input type="number" id="tempMax1" value="{{ kitchen_hum }}" style="width:50px;"> °C
                             </div>
                         </div>
                         <div class="col-md-6" id="frig-1-humidity">
@@ -39,9 +40,9 @@
                             </div>
                             <div class="mt-2">
                                 Threshold:
-                                <input type="number" id="humMin1" value="{{ fridges[0].hum_min }}" style="width:50px;">
+                                <input type="number" id="humMin1" value="{{ room_temp }}" style="width:50px;">
                                 -
-                                <input type="number" id="humMax1" value="{{ fridges[0].hum_max }}" style="width:50px;"> %
+                                <input type="number" id="humMax1" value="{{ room_hum }}" style="width:50px;"> %
                             </div>
                         </div>
                     </div>

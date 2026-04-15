@@ -360,3 +360,128 @@
   background: var(--primary-light);
   transform: translateY(-0.125rem);
 }
+
+
+/* ========================= */
+/* SELF CHECKOUT LAYOUT      */
+/* ========================= */
+
+.checkout-page {
+  width: 100%;
+  padding: 2rem 1rem;
+}
+
+/* GRID WRAPPER */
+.checkout-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+/* LEFT SIDE (ORDER SUMMARY) */
+.order-summary {
+  grid-row: 1 / span 2;
+  background: linear-gradient(145deg, var(--primary-light, #fff), #fff);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  box-shadow: 0 0.75rem 2rem var(--shadow-deep);
+  border: 1px solid var(--shadow-soft);
+}
+
+/* RIGHT SIDE CARDS */
+.checkout-grid .bento-card {
+  background: linear-gradient(145deg, var(--primary-light, #fff), #fff);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+  box-shadow: 0 0.75rem 2rem var(--shadow-deep);
+  border: 1px solid var(--shadow-soft);
+}
+
+/* LOYALTY CARD POSITION */
+.loyalty-card {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* SUMMARY / TAX CARD POSITION */
+.summary-card {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* ========================= */
+/* ORDER LIST               */
+/* ========================= */
+
+.summary-items {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--nude-light);
+}
+
+/* TOTAL BLOCKS */
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: var(--gold);
+  margin-top: 1rem;
+}
+
+/* ========================= */
+/* FORM STYLING             */
+/* ========================= */
+
+.checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.checkout-form input {
+  padding: 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--shadow-soft);
+}
+
+.checkout-form input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0.25rem var(--highlight-glow);
+}
+
+/* ========================= */
+/* RESPONSIVE               */
+/* ========================= */
+
+@media (max-width: 900px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .order-summary,
+  .loyalty-card,
+  .summary-card {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}

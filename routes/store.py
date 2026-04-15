@@ -68,10 +68,17 @@ def storeDashboard():
         # notifications=notifications,
         temp=4,
         hm=65,
-        type="Notice"
+        type="Notice",
+        kitchen_temp=kitchen_temp,
+        kitchen_hum=kitchen_hum,
+        room_temp=room_temp,
+        room_hum=room_hum,
     )
 
 
+# -----------------------------
+# NOTIFICATIONS API
+# -----------------------------
 @app.route('/api/notifications')
 def get_notifications():
     storeDb = db.getDB()
@@ -104,6 +111,7 @@ def get_notifications():
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
+    print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
 
@@ -115,15 +123,10 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
-                INSERT INTO users 
-                (user_fname, user_lname, user_email, user_role, user_verified)
-                VALUES (?, ?, ?, 'customer', 0)
-            ''', (
-                request.form['user_fname'],
-                request.form['user_lname'],
-                request.form['user_email']
-            ))
-
+                INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
+                VALUES (?, ?, ?, ?, 'customer', 0)
+            ''', (request.form['user_fname'], request.form['uesr_lname'], request.form['user_email'], bcrypt.hashpw(request.form['user_password'].encode('utf-8'), bcrypt.gensalt())))
+   
             storeDb.commit()
             new_user_id = cur.lastrowid
             print("User created:", new_user_id)
@@ -241,23 +244,20 @@ def login():
 
     storeDb = db.getDB()
     user = storeDb.execute('''
-        SELECT users.*, customers.customer_phone, customers.customer_address
+        SELECT users.*
         FROM users
-        LEFT JOIN customers ON users.user_id = customers.user_id
-        WHERE users.user_email = ?
+        WHERE email = ?
     ''', (email,)).fetchone()
     storeDb.close()
-
     if not user:
         flash("Invalid credentials.", "danger")
-        # return redirect(url_for('store.storeIndex'))
-
-    if user['user_password'] and bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
+        return redirect(url_for('store.storeIndex'))
+    
+    if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
         session['user_email'] = user['user_email']
         session['user_fname'] = user['user_fname']
         session['user_role'] = user['user_role']
-
-    # return redirect(url_for('store.storeIndex'))
+        return redirect(url_for('store.storeIndex'))
 
 
 @app.route('/logout')
@@ -337,6 +337,10 @@ def storeInbox():
 
 @app.route('/admin-dashboard')
 def adminDashboard():
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('store.storeIndex'))
+
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
     staff_users = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
@@ -682,123 +686,86 @@ def selfCheckoutSubmit():
 
     # Get user info from the form
     customer_email = request.form.get('email')
-    
-    # Retrieve the receipt data stored in the session
-    # Rebuild the dictionary structure the email service expects
-    receipt_data = {
-        'items': session.get('cart_items', []),
-        'total': session.get('cart_total', 0.0),
-        'subtotal': session.get('cart_subtotal', 0.0),
-        'gst': session.get('cart_gst', 0.0),
-        'qst': session.get('cart_qst', 0.0),
-        'timestamp': session.get('cart_timestamp', 'N/A')
-    }
+    # If customer exists in the database, we can assign loyalty points to them based on their purchase
+    customer = users.get_user_by_email(customer_email)
+    current_points = 0
+   
+    if customer:
+        current_points = customer['user_loyalty_points']
+        
+    total_points = current_points
+    # 1. GATHER DATA FROM BOTH SOURCES
+    rfid_items = session.get('cart_items', [])
+    manual_items = session.get('manual_items', [])
+    all_items = rfid_items + manual_items
 
-    if not receipt_data['items']:
+    if not all_items:
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
-    # Clear the session once paid
-    keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
-    for key in keys_to_clear:
-        session.pop(key, None)
+    # 2. CALCULATE TOTALS (Mirroring your HTML logic)
+    subtotal = sum(item['product_price'] for item in all_items)
+    if current_points > 50:
+        flash(f"You have {current_points} loyalty points! Would you like to save 5$ on your purchase?", "info")
+        answer = request.form.get('loyalty_discount')
+        if answer == True:
+            flash("5$ discount applied!", "success")
+            # Apply discount to the total
+            # Get the carts subtotal and give a 5$ discount
+            subtotal = subtotal - 5
+            # Deduct points
+            total_points = current_points - 50
+            users.update_loyalty_points(customer['user_id'], total_points)
+    gst = subtotal * 0.05
+    qst = subtotal * 0.09975
+    total = subtotal + gst + qst
 
-    # ! adding a check to attemp sending email receipts
-    try:
-        #send receipts
-        receipt_sender = EmailAlertSystem(
-            sender_email="taliamuro3@gmail.com",    # PUT YOUR CREDENTIALS HERE
-            password="hapc ypha dcwh ewbc",         # AND HERE
-            receiver_email=customer_email           # AND HERE
-        )
-        receipt_sender.send_receipt_email(customer_email, receipt_data)
-    except Exception as e:
-        print("[ERROR] Receipt email failed to send: ", e)
-
-        
-    # session.clear #! shouldn't this be a method call? correct me if wrong pls
-    session.clear()
-
-    # redirect
-    flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
+    # Create a variable to store loyalty points earned and assign them to the customer if he has an account
+    points_earned = int(subtotal // 10)  
     
-    # return redirect(url_for('store.storeIndex'))
-    return redirect(url_for('store.receiptPage')) #! redirecting to receipt page instead of index
-
-# ! adding missing receipt route:
-@app.route('/receipt')
-def receiptPage():
-    storeDb = db.getDB()
-
-    session_items = session.get('cart_items', [])
-
-    if session_items:
-        items = session_items
-    else:
-        products = storeDb.execute("""
-            SELECT product_name, product_price
-            FROM products
-            LIMIT 7
-        """).fetchall()
-
-        items = [
-            {
-                "product_name": p["product_name"],
-                "cart_product_quantity": 1,
-                "cart_product_price": p["product_price"]
-            }
-            for p in products
-        ]
-
-    storeDb.close()
-
+    
+         
+    # 3. BUILD THE RECEIPT DATA (Include all_items)
     receipt_data = {
-        "items": items,
-        "subtotal": sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items),
-        "gst": round(sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items) * 0.05, 2),
-        "qst": round(sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items) * 0.09975, 2),
-        "total": round(sum(i["cart_product_price"] * i["cart_product_quantity"] for i in items) * 1.14975, 2),
-        "timestamp": "Order #0000 - " + str(session.get("cart_timestamp", "2026-04-13"))
-    }
-
-    return render_template("receipt.html", receipt=receipt_data)
-
-# ! adding missing download-receipt route:
-@app.route('/receipt/download')
-def downloadReceipt():
-    receipt_data = {
-        'items': session.get('cart_items', []),
-        'total': session.get('cart_total', 0.0),
-        'subtotal': session.get('cart_subtotal', 0.0),
-        'gst': session.get('cart_gst', 0.0),
-        'qst': session.get('cart_qst', 0.0),
+        'items': all_items,
+        'total': total,
+        'subtotal': subtotal,
+        'gst': gst,
+        'qst': qst,
         'timestamp': session.get('cart_timestamp', 'N/A')
     }
 
-    # Build txt file content
-    lines = []
-    lines.append("==== RECEIPT ====")
-    lines.append(f"Date: {receipt_data['timestamp']}\n")
+    if customer:
+        current_points = customer['user_loyalty_points'] or 0
+        new_points = total_points + points_earned
+        users.update_loyalty_points(customer['user_id'], new_points)
+        receipt_data['Collected Point:'] = points_earned
+        receipt_data['Total Points:'] = new_points
+    try:
+        # 4. SEND EMAIL
+        receipt_sender = EmailAlertSystem(
+            sender_email="taliamuro3@gmail.com",
+            password="hapc ypha dcwh ewbc",
+            receiver_email=customer_email
+        )
+        receipt_sender.send_receipt_email(customer_email, receipt_data)
+        
+        # 5. CLEAR EVERYTHING (Both RFID and Manual keys)
+        session.pop('cart_items', None)
+        session.pop('manual_items', None)
+        # Also clear the specific tax/total keys if you used them
+        keys_to_clear = ['cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
+        for key in keys_to_clear:
+            session.pop(key, None)
+            
+        session.modified = True
+        flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
+        
+    except Exception as e:
+        print(f"Checkout Error: {e}")
+        flash("There was an error processing your receipt, but your order is complete.", "warning")
 
-    for item in receipt_data['items']:
-        name = item.get('product_name', 'Item')
-        qty = item.get('cart_product_quantity', 1)
-        price = item.get('cart_product_price', 0)
-        lines.append(f"{name} x{qty} - ${price}")
-
-    lines.append("\n----------------")
-    lines.append(f"Subtotal: ${receipt_data['subtotal']}")
-    lines.append(f"GST: ${receipt_data['gst']}")
-    lines.append(f"QST: ${receipt_data['qst']}")
-    lines.append(f"TOTAL: ${receipt_data['total']}")
-
-    text = "\n".join(lines)
-
-    response = make_response(text)
-    response.headers["Content-Disposition"] = "attachment; filename=receipt.txt"
-    response.headers["Content-Type"] = "text/plain"
-
-    return response
+    return redirect(url_for('store.storeIndex'))
 
 # -----------------------------
 # RFID ROUTES
@@ -847,3 +814,45 @@ def scan_basket():
     return jsonify(receipt if receipt else {"item_count": 0})
 
 rfid_service = RFIDService()
+
+@app.route('/api/add-barcode/<code>', methods=['POST'])
+def add_barcode(code):
+    # Change getDB() to db.getDB()
+    storeDb = db.getDB() 
+    
+    query = '''
+        SELECT p.product_name, p.product_price, p.product_company 
+        FROM products p
+        JOIN product_barcode pb ON p.product_id = pb.product_id
+        WHERE pb.barcode_num = ?
+    '''
+    
+    product = storeDb.execute(query, (code,)).fetchone()
+    storeDb.close()
+
+    if product:
+        # different session key for barcode scans
+        manual_cart = session.get('manual_items', [])
+        manual_cart.append({
+            'product_name': product['product_name'],
+            'product_price': product['product_price'],
+            'product_company': product['product_company'],
+            'source': 'barcode' # Helpful for debugging
+        })
+        session['manual_items'] = manual_cart
+        session.modified = True
+        return jsonify({"status": "success"}), 200
+    return jsonify({"status": "not_found"}), 404
+
+@app.route('/api/remove-barcode/<int:index>', methods=['POST'])
+def remove_barcode(index):
+    manual_cart = session.get('manual_items', [])
+    
+    # Check if the index is valid
+    if 0 <= index < len(manual_cart):
+        manual_cart.pop(index)
+        session['manual_items'] = manual_cart
+        session.modified = True
+        return jsonify({"status": "success"}), 200
+        
+    return jsonify({"status": "error", "message": "Item not found"}), 404

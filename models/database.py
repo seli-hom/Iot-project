@@ -32,6 +32,20 @@ def init_db():
         )
     ''')
 
+
+    # storeDb.execute('''
+    #     ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
+    # ''')
+
+    columns = storeDb.execute("PRAGMA table_info(users)").fetchall()
+    column_names = [col["name"] for col in columns]
+
+    if "user_loyalty_points" not in column_names:
+        storeDb.execute('''
+            ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
+        ''')
+    
+# !I think we will need to scratch this after since we are using the users table for registration and such
     # Customers table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS customers (
@@ -44,6 +58,8 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
         )
     ''')
+    
+    # !Not needed as loyalty points can be added to users table as a column
     # Initializing customer loyalty table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS customer_loyalty (
