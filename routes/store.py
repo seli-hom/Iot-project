@@ -571,6 +571,11 @@ def selfCheckoutSubmit():
 
     # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
+    
+    if current_points > 50:
+        subtotal = subtotal - 5 #should apply the discount because the user has enough points
+        current_points = current_points - 50 #*substract the points after giving the discount
+        print("Enough points!! 5$ discount applied to subtotal")
     gst = round(subtotal * 0.05, 2)
     qst = round(subtotal * 0.09975, 2)
     total = round(subtotal + gst + qst, 2)
@@ -603,9 +608,10 @@ def selfCheckoutSubmit():
 
         # Loylaty logic if user exists
         if user_id:
-            points_earned = int(subtotal)
+            points_earned = int(subtotal/10) #* change to a point per 10$ instead of per dollar
             customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
-            
+            total_points = current_points + points_earned
+            storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, user_id))
             if customer:
                 cid = customer['customer_id']
                 storeDb.execute('''
