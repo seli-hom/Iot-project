@@ -23,7 +23,7 @@
     <br />
     {% if session.get('user_role') == 'admin' %}
 
-    <a href="{{ url_for('store.adminDashboard') }}" class="btn btn-success">
+    <a href="{{ url_for('store.adminDashboard') }}" class="btn btn-success btn-lg mb-3">
       View Admin Dashboard
     </a>
     {% endif %}

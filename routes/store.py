@@ -88,9 +88,9 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
-                INSERT INTO users (first_name, last_name, email, password, role, verified)
+                INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
                 VALUES (?, ?, ?, ?, 'customer', 0)
-            ''', (request.form['first_name'], request.form['last_name'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
+            ''', (request.form['fname'], request.form['lname'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
    
             storeDb.commit()
             new_user_id = cur.lastrowid
@@ -113,9 +113,9 @@ def customersRegistration():
                 # -------------------------------
                 from services.email_service import send_registration_email
                 send_registration_email(
-                    request.form['user_fname'],
-                    request.form['user_lname'],
-                    request.form['user_email'],
+                    request.form['fname'],
+                    request.form['lname'],
+                    request.form['email'],
                     new_user_id
                 )
                 message = "Customer invited successfully. Verification email sent!"
@@ -221,24 +221,25 @@ def customerVerification(user_id):
 # -----------------------------
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
+    email = request.form.get('user_email')
+    password = request.form.get('user_password')
 
     storeDb = db.getDB()
     user = storeDb.execute('''
         SELECT users.*
         FROM users
-        WHERE email = ?
+        WHERE user_email = ?
     ''', (email,)).fetchone()
     storeDb.close()
+
     if not user:
         flash("Invalid credentials.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        return redirect(url_for('store.customersList'))
     
-    if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
-        session['user_email'] = user['email']
-        session['user_first_name'] = user['first_name']
-        session['user_role'] = user['role']
+    if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
+        session['user_email'] = user['user_email']
+        session['user_first_name'] = user['user_fname']
+        session['user_role'] = user['user_role']
         return redirect(url_for('store.storeIndex'))
 
 
@@ -334,7 +335,7 @@ def adminDashboard():
 
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
-    staff_users = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
+    staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
     user_notifications = storeDb.execute('''
         SELECT * FROM notifications
         WHERE notif_id IS NOT NULL
@@ -360,11 +361,11 @@ def adminDashboard():
         "latest_user": latest_user,
         "most_popular_user": popular_user
     }
-
+    print(staff[0]['user_id'])
     return render_template(
         'adminDashboard.html',
         all_users=all_users,
-        staff=staff_users,
+        staff=staff,
         notifications=user_notifications,
         db_stats=db_stats
     )
