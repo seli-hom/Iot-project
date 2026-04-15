@@ -521,7 +521,14 @@ def selfCheckout():
 def selfCheckoutSubmit():
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
+    loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
     
+    if loyalty_card:
+        storeDb = db.getDB()
+        customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_email = ?', (customer_email,)).fetchone()['customer_id']
+        storeDb.commit()
+        storeDb.close()
+        print("Customer with ID", customer, "has a loyalty card.")
     rfid_items = session.get('cart_items', [])
     manual_items = session.get('manual_items', [])
     all_items = rfid_items + manual_items
