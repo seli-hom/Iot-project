@@ -96,15 +96,15 @@ def customersRegistration():
             new_user_id = cur.lastrowid
             storeDb.execute('''UPDATE users SET user_loyalty_points = 5 WHERE user_id = ?''', (new_user_id,))
             print(f"New user created with ID {new_user_id} and 5 loyalty points assigned.")
-    # * creates the customer in customer table
-            customer = storeDb.execute("''' INSERT INTO customers (user_id, customer_phone, customer_address) VALUES (?, ?, ?)'''", (new_user_id, request.form['phone'], request.form['address']))
-            storeDb.commit()
-            customer_id = customer.lastrowid
-            # *create the loyalty customer
-            loyalty = storeDb.execute("''' INSERT INTO customer_loyalty (customer_id, loyalty_points) VALUES (?, 0)'''", (customer_id,5))
-            loyalty_id = loyalty.lastrowid
-            flash("New customer loyalty card with ID " + str(loyalty_id) + " successfully created! 5 points have been assigned as registration bonus", "success")
-            storeDb.commit()
+    # !!not to sure we are using it tbh creates the customer in customer table
+            # customer = storeDb.execute("''' INSERT INTO customers (user_id, customer_phone, customer_address) VALUES (?, ?, ?)'''", (new_user_id, request.form['phone'], request.form['address']))
+            # storeDb.commit()
+            # customer_id = customer.lastrowid
+            # # *create the loyalty customer
+            # loyalty = storeDb.execute("''' INSERT INTO customer_loyalty (customer_id, loyalty_points) VALUES (?, 0)'''", (customer_id,5))
+            # loyalty_id = loyalty.lastrowid
+            # flash("New customer loyalty card with ID " + str(loyalty_id) + " successfully created! 5 points have been assigned as registration bonus", "success")
+            # storeDb.commit()
             # Then create the customer profile
            # from models import customers
             #customer_id = customers.add_new_customer(
@@ -529,16 +529,21 @@ def selfCheckout():
 
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
+    storeDb = db.getDB()
+    
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
     loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
     current_points = 0
     if loyalty_card:
-        storeDb = db.getDB()
+        # storeDb = db.getDB()
         user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
        
         if user:
             user_id = user['user_id']
+            user_points = user['user_loyalty_points']
+            current_points = user_points
+            print("User with email", customer_email, " has ", user_points, " points.") #!!check that this works pls
             customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
             if customer:
                 customer_id = customer['customer_id']
@@ -570,7 +575,6 @@ def selfCheckoutSubmit():
     qst = round(subtotal * 0.09975, 2)
     total = round(subtotal + gst + qst, 2)
 
-    storeDb = db.getDB()
     try:
         # 1. ATTEMPT TO FIND THE USER
         user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
