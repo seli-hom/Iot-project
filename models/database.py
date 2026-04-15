@@ -19,7 +19,8 @@ def add_column_safe(table_name, column_name, column_type, default_value=None):
         else:
             storeDb.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
     storeDb.commit()
-    storeDb.close()
+    # storeDb.close() 
+    # !! closed the db before
 
 
 def init_db():
