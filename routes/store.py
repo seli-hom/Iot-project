@@ -125,7 +125,7 @@ def customersRegistration():
             cur = storeDb.execute('''
                 INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
                 VALUES (?, ?, ?, ?, 'customer', 0)
-            ''', (request.form['user_fname'], request.form['uesr_lname'], request.form['user_email'], bcrypt.hashpw(request.form['user_password'].encode('utf-8'), bcrypt.gensalt())))
+            ''', (request.form['fname'], request.form['lname'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
    
             storeDb.commit()
             new_user_id = cur.lastrowid
@@ -134,9 +134,9 @@ def customersRegistration():
             try:
                 from services.email_service import send_registration_email
                 send_registration_email(
-                    request.form['user_fname'],
-                    request.form['user_lname'],
-                    request.form['user_email'],
+                    request.form['fname'],
+                    request.form['lname'],
+                    request.form['email'],
                     new_user_id
                 )
                 message = "Customer invited successfully. Verification email sent!"
@@ -239,23 +239,24 @@ def customerVerification(user_id):
 
 @app.route('/login', methods=['POST'])
 def login():
-    email = request.form.get('email')
-    password = request.form.get('password')
+    email = request.form.get('user_email')
+    password = request.form.get('user_password')
 
     storeDb = db.getDB()
     user = storeDb.execute('''
         SELECT users.*
         FROM users
-        WHERE email = ?
+        WHERE user_email = ?
     ''', (email,)).fetchone()
     storeDb.close()
+
     if not user:
         flash("Invalid credentials.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        return redirect(url_for('store.customersList'))
     
-    if bcrypt.checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
+    if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
-        session['user_fname'] = user['user_fname']
+        session['user_first_name'] = user['user_fname']
         session['user_role'] = user['user_role']
         return redirect(url_for('store.storeIndex'))
 
@@ -343,7 +344,7 @@ def adminDashboard():
 
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
-    staff_users = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
+    staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
     user_notifications = storeDb.execute('''
         SELECT * FROM notifications
         WHERE notif_id IS NOT NULL
@@ -369,11 +370,11 @@ def adminDashboard():
         "latest_user": latest_user,
         "most_popular_user": popular_user
     }
-
+    print(staff[0]['user_id'])
     return render_template(
         'adminDashboard.html',
         all_users=all_users,
-        staff=staff_users,
+        staff=staff,
         notifications=user_notifications,
         db_stats=db_stats
     )
@@ -686,15 +687,8 @@ def selfCheckoutSubmit():
 
     # Get user info from the form
     customer_email = request.form.get('email')
-    # If customer exists in the database, we can assign loyalty points to them based on their purchase
-    customer = users.get_user_by_email(customer_email)
-    current_points = 0
-   
-    if customer:
-        current_points = customer['user_loyalty_points']
-        
-    total_points = current_points
-    # 1. GATHER DATA FROM BOTH SOURCES
+    payment_method = request.form.get('payment_method')
+    
     rfid_items = session.get('cart_items', [])
     manual_items = session.get('manual_items', [])
     all_items = rfid_items + manual_items
@@ -703,46 +697,68 @@ def selfCheckoutSubmit():
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
-    # 2. CALCULATE TOTALS (Mirroring your HTML logic)
+    # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
-    if current_points > 50:
-        flash(f"You have {current_points} loyalty points! Would you like to save 5$ on your purchase?", "info")
-        answer = request.form.get('loyalty_discount')
-        if answer == True:
-            flash("5$ discount applied!", "success")
-            # Apply discount to the total
-            # Get the carts subtotal and give a 5$ discount
-            subtotal = subtotal - 5
-            # Deduct points
-            total_points = current_points - 50
-            users.update_loyalty_points(customer['user_id'], total_points)
-    gst = subtotal * 0.05
-    qst = subtotal * 0.09975
-    total = subtotal + gst + qst
+    gst = round(subtotal * 0.05, 2)
+    qst = round(subtotal * 0.09975, 2)
+    total = round(subtotal + gst + qst, 2)
 
-    # Create a variable to store loyalty points earned and assign them to the customer if he has an account
-    points_earned = int(subtotal // 10)  
-    
-    
-         
-    # 3. BUILD THE RECEIPT DATA (Include all_items)
-    receipt_data = {
-        'items': all_items,
-        'total': total,
-        'subtotal': subtotal,
-        'gst': gst,
-        'qst': qst,
-        'timestamp': session.get('cart_timestamp', 'N/A')
-    }
-
-    if customer:
-        current_points = customer['user_loyalty_points'] or 0
-        new_points = total_points + points_earned
-        users.update_loyalty_points(customer['user_id'], new_points)
-        receipt_data['Collected Point:'] = points_earned
-        receipt_data['Total Points:'] = new_points
+    storeDb = db.getDB()
     try:
-        # 4. SEND EMAIL
+        # 1. ATTEMPT TO FIND THE USER
+        user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
+        user_id = user['user_id'] if user else None # for unregistered users
+
+        # Create the order
+        # user_id will be NULL for guest checkout
+        cur = storeDb.execute('''
+            INSERT INTO orders (user_id, order_total, payment_method, order_status)
+            VALUES (?, ?, ?, 'COMPLETED')
+        ''', (user_id, total, payment_method))
+        order_id = cur.lastrowid
+
+        # 3. add products to order table
+        for item in all_items:
+            pid = item.get('product_id') 
+            if not pid:
+                res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
+                pid = res['product_id'] if res else None
+            
+            if pid:
+                storeDb.execute('''
+                    INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
+                    VALUES (?, ?, 1, ?)
+                ''', (order_id, pid, item['product_price']))
+
+        # Loylaty logic if user exists
+        if user_id:
+            points_earned = int(subtotal)
+            customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
+            
+            if customer:
+                cid = customer['customer_id']
+                storeDb.execute('''
+                    UPDATE customer_loyalty 
+                    SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
+                    WHERE customer_id = ?
+                ''', (points_earned, cid))
+                
+                storeDb.execute('''
+                    INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
+                    VALUES (?, 'EARN', ?, ?)
+                ''', (cid, points_earned, f"Points earned from Order #{order_id}"))
+
+        storeDb.commit()
+
+        # send email receipt
+        receipt_data = {
+            'items': all_items,
+            'total': total,
+            'subtotal': subtotal,
+            'gst': gst,
+            'qst': qst,
+            'timestamp': session.get('cart_timestamp', 'N/A')
+        }
         receipt_sender = EmailAlertSystem(
             sender_email="taliamuro3@gmail.com",
             password="hapc ypha dcwh ewbc",
@@ -750,20 +766,23 @@ def selfCheckoutSubmit():
         )
         receipt_sender.send_receipt_email(customer_email, receipt_data)
         
-        # 5. CLEAR EVERYTHING (Both RFID and Manual keys)
+        # Clear session
         session.pop('cart_items', None)
         session.pop('manual_items', None)
-        # Also clear the specific tax/total keys if you used them
-        keys_to_clear = ['cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
-        for key in keys_to_clear:
-            session.pop(key, None)
-            
         session.modified = True
-        flash(f"Thank you! A receipt has been sent to {customer_email}.", "success")
+        
+        message = "Success! Receipt sent."
+        if user_id:
+            message = f"Success! {points_earned} points added and receipt sent."
+        
+        flash(message, "success")
         
     except Exception as e:
-        print(f"Checkout Error: {e}")
-        flash("There was an error processing your receipt, but your order is complete.", "warning")
+        storeDb.rollback()
+        print(f"Checkout Database Error: {e}")
+        flash("Order completed, but there was an error updating your profile.", "warning")
+    finally:
+        storeDb.close()
 
     return redirect(url_for('store.storeIndex'))
 

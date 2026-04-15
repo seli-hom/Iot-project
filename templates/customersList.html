@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="container my-4">
-    <h2 class="mb-4">users List</h2>
+    <h2 class="mb-4">Customers List </h2>
 
-    {% if users|length == 0 %}
+    {% if customers|length == 0 %}
         <div class="alert alert-warning">No users found yet.</div>
     {% else %}
         <div class="card shadow-sm">
@@ -16,19 +16,17 @@
                             <th>First Name</th>
                             <th>Last Name</th>
                             <th>Email</th>
-                            <th>Phone</th>
-                            <th>Address</th>
+                            <th>Loyalty Points</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for user in users %}
+                        {% for customer in customers %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td>{{ user.first_name }}</td>
-                            <td>{{ user.last_name }}</td>
-                            <td>{{ user.email }}</td>
-                            <td>{{ user.phone }}</td>
-                            <td>{{ user.address }}</td>
+                            <td>{{ customer.user_fname }}</td>
+                            <td>{{ customer.user_lname }}</td>
+                            <td>{{ customer.user_email }}</td>
+                            <td>{{ customer.user_loyalty_points }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

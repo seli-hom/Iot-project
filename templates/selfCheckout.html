@@ -19,88 +19,57 @@
 
 <h2>Scanned Items</h2>
 
-<ul class="summary-items">
+        {# Calculate subtotal #}
+        {% set rfid_items = session.get('cart_items', []) %}
+        {% set manual_items = session.get('manual_items', []) %}
+        {% set all_items = rfid_items + manual_items %}
+        {% set subtotal = all_items | map(attribute='product_price') | sum %}
 
-<!-- {% for item in cart_items %}
-<li class="summary-item">
-<span>
-{{ item.product_name }} (x{{ item.item_quantity | default(1) }})</span>
+        {# Calculate taxes}
+        {# 2. Calculate Taxes #}
+        {% set gst = subtotal * 0.05 %}
+        {% set qst = subtotal * 0.09975 %}
+        {% set total = subtotal + gst + qst %}
+        
+        <ul class="summary-items">
+            {% set rfid_count = session.get('cart_items', []) | length %}
+            {# Loop through all_items, not just cart_items #}
+            {% for item in all_items %}
+            <li class="summary-item">
+                <span>{{ item.product_name }}</span>
+                <strong>${{ "%.2f"|format(item.product_price) }}</strong>
+            </li>
+            <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
+                {# If the current loop index is higher than the RFID count, it's a manual item #}
+                {% if loop.index0 >= rfid_count %}
+                    {% set manual_index = loop.index0 - rfid_count %}
+                    <button type="button" 
+                            onclick="removeItem('{{ manual_index }}')" 
+                            class="btn-remove">
+                        &times;
+                    </button>
+                {% endif %}
+            {% endfor %}
+        </ul>
 
-<strong>
-${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}</strong>
-</li>
-{% endfor %} -->
-
-{% for item in cart_items %}
-<li class="summary-item">
-    <span>
-        {{ item.product_name }} (x{{ item.item_quantity | default(1) }})
-    </span>
-    <strong>
-        ${{ "%.2f"|format(item.product_price * (item.item_quantity | default(1))) }}
-    </strong>
-</li>
-{% endfor %}
-
-</ul>
-
-<div class="summary-total">
-
-<strong>Total:</strong>
-
-<span>
-${{ "%.2f"|format(cart_total) }}
-</span>
-
-</div>
-
-</div>
-
-    <div class="bento-card loyalty-card">
-
-        <h2>Loyalty Points</h2>
-
-        {% if session.get('user_email') %}
-
-            {% set current_points = session.get('loyalty_points', 120) %}
-
-            {% set earned_points = (cart_total * 0.1)|round(0, 'floor') %}
-
-            <div class="loyalty-info">
-
-                <p>Current Points: <strong>{{ current_points }}</strong></p>
-
-                <p>Points from this purchase:</p>
-                <h3>+{{ earned_points }}</h3>
-
-                <p class="muted">
-                    New Total:
-                    <strong>{{ current_points + earned_points }}</strong>
-                </p>
-
+        <div class="summary-total">
+            <div class="total-row">
+                <span>Subtotal:</span>
+                <span>${{ "%.2f"|format(subtotal) }}</span>
             </div>
-
-        {% else %}
-
-            <div class="login-prompt">
-                <p>Login or create an account to earn loyalty points</p>
-
-                <a href="{{ url_for('store.login') }}" class="btn btn-primary">
-                    Login
-                </a>
+            <div class="total-row">
+                <span>GST (5%):</span>
+                <span>${{ "%.2f"|format(gst) }}</span>
             </div>
-
-        {% endif %}
-
-    </div>
-
-    <div class="bento-card summary-card">
-
-        <h2>Summary</h2>
-
-        <div class="summary-line">
-            <span>Subtotal</span>
-            <strong>${{ "%.2f"|format(cart_total / 1.14975) }}</strong>
+            <div class="total-row">
+                <span>QST (9.975%):</span>
+                <span>${{ "%.2f"|format(qst) }}</span>
+            </div>
+            <hr>
+            <div class="total-row final-total">
+                <strong>Total:</strong>
+                <strong>${{ "%.2f"|format(total) }}</strong>
+            </div>
         </div>
 
         <div class="summary-line">
