@@ -520,6 +520,7 @@ def selfCheckout():
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
     customer_email = request.form.get('email')
+    answer = request.form.get('loyalty_discount');
     # If customer exists in the database, we can assign loyalty points to them based on their purchase
     customer = users.get_user_by_email(customer_email)
     current_points = 0
@@ -539,12 +540,10 @@ def selfCheckoutSubmit():
 
     # 2. CALCULATE TOTALS (Mirroring your HTML logic)
     subtotal = sum(item['product_price'] for item in all_items)
-    if current_points > 50:
-        flash(f"You have {current_points} loyalty points! Would you like to save 5$ on your purchase?", "info")
-        answer = request.form.get('loyalty_discount')
-        if answer == True:
+    if current_points > 50 and answer == 'true':
+        # answer = request.form.get('loyalty_discount')
+        # if answer == True :
             flash("5$ discount applied!", "success")
-            # Apply discount to the total
             # Get the carts subtotal and give a 5$ discount
             subtotal = subtotal - 5
             # Deduct points

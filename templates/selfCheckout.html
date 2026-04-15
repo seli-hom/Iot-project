@@ -121,6 +121,13 @@
     </p>
     </div>
 
+    <input type="hidden" name="loyalty_discount" value="false">
+    {% if session.get('customer_points', 0) > 50 %}
+        <label>
+            <input type="checkbox" name="loyalty_discount" value="true">
+            Redeem 50 loyalty points for $5 discount
+        </label>
+    {% endif %}
     <button
     type="submit"
     class="checkout-submit btn btn-primary mt-3">
