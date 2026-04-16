@@ -17,6 +17,9 @@
                             <th>Name</th>
                             <th>Price</th>
                             <th>Company</th>
+                            <th>RFID</th>
+                            <th>Barcode</th>
+                            <th>Company</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -26,6 +29,8 @@
                             <td>{{ loop.index }}</td>
                             <td>{{ product.product_name }}</td>
                             <td>{{ product.product_price }} $</td>
+                            <td>{{ product.rfid_tag }}</td>
+                            <td>{{ product.barcode_num }}</td>
                             <td>{{ product.product_company }}</td>
                             <td><a href="{{ url_for('store.productDelete', product_id=product.product_id) }}" class="btn btn-danger">Delete</a></td>
                         </tr>

@@ -92,7 +92,9 @@ def customersList():
 def productsList():
     storeDb = db.getDB()
     products = storeDb.execute(
-        'SELECT * FROM products '
+        '''SELECT * FROM products p  
+            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id'''
     ).fetchall()
     return render_template('productsList.html', products=products)
 
