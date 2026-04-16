@@ -98,6 +98,36 @@ def productsList():
     ).fetchall()
     return render_template('productsList.html', products=products)
 
+@app.route('/admin-dashboard/products/<int:product_id>/update',methods = ['GET','POST'])
+def productUpdate(product_id):
+    if request.method == 'POST':
+        storeDb = db.getDB()
+        storeDb.execute('''
+                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?
+                                WHERE product_id = ?
+                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],product_id))        
+        storeDb.execute('''
+                    UPDATE product_barcode SET  barcode_num = ?
+                        WHERE product_id = ?
+                ''', ( request.form['product_barcode'],product_id))
+        storeDb.execute('''
+                    UPDATE  product_rfid SET  rfid_tag = ?, rfid_status = ?
+                        WHERE product_id = ?
+                ''', ( request.form['product_rfid'],'ACTIVE',product_id))
+        
+        storeDb.commit()
+        return redirect(url_for('store.productsList'))
+    storeDb = db.getDB()
+    product = storeDb.execute(
+        '''SELECT * FROM products p  
+            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
+            WHERE p.product_id = ?''',
+    (product_id,)).fetchone()
+    return render_template('productUpdate.html', product=product)
+
+
+
 @app.route('/admin-dashboard/products/create')
 def productCreate():
     return render_template('productCreation.html')
@@ -106,12 +136,20 @@ def productCreate():
 def productAdd():
 
     storeDb = db.getDB()
-    test = storeDb.execute('''
+    product = storeDb.execute('''
                 INSERT INTO products (product_name, category_id, product_price, product_company, product_description)
                 VALUES (?, ?, ?, ?, ?)
             ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description']))
+    
+    storeDb.execute('''
+                INSERT INTO product_barcode (product_id, barcode_num)
+                VALUES (?, ?)
+            ''', (product.lastrowid, request.form['product_barcode']))
+    storeDb.execute('''
+                INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
+                VALUES (?, ?, ?)
+            ''', (product.lastrowid, request.form['product_rfid'],'ACTIVE'))
     storeDb.commit()
-    print(test.lastrowid)
     return redirect(url_for('store.productsList'))
 
 @app.route('/admin-dashboard/products/<int:product_id>/delete', methods=['POST', 'GET'])
@@ -122,6 +160,8 @@ def productDelete(product_id):
 
     storeDb = db.getDB()
     storeDb.execute('DELETE FROM products WHERE product_id = ?', (product_id,))
+    storeDb.execute('DELETE FROM product_barcode WHERE product_id = ?', (product_id,))
+    storeDb.execute('DELETE FROM product_rfid WHERE product_id = ?', (product_id,))
     storeDb.commit()
     storeDb.close()
 
@@ -227,11 +267,6 @@ def customerVerification(user_id):
             message=message,
             success=success
         )
-        return render_template(
-            'customersVerification.html',
-            message=message,
-            success=success
-        )
 
     if request.method == 'POST':
         password = request.form.get('password')
@@ -307,10 +342,6 @@ def customerVerification(user_id):
 # -----------------------------
 # LOGIN / LOGOUT
 # -----------------------------
-
-# -----------------------------
-# LOGIN / LOGOUT
-# -----------------------------
 @app.route('/login', methods=['POST'])
 def login():
     email = request.form.get('user_email')
@@ -371,7 +402,6 @@ def toggle_fan():
 
     storeDb.execute('''
         INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
-        INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
         VALUES (?, ?, ?, ?)
     ''', ("system", title, summary, extended))
     storeDb.commit()
@@ -401,7 +431,6 @@ def update_threshold():
 
     storeDb = db.getDB()
     storeDb.execute('''
-        INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
         INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
         VALUES (?, ?, ?, ?)
     ''', ("system", title, summary, extended))

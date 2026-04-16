@@ -16,7 +16,6 @@
                             <th>#</th>
                             <th>Name</th>
                             <th>Price</th>
-                            <th>Company</th>
                             <th>RFID</th>
                             <th>Barcode</th>
                             <th>Company</th>
@@ -32,7 +31,9 @@
                             <td>{{ product.rfid_tag }}</td>
                             <td>{{ product.barcode_num }}</td>
                             <td>{{ product.product_company }}</td>
-                            <td><a href="{{ url_for('store.productDelete', product_id=product.product_id) }}" class="btn btn-danger">Delete</a></td>
+                            <td>
+                                 <a href="{{ url_for('store.productUpdate', product_id=product.product_id) }}" class="btn btn-success">Update</a>
+                                <a href="{{ url_for('store.productDelete', product_id=product.product_id) }}" class="btn btn-danger">Delete</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>

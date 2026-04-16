@@ -15,25 +15,25 @@
         </div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('store.productAdd') }}" class="mb-3">
+      <form method="POST"  class="mb-3">
         <div class="row g-2">
 
           <div class="col-md-6">
             <label class="form-label">Name</label>
-            <input type="text" class="form-control rounded" name="product_name" required>
+            <input type="text" class="form-control rounded" name="product_name" value="{{ product.product_name }}" required>
           </div>
 
           <div class="col-md-6">
             <label class="form-label">Price</label>
-            <input type="number" pattern="^\d*(\.\d{0,2})?$" class="form-control rounded" name="product_price" required>
+            <input type="number" pattern="^\d*(\.\d{0,2})?$" class="form-control rounded" value="{{ product.product_price }}" name="product_price" required>
           </div>
                     <div class="col-md-6">
             <label class="form-label">RFID</label>
-            <input type="text" class="form-control rounded" name="product_rfid" required>
+            <input type="text" class="form-control rounded" name="product_rfid" value="{{ product.rfid_tag }}" required>
           </div>
                     <div class="col-md-6">
             <label class="form-label">Barcode</label>
-            <input type="text"  class="form-control rounded" name="product_barcode" required>
+            <input type="text"  class="form-control rounded" value="{{ product.barcode_num }}" name="product_barcode" required>
           </div>
             <div class="col-md-6">
             <label class="form-label">Category</label>
@@ -46,12 +46,12 @@
 
           <div class="col-12">
             <label class="form-label">Company</label>
-            <input type="text" class="form-control rounded" name="product_company" required>
+            <input type="text" class="form-control rounded" value="{{ product.product_company }}" name="product_company" required>
           </div>
 
           <div class="col-12">
             <label class="form-label">Description</label>
-            <textarea  class="form-control rounded" name="product_description" required></textarea>
+            <textarea  class="form-control rounded"  name="product_description" required>{{ product.product_description }}</textarea>
           </div>
 
 
