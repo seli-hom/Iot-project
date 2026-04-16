@@ -540,19 +540,20 @@ def selfCheckoutSubmit():
     payment_method = request.form.get('payment_method')
     loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
 
-    current_points = 0
+    # current_points = 0
     if loyalty_card:
         # storeDb = db.getDB()
         try:
             print("fetching user")
-            user = storeDb.execute('SELECT *SS FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
+            user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
             storeDb.commit()
             print(f"user: {user}")
             if user:
                 user_id = int (user['user_id'])
                 user_points = user['user_loyalty_points']
                 print(f"User has {user_points} points")
-                current_points += user_points
+                current_points = user_points
+                session.setdefault('current_points', user_points) #*stores the current points in the session to be used during the checkout process
                 print("User with email", customer_email, " has ", user_points, " points.") #!!check that this works pls
                 # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
                 # if customer:
@@ -583,6 +584,7 @@ def selfCheckoutSubmit():
 
     # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
+    current_points = session.get('current_points', 0)
     print(f"Current points before purchase: {current_points}")
     if current_points > 50:
         subtotal = subtotal - 5 #should apply the discount because the user has enough points
@@ -602,12 +604,12 @@ def selfCheckoutSubmit():
         cur = storeDb.execute('''
             INSERT INTO orders (user_id, order_total, payment_method, order_status)
             VALUES (?, ?, ?, 'COMPLETED')
-        ''', (user_id, total, payment_method))
+        ''', (int (user_id), total, payment_method))
         order_id = int (cur.lastrowid)
 
         # 3. add products to order table
         for item in all_items:
-            pid = item.get('product_id') 
+            pid = (item.get('product_id') )
             if not pid:
                 res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
                 pid = res['product_id'] if res else None
