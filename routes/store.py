@@ -544,8 +544,10 @@ def selfCheckoutSubmit():
     if loyalty_card:
         # storeDb = db.getDB()
         try:
-            user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
-        
+            print("fetching user")
+            user = storeDb.execute('SELECT *SS FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
+            storeDb.commit()
+            print(f"user: {user}")
             if user:
                 user_id = int (user['user_id'])
                 user_points = user['user_loyalty_points']
@@ -626,7 +628,7 @@ def selfCheckoutSubmit():
             int_user_id = int (user_id)
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
             storeDb.commit()
-            print(f"User with email {customer_email} earned {points_earned} points from subtotal of {subtotal}. Total points: {total_points}")
+            print(f"User with email {customer_email} had {current_points} and earned {points_earned} points from subtotal of {subtotal}. Total points: {total_points}")
             # if customer:
             #     cid = int (customer['customer_id'])
             #     storeDb.execute('''
