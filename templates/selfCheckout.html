@@ -2,277 +2,367 @@
 
 {% block content %}
 
-<div id="notifications-container"></div>
-
-<input type="text" id="barcode-gate" style="position: absolute; opacity: 0; pointer-events: none;">
-
 <div class="container checkout-page">
-
-    <h1 class="mb-4">Self Checkout</h1>
-
-    {% set rfid_items = session.get('cart_items', []) %}
-    {% set manual_items = session.get('manual_items', []) %}
-    {% set all_items = rfid_items + manual_items %}
-
-    {% if not all_items %}
-        <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
-    {% else %}
-
+    <h1 id="self-checkout-title" class="mb-4">Self Checkout</h1>
     <div class="checkout-grid">
+        <div class="order-summary">
+            <h2>Your Shopping Cart</h2>
+            <div class="manual-barcode-wrapper">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="toggleBarcode">
+                    + Add item by barcode
+                </button>
 
+                <div id="barcodeInputWrap" style="display:none; margin-top: 0.75rem;">
+                    <input
+                        type="text"
+                        id="barcodeInput"
+                        placeholder="Scan or type barcode..."
+                        class="form-control"
+                    />
 
-    <div class="order-summary">
-        <h2>Scanned Items</h2>
-
-        {# Calculate subtotal #}
-        {% set rfid_items = session.get('cart_items', []) %}
-        {% set manual_items = session.get('manual_items', []) %}
-        {% set all_items = rfid_items + manual_items %}
-        {% set subtotal = all_items | map(attribute='product_price') | sum %}
-
-        {# Calculate taxes}
-        {# 2. Calculate Taxes #}
-        {% set gst = subtotal * 0.05 %}
-        {% set qst = subtotal * 0.09975 %}
-        {% set total = subtotal + gst + qst %}
-        
-        <ul class="summary-items">
-            {% set rfid_count = session.get('cart_items', []) | length %}
-            {# Loop through all_items, not just cart_items #}
-            {% for item in all_items %}
-            <li class="summary-item">
-                <span>{{ item.product_name }}</span>
-                <strong>${{ "%.2f"|format(item.product_price) }}</strong>
-            </li>
-            <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
-                {# If the current loop index is higher than the RFID count, it's a manual item #}
-                {% if loop.index0 >= rfid_count %}
-                    {% set manual_index = loop.index0 - rfid_count %}
-                    <button type="button" 
-                            onclick="removeItem('{{ manual_index }}')" 
-                            class="btn-remove">
-                        &times;
+                    <button type="button" class="btn btn-primary btn-sm mt-2" id="submitBarcode">
+                        Add Item
                     </button>
-                {% endif %}
-            {% endfor %}
-        </ul>
 
-        <div class="summary-total">
-            <div class="total-row">
-                <span>Subtotal:</span>
-                <span>${{ "%.2f"|format(subtotal) }}</span>
+                    <div id="barcodeMessage" class="barcode-message"></div>
+                </div>
             </div>
-            <div class="total-row">
-                <span>GST (5%):</span>
-                <span>${{ "%.2f"|format(gst) }}</span>
+            {% if not cart_items %}
+                <p>Your cart is empty. Scan items to begin checkout.</p>
+            {% else %}
+            {% if not cart_items %}
+                <p>Your cart is empty. Scan items to begin checkout.</p>
+            {% else %}
+    <ul class="summary-items">
+
+        {% for item in cart_items %}
+        <li class="summary-item {% if item.source == 'barcode' %}barcode-item{% endif %}">
+
+            <!-- LEFT SIDE -->
+            <div class="item-left">
+
+                <span class="product-name">
+                    {{ item.product_name }}
+
+                    {% if item.source == 'barcode' %}
+                        <small class="barcode-tag">Barcode</small>
+                    {% endif %}
+                </span>
+
+                <!-- Quantity Controls (UI-ready for backend later) -->
+                <div class="quantity-controls">
+                    <button class="qty-btn" onclick="updateQuantity('{{ loop.index0 }}', -1)">−</button>
+                    <span class="qty-value">
+                        {{ item.quantity or 1 }}
+                    </span>
+                    <button class="qty-btn" onclick="updateQuantity('{{ loop.index0 }}', 1)">+</button>
+
+                </div>
+
             </div>
-            <div class="total-row">
-                <span>QST (9.975%):</span>
-                <span>${{ "%.2f"|format(qst) }}</span>
+
+            <div class="item-right">
+
+                <strong>
+                    ${{ "%.2f"|format(item.product_price * (item.quantity or 1)) }}
+                </strong>
+
+                {% if item.source == 'barcode' %}
+                <button 
+                    class="delete-btn"
+                    onclick="removeBarcode('{{ loop.index0 }}')">
+                    ✕
+                </button>
+                {% endif %}
+
+            </div>
+
+        </li>
+        {% endfor %}
+
+    </ul>
+    {% endif %}
+            {% endif %}
+            <div class="summary-line">
+                <span>Subtotal</span>
+                <b>${{ "%.2f"|format(cart_total or 0) }}</b>
+            </div>
+        </div>
+<div class="loyalty-card">
+
+    <div class="loyalty-header d-flex justify-content-between align-items-center">
+
+        <ul class="nav nav-tabs border-0" id="loyaltyTabs">
+            <li class="nav-item">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#joinTab">
+                    Join Today
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#memberTab">
+                    I’m a Member
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content loyalty-body mt-3">
+     <div class="tab-pane fade" id="joinTab">
+
+            <p class="muted">
+                Join today and get <strong>10% off instantly</strong>.
+            </p>
+
+            <input type="text" class="form-control mb-2" name="fname" placeholder="First Name">
+            <input type="text" class="form-control mb-2" name="lname" placeholder="Last Name">
+            <input type="email" class="form-control mb-2" name="email" placeholder="Email">
+            <input type="text" class="form-control mb-2" name="phone" placeholder="Phone (optional)">
+
+            <button class="btn btn-primary btn-sm w-100">
+                Join & Apply Discount
+            </button>
+
+        </div>
+        <div class="tab-pane fade show active" id="memberTab">
+
+            {% if user_logged_in %}
+
+                <div class="loyalty-summary">
+                    <div><b>{{ user_first_name }} {{ user_last_name }}</b></div>
+                    <div>Points: <b>{{ user_points or 0 }}</b></div>
+                    <div>Earn this order: <b>{{ ((cart_total or 0) * 10) | round(0) }}</b></div>
+                </div>
+
+            {% else %}
+
+                <p class="muted mb-2">Enter your email to retrieve your account</p>
+
+                <input type="email" class="form-control mb-2" placeholder="Email">
+
+                <button class="btn btn-secondary btn-sm">
+                    Check Account
+                </button>
+
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+        <div class="summary-card">
+                        <h2>Payment</h2>
+            <form class="checkout-form"
+                method="POST"
+                action="{{ url_for('store.selfCheckoutSubmit') }}">
+                <label>
+                    Email for Receipt
+                    <input type="email" name="email" required>
+                </label>
+                <h3>Payment Method</h3>
+                <ul class="payment-types">
+                    <li>
+                        <label>
+                            <input type="radio" name="payment_method" value="tap" checked>
+                            <p class="label-text">Tap / NFC</p>
+                        </label>
+                    </li>
+                    <li>
+                        <label>
+                            <input type="radio" name="payment_method" value="card">
+                            <p class="label-text">Chip / Card</p>
+                        </label>
+                    </li>
+                    <li>
+                        <label>
+                            <input type="radio" name="payment_method" value="mobile">
+                            <p class="label-text">Mobile Pay</p>
+                        </label>
+                    </li>
+                </ul>
+                <div class="checkout-btn-wrapper">
+                    <button type="submit" class="checkout-submit btn btn-primary mt-3">
+                        Complete Payment
+                    </button>
+                </div>
+            </form>
+                        <div class="summary-line">
+                <span>GST</span>
+                <b>${{ "%.2f"|format((cart_total or 0) * 0.05) }}</b>
+            </div>
+            <div class="summary-line">
+                <span>QST</span>
+                <b>${{ "%.2f"|format((cart_total or 0) * 0.09975) }}</b>
             </div>
             <hr>
-            <div class="total-row final-total">
-                <strong>Total:</strong>
-                <strong>${{ "%.2f"|format(total) }}</strong>
+            <div class="summary-total">
+                <span>Total</span>
+                <b>${{ "%.2f"|format((cart_total or 0) * 1.14975) }}</b>
             </div>
         </div>
     </div>
-
-
-
-
-    <form method="POST"
-    action="{{ url_for('store.selfCheckoutSubmit') }}"
-    class="checkout-form">
-
-    <h2>Customer Confirmation</h2>
-
-    <label>
-    Email for Receipt
-    <br>
-    <input
-    type="email"
-    name="email"
-    required
-    >
-    </label>
-
-    <label>
-    Phone (optional)
-    <br>
-    <input
-    type="text"
-    name="phone"
-    >
-    </label>
-
-
-    <h2>Payment Method</h2>
-
-    <label>
-    <input
-    type="radio"
-    name="payment_method"
-    value="tap"
-    checked
-    >
-    Tap / NFC
-    </label>
-
-    <label>
-    <input
-    type="radio"
-    name="payment_method"
-    value="card">
-    Chip / Card
-    </label>
-
-    <label>
-    <input
-    type="radio"
-    name="payment_method"
-    value="mobile">
-    Mobile Pay
-    </label>
-
-
-    <div class="payment-placeholder">
-    <p>
-    Tap your card on the reader to complete payment
-    </p>
-    </div>
-
-    <button
-    type="submit"
-    class="checkout-submit btn btn-primary mt-3">
-
-    Complete Self Checkout
-
-    </button>
-
-    </form>
-
-    </div>
-
-    {% endif %}
-
 </div>
 
 <script>
-    async function loadNotifications() {
-        const container = document.getElementById('notifications-container');
-        
-        if (!container) {
-            return; 
-        }
 
-        try {
-            const response = await fetch('/api/notifications');
-            if (!response.ok) return;
-            
-            const data = await response.json();
-            
-            // only run if 'container' exists
-            container.innerHTML = data.map(n => `
-                <div class="notif-item">
-                    <strong>${n.notif_title}</strong>
-                    <p>${n.notif_msg_summary}</p>
-                </div>
-            `).join('');
-        } catch (err) {
-            console.debug("Notifications not available.");
-        }
-    }
+document.addEventListener("DOMContentLoaded", () => {
 
-    function getUIItemCount() {
-        return document.querySelectorAll('.summary-item').length;
-    }
-
-    let currentItemCount = getUIItemCount();
-    console.log("Initial items on page:", currentItemCount);
-
-    // BARCODE SCANNER LOGIC
-    const gate = document.getElementById('barcode-gate');
-
-    // Focus management
-    function grabFocus() {
-        if (document.activeElement.tagName !== 'INPUT' || document.activeElement.id === 'barcode-gate') {
-            gate.focus();
-        }
-    }
-    document.addEventListener('keydown', grabFocus);
-    document.addEventListener('click', grabFocus);
-
-    gate.addEventListener('keypress', async function (e) {
-        if (e.key === 'Enter') {    
-            const code = gate.value.trim();
-            gate.value = ''; 
-            if (code) {
-                try {
-                    const response = await fetch(`/api/add-barcode/${code}`, { method: 'POST' });
-                    
-                    if (response.ok) {
-                        // Item found! Refresh to show it
-                        location.reload(); 
-                    } else if (response.status === 404) {
-                        // Item not in database!
-                        alert("Unknown product scanned: " + code);
-                    } else {
-                        // General error (server down, etc.)
-                        console.error("Server error occurred.");
-                    }
-                } catch (err) {
-                    console.error("Barcode fetch failed", err);
-                }
-            }
-        }
-    });
+    /* ========================= */
+    /* RFID POLLING              */
+    /* ========================= */
 
     async function pollRFID() {
         try {
-            const response = await fetch('/api/scan-basket');
-            if (!response.ok) return;
+            const res = await fetch("/api/scan-basket");
+            const data = await res.json();
 
-            const data = await response.json();
-
-            // We inject the Jinja value into a clean JS variable first
-            const manualCount = Number("{{ session.get('manual_items', []) | length }}");
-            const rfidCount = data.item_count || 0;
-            const expectedTotal = rfidCount + manualCount;
-            
-            if (expectedTotal !== currentItemCount) {
-                console.log("Change detected. RFID:", rfidCount, "Manual:", manualCount);
+            if (data && data.items) {
                 location.reload();
             }
-        } catch (err) {
-            console.debug("Polling RFID error or hardware busy...");
+
+        } catch (e) {
+            console.log("RFID polling error:", e);
         }
     }
 
-    // Check for changes every 5 seconds
     setInterval(pollRFID, 5000);
-    gate.focus();
 
-    async function removeItem(indexStr) {
-        const index = parseInt(indexStr); // Convert it back to a number for Python
-        
-        // Optional: add a confirm so you don't accidentally delete items
-        if (!confirm("Remove this manual scan?")) return;
+
+    /* ========================= */
+    /* BARCODE INPUT             */
+    /* ========================= */
+
+    const toggleBtn = document.getElementById("toggleBarcode");
+    const inputWrap = document.getElementById("barcodeInputWrap");
+    const input = document.getElementById("barcodeInput");
+    const submitBtn = document.getElementById("submitBarcode");
+    const message = document.getElementById("barcodeMessage");
+
+
+    toggleBtn.addEventListener("click", () => {
+
+        inputWrap.style.display =
+            inputWrap.style.display === "none" ? "block" : "none";
+
+        input.focus();
+    });
+
+
+    submitBtn.addEventListener("click", addBarcode);
+
+
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            addBarcode();
+        }
+    });
+
+
+    async function addBarcode() {
+
+        const code = input.value.trim();
+
+        if (!code) return;
 
         try {
-            const response = await fetch(`/api/remove-barcode/${index}`, { 
-                method: 'POST' 
+
+            const res = await fetch(`/api/add-barcode/${code}`, {
+                method: "POST"
             });
-            
-            if (response.ok) {
-                location.reload();
+
+            const data = await res.json();
+
+            if (data.status === "success") {
+
+                message.innerHTML =
+                    '<span class="barcode-success">✔ Item added</span>';
+
+                input.value = "";
+
+                setTimeout(() => {
+                    location.reload();
+                }, 600);
+
             } else {
-                console.error("Failed to remove item.");
+
+                message.innerHTML =
+                    '<span class="barcode-error">✖ Barcode not found</span>';
             }
+
         } catch (err) {
-            console.error("Error communicating with server:", err);
+
+            console.error(err);
+
+            message.innerHTML =
+                '<span class="barcode-error">⚠ Error adding item</span>';
         }
     }
+
+});
+
+async function updateQuantity(itemId, change) {
+
+    try {
+
+        const res = await fetch("/api/update-quantity", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                item_id: itemId,
+                change: change
+            })
+        });
+
+        location.reload();
+
+    } catch (err) {
+        console.error(err);
+    }
+
+}
+
+
+async function removeItem(itemId) {
+
+    try {
+
+        const res = await fetch("/api/remove-item", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                item_id: itemId
+            })
+        });
+
+        location.reload();
+
+    } catch (err) {
+        console.error(err);
+    }
+
+}
+
+async function removeBarcode(index) {
+
+    try {
+        const res = await fetch(`/api/remove-barcode/${index}`, {
+            method: "POST"
+        });
+
+        const data = await res.json();
+
+        if (data.status === "success") {
+            location.reload();
+        } else {
+            console.error(data.message);
+        }
+
+    } catch (err) {
+        console.error("Remove failed:", err);
+    }
+}
 
 </script>
 

@@ -13,9 +13,8 @@
         </div>
       {% endif %}
 
-      <form method="POST" action="" class="mb-3">
-        <div class="row g-2">
-
+      <form method="POST" action="" class="mb-3" id="registrationForm">
+        <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label">First Name</label>
             <input type="text" class="form-control rounded" name="fname" required>
@@ -38,11 +37,13 @@
 
 
           <div class="col-12 mt-3">
-            <button type="submit" class="btn btn-primary w-100 rounded">Submit</button>
+            <button type="submit" class="btn btn-primary w-100 rounded" id="submitBtn">Submit</button>
           </div>
 
         </div>
       </form>
+
+      <div id="notifications" class="mt-3"></div>
 
       <div class="text-center mt-2">
         <a href="{{ url_for('store.customersList') }}">View Existing Customers</a>
@@ -52,4 +53,25 @@
   </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const submitBtn = document.getElementById("submitBtn");
+    if (submitBtn) {
+        submitBtn.addEventListener("click", (e) => {
+            console.log("Submit clicked!");
+        });
+    }
+
+    const notificationsEl = document.getElementById("notifications");
+    if (notificationsEl) {
+        notificationsEl.innerHTML = "Loading notifications...";
+        setTimeout(() => {
+            notificationsEl.innerHTML = "<div class='alert alert-info'>No new notifications</div>";
+        }, 500);
+    }
+});
+</script>
 {% endblock %}
