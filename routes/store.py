@@ -540,6 +540,7 @@ def selfCheckoutSubmit():
     payment_method = request.form.get('payment_method')
     loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
 
+    safeSetPoints = 0
     # current_points = 0
     if loyalty_card:
         # storeDb = db.getDB()
@@ -553,6 +554,7 @@ def selfCheckoutSubmit():
                 user_points = user['user_loyalty_points']
                 print(f"User has {user_points} points")
                 current_points = user_points
+                safeSetPoints = user_points
                 session.setdefault('current_points', user_points) #*stores the current points in the session to be used during the checkout process
                 print("User with email", customer_email, " has ", user_points, " points.") #!!check that this works pls
                 # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
@@ -585,14 +587,17 @@ def selfCheckoutSubmit():
     # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
     current_points = session.get('current_points', 0)
+  
     print(f"Current points before purchase: {current_points}")
+    print(f"Safe set points taken from user table: {safeSetPoints}")
     discount_applied = ""
-    if current_points >= 50:
+    if current_points >= 50 or safeSetPoints >= 50: #*check if the user has enough points to apply the discount either from the session or from the database query
         print("Applying points discount...")
         print(f"Subtotal before discount: {subtotal}")
+
         discount_applied = "Subtotal before discount: " + str(subtotal) + "\n Congrats you accumulated 50 points, 5$ discount applied from loyalty points! "
         subtotal = subtotal - 5 #should apply the discount because the user has enough points
-        current_points = current_points - 50 #*substract the points after giving the discount
+        current_points = safeSetPoints - 50 #*substract the points after giving the discount
         print(f"Enough points!! 5$ discount applied to subtotal now {subtotal}")
         storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_email = ?', (current_points, customer_email)) #*update the user's points in the database after the purchase
         storeDb.commit()

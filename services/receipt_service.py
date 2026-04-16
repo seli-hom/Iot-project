@@ -58,7 +58,9 @@ class EmailAlertSystem:
         points_info = ""
         # Body of the email
         if receipt_data['total_points'] is not None:
-            points_info = f"You have  a total of {receipt_data['total_points']} loyalty points. Only {50 - receipt_data['total_points']} more points until you can get a 5$ discount on your next purchase!\\n"
+            points_info = f"You have  a total of {receipt_data['total_points']} loyalty points. \n"
+            if receipt_data['total_points'] < 50 :
+                points_info += f"Only {50 - receipt_data['total_points']} more points until you can get a 5$ discount on your next purchase!\n"
         else:
             points_info = f"You earned {receipt_data['purchase_points']} loyalty points with this purchase. Sign up for an account to start earning points towards discounts on future purchases!\\n"
         body = f"""
@@ -70,7 +72,6 @@ Items Purchased:
 ---------------------------------
 
 {receipt_data['discount']}
-
 
 ---------------------------------
 Subtotal: ${receipt_data['subtotal']:.2f}
