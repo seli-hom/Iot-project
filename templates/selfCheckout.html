@@ -1,6 +1,6 @@
 {% extends "base.html" %} {% block content %}
 
-<div id="notifications-container"></div>
+<!-- <div id="notifications-container"></div> -->
 
 <input
   type="text"
@@ -13,9 +13,7 @@
 
   {% set rfid_items = session.get('cart_items', []) %} {% set manual_items =
   session.get('manual_items', []) %} {% set all_items = rfid_items +
-  manual_items %} {% if not all_items %}
-  <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
-  {% else %}
+  manual_items %} 
 
   <div class="checkout-grid">
     <div class="order-summary">
@@ -29,7 +27,10 @@
       map(attribute='product_price') | sum %} {# Calculate taxes} {# 2.
       Calculate Taxes #} {% set gst = subtotal * 0.05 %} {% set qst = subtotal *
       0.09975 %} {% set total = subtotal + gst + qst %}
-
+    
+    {% if not all_items %}
+    <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
+    {% else %}
       <ul class="summary-items">
         {% set rfid_count = session.get('cart_items', []) | length %} {# Loop
         through all_items, not just cart_items #} {% for item in all_items %}
@@ -37,7 +38,6 @@
           <span>{{ item.product_name }}</span>
           <strong>${{ "%.2f"|format(item.product_price) }}</strong>
         </li>
-        <!-- SABRINA: only the manually (barcode) scanned items can be removed with the x button but please style it becasue mine is ugly -->
         {# If the current loop index is higher than the RFID count, it's a
         manual item #} {% if loop.index0 >= rfid_count %} {% set manual_index =
         loop.index0 - rfid_count %}
@@ -50,6 +50,8 @@
         </button>
         {% endif %} {% endfor %}
       </ul>
+    {% endif %}
+
 
       <div class="summary-total">
         <div class="total-row">
@@ -431,5 +433,4 @@ async function removeBarcode(index) {
 }
 
 </script>
-
 {% endblock %}
