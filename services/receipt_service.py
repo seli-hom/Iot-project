@@ -72,7 +72,7 @@ GST (5%): ${receipt_data['gst']:.2f}
 QST (9.975%): ${receipt_data['qst']:.2f}
 Total: ${receipt_data['total']:.2f}
 
-Points Earned with purchase: {receipt_data['points earned']}
+Points Earned with purchase: {receipt_data['purchase_points']}
 
 {points_info}
 
