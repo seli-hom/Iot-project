@@ -1080,7 +1080,7 @@ def selfCheckoutSubmit():
     finally:
         storeDb.close()
 
-    # return redirect(url_for('store.storeIndex'))
+    return redirect(url_for('store.storeIndex'))
     # The user should be redirected the the /receipt route with their order confirmation
 
 # -----------------------------
