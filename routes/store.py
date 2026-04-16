@@ -13,9 +13,6 @@ app = Blueprint('store', __name__)
 # -----------------------------
 # STORE HOME / DASHBOARD
 # -----------------------------
-# -----------------------------
-# STORE HOME / DASHBOARD
-# -----------------------------
 @app.route('/')
 def storeIndex():
     return render_template('index.html')
@@ -53,19 +50,13 @@ def storeDashboard():
 # -----------------------------
 # NOTIFICATIONS API
 # -----------------------------
-
-# -----------------------------
-# NOTIFICATIONS API
-# -----------------------------
 @app.route('/api/notifications')
 def get_notifications():
     storeDb = db.getDB()
     try:
         notifications = storeDb.execute('''
             SELECT notif_id, notif_type, notif_title, notif_msg_summary, notif_msg_extended, notif_created_at
-            SELECT notif_id, notif_type, notif_title, notif_msg_summary, notif_msg_extended, notif_created_at
             FROM notifications
-            ORDER BY notif_created_at DESC
             ORDER BY notif_created_at DESC
             LIMIT 10
         ''').fetchall()
@@ -88,11 +79,6 @@ def get_notifications():
     finally:
         storeDb.close()
 
-
-# -----------------------------
-# CUSTOMER ROUTES
-# -----------------------------
-
 # -----------------------------
 # CUSTOMER ROUTES
 # -----------------------------
@@ -102,6 +88,43 @@ def customersList():
     print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
+@app.route('/admin-dashboard/products')
+def productsList():
+    storeDb = db.getDB()
+    products = storeDb.execute(
+        'SELECT * FROM products '
+    ).fetchall()
+    return render_template('productsList.html', products=products)
+
+@app.route('/admin-dashboard/products/create')
+def productCreate():
+    return render_template('productCreation.html')
+
+@app.route('/admin-dashboard/products/add', methods=['POST'])
+def productAdd():
+
+    storeDb = db.getDB()
+    test = storeDb.execute('''
+                INSERT INTO products (product_name, category_id, product_price, product_company, product_description)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description']))
+    storeDb.commit()
+    print(test.lastrowid)
+    return redirect(url_for('store.productsList'))
+
+@app.route('/admin-dashboard/products/<int:product_id>/delete', methods=['POST', 'GET'])
+def productDelete(product_id):
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized.", "danger")
+        return redirect(url_for('store.storeIndex'))
+
+    storeDb = db.getDB()
+    storeDb.execute('DELETE FROM products WHERE product_id = ?', (product_id,))
+    storeDb.commit()
+    storeDb.close()
+
+    flash("User deleted successfully.", "success")
+    return redirect(url_for('store.productsList'))
 
 
 @app.route('/customers/registration', methods=['GET', 'POST'])
@@ -112,7 +135,6 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
-                INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
                 INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
                 VALUES (?, ?, ?, ?, 'customer', 0)
             ''', (request.form['fname'], request.form['lname'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
@@ -144,36 +166,25 @@ def customersRegistration():
                 # -------------------------------
                 # Send registration email
                 # -------------------------------
-                # -------------------------------
-                # Send registration email
-                # -------------------------------
                 from services.email_service import send_registration_email
                 send_registration_email(
-                    request.form['fname'],
-                    request.form['lname'],
                     request.form['fname'],
                     request.form['lname'],
                     request.form['email'],
                     new_user_id
                 )
                 message = "Customer invited successfully. Verification email sent!"
-                message = "Customer invited successfully. Verification email sent!"
                 success = True
 
 
             except Exception as e:
                 import traceback
-                import traceback
                 print("Email sending failed:", e)
-                traceback.print_exc()
-                message = "User created, but email failed."
                 traceback.print_exc()
                 message = "User created, but email failed."
                 success = False
 
         except Exception as e:
-            print("Error creating user:", e)
-            message = "Error creating user"
             print("Error creating user:", e)
             message = "Error creating user"
             success = False
@@ -182,15 +193,6 @@ def customersRegistration():
         finally:
             storeDb.close()
 
-    return render_template(
-        'customersRegistration.html',
-        message=message,
-        success=success
-    )
-
-
-@app.route('/verify/<int:user_id>', methods=['GET', 'POST'])
-def customerVerification(user_id):
     return render_template(
         'customersRegistration.html',
         message=message,
@@ -311,14 +313,11 @@ def customerVerification(user_id):
 def login():
     email = request.form.get('user_email')
     password = request.form.get('user_password')
-    email = request.form.get('user_email')
-    password = request.form.get('user_password')
 
     storeDb = db.getDB()
     user = storeDb.execute('''
         SELECT users.*
         FROM users
-        WHERE user_email = ?
         WHERE user_email = ?
     ''', (email,)).fetchone()
     storeDb.close()
@@ -327,13 +326,7 @@ def login():
     if not user:
         flash("Invalid credentials.", "danger")
         return redirect(url_for('store.customersList'))
-        flash("Invalid credentials.", "danger")
-        return redirect(url_for('store.customersList'))
-    
-    if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
-        session['user_email'] = user['user_email']
-        session['user_first_name'] = user['user_fname']
-        session['user_role'] = user['user_role']
+
     if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
         session['user_first_name'] = user['user_fname']
@@ -460,12 +453,8 @@ def adminDashboard():
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
     staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
-    all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
-    staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
     user_notifications = storeDb.execute('''
         SELECT * FROM notifications
-        WHERE notif_id IS NOT NULL
-        ORDER BY notif_created_at DESC
         WHERE notif_id IS NOT NULL
         ORDER BY notif_created_at DESC
         LIMIT 5
@@ -473,14 +462,9 @@ def adminDashboard():
     total_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
     verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
     latest_user = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1').fetchone()
-    verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
-    latest_user = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1').fetchone()
     popular_user = storeDb.execute('''
         SELECT users.*, COUNT(customers.customer_id) as posts
-        SELECT users.*, COUNT(customers.customer_id) as posts
         FROM users
-        LEFT JOIN customers ON users.user_id = customers.user_id
-        GROUP BY users.user_id
         LEFT JOIN customers ON users.user_id = customers.user_id
         GROUP BY users.user_id
         ORDER BY posts DESC
@@ -494,12 +478,10 @@ def adminDashboard():
         "latest_user": latest_user,
         "most_popular_user": popular_user
     }
-    print(staff[0]['user_id'])
-    print(staff[0]['user_id'])
+
     return render_template(
         'adminDashboard.html',
         all_users=all_users,
-        staff=staff,
         staff=staff,
         notifications=user_notifications,
         db_stats=db_stats
@@ -510,30 +492,23 @@ def adminDashboard():
 # -----------------------------
 @app.route('/admin/user/<int:user_id>/update', methods=['POST'])
 def adminUpdateUser(user_id):
-# -----------------------------
-# ADMIN USER UPDATE / DELETE
-# -----------------------------
-@app.route('/admin/user/<int:user_id>/update', methods=['POST'])
-def adminUpdateUser(user_id):
-    if session.get('user_role') != 'admin':
-        flash("Unauthorized.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        if session.get('user_role') != 'admin':
+            flash("Unauthorized.", "danger")
+            return redirect(url_for('store.storeIndex'))
 
-    role = request.form.get('role')
-    verified = request.form.get('verified') == 'on'
+        role = request.form.get('role')
+        verified = request.form.get('verified') == 'on'
 
-    storeDb = db.getDB()
-    storeDb.execute(
-        'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
-        (role, verified, user_id)
-        'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
-        (role, verified, user_id)
-    )
-    storeDb.commit()
-    storeDb.close()
+        storeDb = db.getDB()
+        storeDb.execute(
+            'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
+            (role, verified, user_id)
+        )
+        storeDb.commit()
+        storeDb.close()
 
-    flash("User updated successfully.", "success")
-    return redirect(url_for('store.adminDashboard'))
+        flash("User updated successfully.", "success")
+        return redirect(url_for('store.adminDashboard'))
 
 
 @app.route('/admin/user/<int:user_id>/delete', methods=['POST'])

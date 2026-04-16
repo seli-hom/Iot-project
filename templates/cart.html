@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container my-4">
-    <h2 class="mb-4">Products List </h2>
+    <h2 class="mb-4">Cart </h2>
 
     {% if cart_items|length == 0 %}
         <div class="alert alert-warning">No products found yet.</div>
@@ -31,8 +31,5 @@
         </div>
     {% endif %}
 
-    <div class="mt-4">
-        <a href="{{ url_for('store.customersRegistration') }}" class="btn btn-primary">Register New user</a>
-    </div>
 </div>
 {% endblock %}
