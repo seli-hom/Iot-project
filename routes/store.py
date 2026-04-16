@@ -5,6 +5,7 @@ from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
+import re
 
 app = Blueprint('store', __name__)
 
@@ -887,7 +888,8 @@ def selfCheckoutSubmit():
     finally:
         storeDb.close()
 
-    return redirect(url_for('store.storeIndex'))
+    # return redirect(url_for('store.storeIndex'))
+    # The user should be redirected the the /receipt route with their order confirmation
 
 # -----------------------------
 # RFID ROUTES
@@ -909,62 +911,151 @@ def scan_rfid():
         "count": len(products)
     })
 
+# @app.route('/api/scan-basket')
+# def scan_basket():
+#     tags = rfid_service.perform_basket_scan(scan_duration=2.0)
+    
+#     # Get the product data
+#     receipt = rfid_service.manager.process_simultaneous_scan(tags)
+    
+#     if receipt:
+#         session['cart_items'] = receipt['items']
+#         session['cart_subtotal'] = receipt['subtotal']
+#         session['cart_total'] = receipt['total']
+#         session['cart_gst'] = receipt['gst']
+#         session['cart_qst'] = receipt['qst']
+#         session['cart_total'] = receipt['total']
+#         session['cart_timestamp'] = receipt['timestamp']
+
+#         # Ensures flask saves
+#         session.modified = True
+#     else:
+#         # Clear session if the basket is empty
+#         keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
+#         for key in keys_to_clear:
+#             session.pop(key, None)
+        
+#     return jsonify(receipt if receipt else {"item_count": 0})
+
 @app.route('/api/scan-basket')
 def scan_basket():
+
     tags = rfid_service.perform_basket_scan(scan_duration=2.0)
-    
-    # Get the product data
     receipt = rfid_service.manager.process_simultaneous_scan(tags)
-    
+
     if receipt:
-        session['cart_items'] = receipt['items']
+
+        existing = session.get('cart_items', [])
+
+        # start with existing manual + barcode items
+        merged = existing.copy()
+
+        # add RFID items if not already present
+        for item in receipt['items']:
+            merged.append({
+                **item,
+                "source": "rfid"
+            })
+
+        session['cart_items'] = merged
         session['cart_subtotal'] = receipt['subtotal']
         session['cart_total'] = receipt['total']
         session['cart_gst'] = receipt['gst']
         session['cart_qst'] = receipt['qst']
-        session['cart_total'] = receipt['total']
         session['cart_timestamp'] = receipt['timestamp']
 
-        # Ensures flask saves
         session.modified = True
-    else:
-        # Clear session if the basket is empty
-        keys_to_clear = ['cart_items', 'cart_subtotal', 'cart_gst', 'cart_qst', 'cart_total']
-        for key in keys_to_clear:
-            session.pop(key, None)
-        
-    return jsonify(receipt if receipt else {"item_count": 0})
+
+        return jsonify(receipt)
+
+    return jsonify({"item_count": 0})
 
 rfid_service = RFIDService()
 
+# @app.route('/api/add-barcode/<code>', methods=['POST'])
+# def add_barcode(code):
+#     # Change getDB() to db.getDB()
+#     storeDb = db.getDB() 
+    
+#     query = '''
+#         SELECT p.product_name, p.product_price, p.product_company 
+#         FROM products p
+#         JOIN product_barcode pb ON p.product_id = pb.product_id
+#         WHERE pb.barcode_num = ?
+#     '''
+    
+#     product = storeDb.execute(query, (code,)).fetchone()
+#     storeDb.close()
+
+#     if product:
+#         # different session key for barcode scans
+#         manual_cart = session.get('manual_items', [])
+#         manual_cart.append({
+#             'product_name': product['product_name'],
+#             'product_price': product['product_price'],
+#             'product_company': product['product_company'],
+#             'source': 'barcode' # Helpful for debugging
+#         })
+#         session['manual_items'] = manual_cart
+#         session.modified = True
+#         return jsonify({"status": "success"}), 200
+#     return jsonify({"status": "not_found"}), 404
+
 @app.route('/api/add-barcode/<code>', methods=['POST'])
 def add_barcode(code):
-    # Change getDB() to db.getDB()
-    storeDb = db.getDB() 
-    
-    query = '''
-        SELECT p.product_name, p.product_price, p.product_company 
-        FROM products p
-        JOIN product_barcode pb ON p.product_id = pb.product_id
-        WHERE pb.barcode_num = ?
-    '''
-    
-    product = storeDb.execute(query, (code,)).fetchone()
-    storeDb.close()
 
-    if product:
-        # different session key for barcode scans
-        manual_cart = session.get('manual_items', [])
-        manual_cart.append({
-            'product_name': product['product_name'],
-            'product_price': product['product_price'],
-            'product_company': product['product_company'],
-            'source': 'barcode' # Helpful for debugging
+    storeDb = db.getDB()
+
+    try:
+        code = code.strip()
+        code = re.sub(r"\s+", "", code)
+
+        if not re.fullmatch(r"\d+", code):
+            return jsonify({
+                "status": "invalid",
+                "message": "Barcode must contain digits only"
+            }), 400
+
+        product = storeDb.execute("""
+            SELECT p.product_id, p.product_name, p.product_price
+            FROM products p
+            JOIN product_barcode pb ON p.product_id = pb.product_id
+            WHERE pb.barcode_num = ?
+        """, (code,)).fetchone()
+
+        if not product:
+            return jsonify({
+                "status": "not_found",
+                "message": "Barcode not registered"
+            }), 404
+
+        cart = session.get("cart_items", [])
+
+        for item in cart:
+            if item.get("barcode") == code:
+                item["quantity"] = item.get("quantity", 1) + 1
+                session["cart_items"] = cart
+                session.modified = True
+                return jsonify({"status": "success", "mode": "stacked"})
+
+        cart.append({
+            "id": str(len(cart)),
+            "product_id": product["product_id"],
+            "product_name": product["product_name"],
+            "product_price": product["product_price"],
+            "quantity": 1,
+            "source": "barcode",
+            "barcode": code
         })
-        session['manual_items'] = manual_cart
+
+        session["cart_items"] = cart
         session.modified = True
-        return jsonify({"status": "success"}), 200
-    return jsonify({"status": "not_found"}), 404
+
+        return jsonify({"status": "success", "mode": "new"})
+
+    finally:
+        storeDb.close()
+
 
 @app.route('/api/remove-barcode/<int:index>', methods=['POST'])
 def remove_barcode(index):
@@ -978,3 +1069,43 @@ def remove_barcode(index):
         return jsonify({"status": "success"}), 200
         
     return jsonify({"status": "error", "message": "Item not found"}), 404
+
+# @app.route("/api/update-quantity", methods=["POST"])
+# def update_quantity():
+
+#     data = request.json
+#     item_id = data.get("item_id")
+#     change = int(data.get("change"))
+
+#     cart = session.get("cart_items", [])
+
+#     for item in cart:
+#         if str(item["id"]) == str(item_id):
+#             item["quantity"] = max(1, item.get("quantity", 1) + change)
+
+#     session["cart_items"] = cart
+
+#     return jsonify({"status":"success"})
+
+@app.route("/api/update-quantity", methods=["POST"])
+def update_quantity():
+
+    data = request.json
+    index = int(data.get("item_id"))
+    change = int(data.get("change"))
+
+    cart = session.get("cart_items", [])
+
+    if 0 <= index < len(cart):
+
+        cart[index]["quantity"] = cart[index].get("quantity", 1) + change
+
+        if cart[index]["quantity"] <= 0:
+            cart.pop(index)
+
+        session["cart_items"] = cart
+        session.modified = True
+
+        return jsonify({"status": "success"})
+
+    return jsonify({"status": "error"}), 404    

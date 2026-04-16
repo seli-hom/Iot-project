@@ -270,7 +270,7 @@
 
 .btn:hover { transform: translateY(-3px); box-shadow: 0 18px 40px var(--shadow-deep); }
 .btn-primary { background: linear-gradient(120deg,var(--accent),var(--gold)) !important; border:none !important; }
-.btn-outline-primary { border:1px solid var(--gold) !important; color:var(--nude-light) !important; background:transparent !important; }
+.btn-outline-primary { border:1px solid var(--gold) !important; color:var(--accent-dark) !important; background:var(--nude-light) !important; }
 
 .loyalty-content {
   width: 75%;
