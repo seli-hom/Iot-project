@@ -54,6 +54,7 @@ class EmailAlertSystem:
         for item in receipt_data.get('items', []):
             items_text += f"- {item['product_name']}: ${item['product_price']:.2f}\n"
         
+        print(receipt_data)
         points_info = ""
         # Body of the email
         if receipt_data['total_points'] is not None:
