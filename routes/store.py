@@ -5,15 +5,21 @@ from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
+from services.rfid_service import RFIDService
+from services.receipt_service import EmailAlertSystem
 
 app = Blueprint('store', __name__)
 
 # -----------------------------
 # STORE HOME / DASHBOARD
 # -----------------------------
+# -----------------------------
+# STORE HOME / DASHBOARD
+# -----------------------------
 @app.route('/')
 def storeIndex():
     return render_template('index.html')
+
 
 
 @app.route('/store-dashboard')
@@ -24,9 +30,15 @@ def storeDashboard():
     #     ORDER BY notif_created_at DESC
     #     LIMIT 5
     # ''').fetchall()
+    # notifications = storeDb.execute('''
+    #     SELECT * FROM notifications
+    #     ORDER BY notif_created_at DESC
+    #     LIMIT 5
+    # ''').fetchall()
     storeDb.close()
     return render_template(
         'storeDashboard.html',
+        # notifications=notifications,
         # notifications=notifications,
         temp=4,
         hm=65,
@@ -41,19 +53,26 @@ def storeDashboard():
 # -----------------------------
 # NOTIFICATIONS API
 # -----------------------------
+
+# -----------------------------
+# NOTIFICATIONS API
+# -----------------------------
 @app.route('/api/notifications')
 def get_notifications():
     storeDb = db.getDB()
     try:
         notifications = storeDb.execute('''
             SELECT notif_id, notif_type, notif_title, notif_msg_summary, notif_msg_extended, notif_created_at
+            SELECT notif_id, notif_type, notif_title, notif_msg_summary, notif_msg_extended, notif_created_at
             FROM notifications
+            ORDER BY notif_created_at DESC
             ORDER BY notif_created_at DESC
             LIMIT 10
         ''').fetchall()
 
         notif_list = [
             {
+
                 "id": n["notif_id"],
                 "type": n["notif_type"],
                 "title": n["notif_title"],
@@ -73,11 +92,16 @@ def get_notifications():
 # -----------------------------
 # CUSTOMER ROUTES
 # -----------------------------
+
+# -----------------------------
+# CUSTOMER ROUTES
+# -----------------------------
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
     print(all_customers)
     return render_template('customersList.html', customers=all_customers)
+
 
 
 @app.route('/customers/registration', methods=['GET', 'POST'])
@@ -88,6 +112,7 @@ def customersRegistration():
         storeDb = db.getDB()
         try:
             cur = storeDb.execute('''
+                INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
                 INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
                 VALUES (?, ?, ?, ?, 'customer', 0)
             ''', (request.form['fname'], request.form['lname'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
@@ -102,7 +127,15 @@ def customersRegistration():
               #  request.form['phone'],
               #  request.form['address']
             #)
+           # from models import customers
+            #customer_id = customers.add_new_customer(
+              #  new_user_id,
+              #  request.form['phone'],
+              #  request.form['address']
+            #)
 
+          #  if not customer_id:
+             #   raise Exception("Failed to create customer profile")
           #  if not customer_id:
              #   raise Exception("Failed to create customer profile")
 
@@ -111,19 +144,29 @@ def customersRegistration():
                 # -------------------------------
                 # Send registration email
                 # -------------------------------
+                # -------------------------------
+                # Send registration email
+                # -------------------------------
                 from services.email_service import send_registration_email
                 send_registration_email(
+                    request.form['fname'],
+                    request.form['lname'],
                     request.form['fname'],
                     request.form['lname'],
                     request.form['email'],
                     new_user_id
                 )
                 message = "Customer invited successfully. Verification email sent!"
+                message = "Customer invited successfully. Verification email sent!"
                 success = True
+
 
             except Exception as e:
                 import traceback
+                import traceback
                 print("Email sending failed:", e)
+                traceback.print_exc()
+                message = "User created, but email failed."
                 traceback.print_exc()
                 message = "User created, but email failed."
                 success = False
@@ -131,7 +174,10 @@ def customersRegistration():
         except Exception as e:
             print("Error creating user:", e)
             message = "Error creating user"
+            print("Error creating user:", e)
+            message = "Error creating user"
             success = False
+
 
         finally:
             storeDb.close()
@@ -145,7 +191,21 @@ def customersRegistration():
 
 @app.route('/verify/<int:user_id>', methods=['GET', 'POST'])
 def customerVerification(user_id):
+    return render_template(
+        'customersRegistration.html',
+        message=message,
+        success=success
+    )
+
+
+@app.route('/verify/<int:user_id>', methods=['GET', 'POST'])
+def customerVerification(user_id):
     storeDb = db.getDB()
+    user = storeDb.execute(
+        'SELECT * FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
+
     user = storeDb.execute(
         'SELECT * FROM users WHERE user_id = ?',
         (user_id,)
@@ -163,6 +223,11 @@ def customerVerification(user_id):
             message=message,
             success=success
         )
+        return render_template(
+            'customersVerification.html',
+            message=message,
+            success=success
+        )
 
     if request.method == 'POST':
         password = request.form.get('password')
@@ -172,6 +237,7 @@ def customerVerification(user_id):
             message = "Please fill in both password fields."
             success = False
         elif password != confirm_password:
+            message = "Passwords do not match."
             message = "Passwords do not match."
             success = False
         else:
@@ -203,7 +269,20 @@ def customerVerification(user_id):
                 except Exception as e:
                     print("Admin notification email failed:", e)
 
+                try:
+                    from services.email_service import send_new_customer_notification
+                    send_new_customer_notification(
+                        user['user_fname'],
+                        user['user_lname'],
+                        user['user_email']
+                    )
+                except Exception as e:
+                    print("Admin notification email failed:", e)
+
             except Exception as e:
+                print("Verification error:", e)
+                message = "Error verifying account."
+                success = False
                 print("Verification error:", e)
                 message = "Error verifying account."
                 success = False
@@ -214,7 +293,16 @@ def customerVerification(user_id):
         message=message,
         success=success
     )
+    return render_template(
+        'customersVerification.html',
+        message=message,
+        success=success
+    )
 
+
+# -----------------------------
+# LOGIN / LOGOUT
+# -----------------------------
 
 # -----------------------------
 # LOGIN / LOGOUT
@@ -223,16 +311,22 @@ def customerVerification(user_id):
 def login():
     email = request.form.get('user_email')
     password = request.form.get('user_password')
+    email = request.form.get('user_email')
+    password = request.form.get('user_password')
 
     storeDb = db.getDB()
     user = storeDb.execute('''
         SELECT users.*
         FROM users
         WHERE user_email = ?
+        WHERE user_email = ?
     ''', (email,)).fetchone()
     storeDb.close()
 
+
     if not user:
+        flash("Invalid credentials.", "danger")
+        return redirect(url_for('store.customersList'))
         flash("Invalid credentials.", "danger")
         return redirect(url_for('store.customersList'))
     
@@ -240,7 +334,12 @@ def login():
         session['user_email'] = user['user_email']
         session['user_first_name'] = user['user_fname']
         session['user_role'] = user['user_role']
+    if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
+        session['user_email'] = user['user_email']
+        session['user_first_name'] = user['user_fname']
+        session['user_role'] = user['user_role']
         return redirect(url_for('store.storeIndex'))
+
 
 
 @app.route('/logout')
@@ -277,6 +376,7 @@ def toggle_fan():
 
     storeDb.execute('''
         INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
+        INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
         VALUES (?, ?, ?, ?)
     ''', ("system", title, summary, extended))
     storeDb.commit()
@@ -288,6 +388,7 @@ def toggle_fan():
         print("Fan email failed:", e)
 
     return jsonify({"status": "ok", "summary": summary})
+
 
 
 @app.route('/threshold/update', methods=['POST'])
@@ -305,6 +406,7 @@ def update_threshold():
 
     storeDb = db.getDB()
     storeDb.execute('''
+        INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
         INSERT INTO notifications (notif_type, notif_title, notif_msg_summary, notif_msg_extended)
         VALUES (?, ?, ?, ?)
     ''', ("system", title, summary, extended))
@@ -324,6 +426,11 @@ def update_threshold():
 # INBOX
 # -----------------------------
 @app.route("/inbox", endpoint='viewInbox')
+
+# -----------------------------
+# INBOX
+# -----------------------------
+@app.route("/inbox", endpoint='viewInbox')
 def storeInbox():
     try:
         emails = email_service.fetch_store_emails()
@@ -332,6 +439,12 @@ def storeInbox():
         print("Inbox error:", e)
         emails = []
 
+    return render_template("viewInbox.html", emails=emails)
+
+
+# -----------------------------
+# ADMIN DASHBOARD
+# -----------------------------
     return render_template("viewInbox.html", emails=emails)
 
 
@@ -347,8 +460,12 @@ def adminDashboard():
     storeDb = db.getDB()
     all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
     staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
+    all_users = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC').fetchall()
+    staff = storeDb.execute('SELECT * FROM users WHERE user_role IN ("admin","employee")').fetchall()
     user_notifications = storeDb.execute('''
         SELECT * FROM notifications
+        WHERE notif_id IS NOT NULL
+        ORDER BY notif_created_at DESC
         WHERE notif_id IS NOT NULL
         ORDER BY notif_created_at DESC
         LIMIT 5
@@ -356,9 +473,14 @@ def adminDashboard():
     total_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users').fetchone()['cnt']
     verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
     latest_user = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1').fetchone()
+    verified_users = storeDb.execute('SELECT COUNT(*) as cnt FROM users WHERE user_verified=1').fetchone()['cnt']
+    latest_user = storeDb.execute('SELECT * FROM users ORDER BY user_created_at DESC LIMIT 1').fetchone()
     popular_user = storeDb.execute('''
         SELECT users.*, COUNT(customers.customer_id) as posts
+        SELECT users.*, COUNT(customers.customer_id) as posts
         FROM users
+        LEFT JOIN customers ON users.user_id = customers.user_id
+        GROUP BY users.user_id
         LEFT JOIN customers ON users.user_id = customers.user_id
         GROUP BY users.user_id
         ORDER BY posts DESC
@@ -373,14 +495,21 @@ def adminDashboard():
         "most_popular_user": popular_user
     }
     print(staff[0]['user_id'])
+    print(staff[0]['user_id'])
     return render_template(
         'adminDashboard.html',
         all_users=all_users,
+        staff=staff,
         staff=staff,
         notifications=user_notifications,
         db_stats=db_stats
     )
 
+# -----------------------------
+# ADMIN USER UPDATE / DELETE
+# -----------------------------
+@app.route('/admin/user/<int:user_id>/update', methods=['POST'])
+def adminUpdateUser(user_id):
 # -----------------------------
 # ADMIN USER UPDATE / DELETE
 # -----------------------------
@@ -395,6 +524,8 @@ def adminUpdateUser(user_id):
 
     storeDb = db.getDB()
     storeDb.execute(
+        'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
+        (role, verified, user_id)
         'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
         (role, verified, user_id)
     )
