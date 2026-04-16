@@ -587,7 +587,7 @@ def selfCheckoutSubmit():
     current_points = session.get('current_points', 0)
     print(f"Current points before purchase: {current_points}")
     discount_applied = ""
-    if current_points > 50:
+    if current_points >= 50:
         print("Applying points discount...")
         print(f"Subtotal before discount: {subtotal}")
         subtotal = subtotal - 5 #should apply the discount because the user has enough points
