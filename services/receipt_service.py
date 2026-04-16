@@ -68,6 +68,11 @@ Items Purchased:
 
 {items_text}
 ---------------------------------
+
+{receipt_data['discount']}
+
+
+---------------------------------
 Subtotal: ${receipt_data['subtotal']:.2f}
 GST (5%): ${receipt_data['gst']:.2f}
 QST (9.975%): ${receipt_data['qst']:.2f}
