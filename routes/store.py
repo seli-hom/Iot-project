@@ -545,25 +545,26 @@ def selfCheckoutSubmit():
         user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
        
         if user:
-            user_id = user['user_id']
+            user_id = int (user['user_id'])
             user_points = user['user_loyalty_points']
-            current_points = user_points
+            print(f"User has {user_points} points")
+            current_points += user_points
             print("User with email", customer_email, " has ", user_points, " points.") #!!check that this works pls
-            customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
-            if customer:
-                customer_id = customer['customer_id']
-                loyalty_card = storeDb.execute('SELECT * FROM customer_loyalty WHERE customer_id = ?', (customer_id,)).fetchone()#*finds the loyalty card based on the found customer
-                # loyalty_id = loyalty_card['loyalty_id']
-                if loyalty_card:
-                    loyalty_id = loyalty_card['loyalty_id']
-                    current_points = loyalty_card['loyalty_points']
-                    print("Customer with ID", customer, " has a loyalty card with ", current_points, " points.")
-                    storeDb.commit()
-                    storeDb.close()
-                else:
-                    print("Loyalty card not found for customer with email:", customer_email)
-            else:
-                print("No customer found with user ID:", user_id)       
+            # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
+            # if customer:
+            #     customer_id = customer['customer_id']
+            #     loyalty_card = storeDb.execute('SELECT * FROM customer_loyalty WHERE customer_id = ?', (customer_id,)).fetchone()#*finds the loyalty card based on the found customer
+            #     # loyalty_id = loyalty_card['loyalty_id']
+            #     if loyalty_card:
+            #         loyalty_id = loyalty_card['loyalty_id']
+            #         current_points = loyalty_card['loyalty_points']
+            #         print("Customer with ID", customer, " has a loyalty card with ", current_points, " points.")
+            #         storeDb.commit()
+            #         storeDb.close()
+            #     else:
+            #         print("Loyalty card not found for customer with email:", customer_email)
+            # else:
+            #     print("No customer found with user ID:", user_id)       
         else:
             print("No user found with email:", customer_email)
     rfid_items = session.get('cart_items', [])
@@ -616,24 +617,24 @@ def selfCheckoutSubmit():
         total_points = None
         if user_id:
             points_earned = int(subtotal/10) #* change to a point per 10$ instead of per dollar
-            customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
+            # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
             total_points = int (current_points + points_earned)
             int_user_id = int (user_id)
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
             storeDb.commit()
             print(f"User with email {customer_email} earned {points_earned} points. Total points: {total_points}")
-            if customer:
-                cid = int (customer['customer_id'])
-                storeDb.execute('''
-                    UPDATE customer_loyalty 
-                    SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
-                    WHERE customer_id = ?
-                ''', (points_earned, cid))
+            # if customer:
+            #     cid = int (customer['customer_id'])
+            #     storeDb.execute('''
+            #         UPDATE customer_loyalty 
+            #         SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
+            #         WHERE customer_id = ?
+            #     ''', (points_earned, cid))
                 
-                storeDb.execute('''
-                    INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
-                    VALUES (?, 'EARN', ?, ?)
-                ''', (cid, points_earned, f"Points earned from Order #{order_id}"))
+            #     storeDb.execute('''
+            #         INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
+            #         VALUES (?, 'EARN', ?, ?)
+            #     ''', (cid, points_earned, f"Points earned from Order #{order_id}"))
 
         storeDb.commit()
 
@@ -648,8 +649,9 @@ def selfCheckoutSubmit():
             'purchase_points': round(subtotal/10, 2) 
         }
         if loyalty_card:
+            print("loyalty card check box checked")
             receipt_data['total_points'] = total_points
-
+        print("Reaches here before sending email")
         receipt_sender = EmailAlertSystem(
             sender_email="taliamuro3@gmail.com",
             password="hapc ypha dcwh ewbc",
