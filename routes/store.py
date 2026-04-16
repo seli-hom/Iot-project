@@ -588,7 +588,7 @@ def selfCheckoutSubmit():
     try:
         # 1. ATTEMPT TO FIND THE USER
         user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
-        user_id = user['user_id'] if user else None # for unregistered users
+        user_id = int (user['user_id']) if user else None # for unregistered users
 
         # Create the order
         # user_id will be NULL for guest checkout
@@ -596,7 +596,7 @@ def selfCheckoutSubmit():
             INSERT INTO orders (user_id, order_total, payment_method, order_status)
             VALUES (?, ?, ?, 'COMPLETED')
         ''', (user_id, total, payment_method))
-        order_id = cur.lastrowid
+        order_id = int (cur.lastrowid)
 
         # 3. add products to order table
         for item in all_items:
@@ -612,15 +612,16 @@ def selfCheckoutSubmit():
                 ''', (order_id, pid, item['product_price']))
 
         # Loylaty logic if user exists
+        points_earned = 0
         if user_id:
             points_earned = int(subtotal/10) #* change to a point per 10$ instead of per dollar
             customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
             total_points = current_points + points_earned
-            int_user_id = (int) (user_id)
+            int_user_id = int (user_id)
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
             print(f"User with email {customer_email} earned {points_earned} points. Total points: {total_points}")
             if customer:
-                cid = customer['customer_id']
+                cid = int (customer['customer_id'])
                 storeDb.execute('''
                     UPDATE customer_loyalty 
                     SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
