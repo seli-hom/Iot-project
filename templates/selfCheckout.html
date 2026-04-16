@@ -22,15 +22,7 @@
       <h2>Scanned Items</h2>
 
       <br />
-      <label for="loyalty points">
-        <input
-          type="checkbox"
-          name="loyalty_points"
-          id="loyalty_points"
-          value="true"
-        />
-        I have a loyalty card
-      </label>
+
       {# Calculate subtotal #} {% set rfid_items = session.get('cart_items', [])
       %} {% set manual_items = session.get('manual_items', []) %} {% set
       all_items = rfid_items + manual_items %} {% set subtotal = all_items |
@@ -86,6 +78,18 @@
       class="checkout-form"
     >
       <h2>Customer Confirmation</h2>
+
+      <br />
+
+      <label for="loyalty points">
+        <input
+          type="checkbox"
+          name="loyalty_points"
+          id="loyalty_points"
+          value="true"
+        />
+        I have a loyalty card
+      </label>
 
       <label>
         Email for Receipt
