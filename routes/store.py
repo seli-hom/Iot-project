@@ -613,12 +613,14 @@ def selfCheckoutSubmit():
 
         # Loylaty logic if user exists
         points_earned = 0
+        total_points = None
         if user_id:
             points_earned = int(subtotal/10) #* change to a point per 10$ instead of per dollar
             customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
-            total_points = current_points + points_earned
+            total_points = int (current_points + points_earned)
             int_user_id = int (user_id)
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
+            storeDb.commit()
             print(f"User with email {customer_email} earned {points_earned} points. Total points: {total_points}")
             if customer:
                 cid = int (customer['customer_id'])
