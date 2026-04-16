@@ -539,6 +539,7 @@ def selfCheckoutSubmit():
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
     loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
+
     current_points = 0
     if loyalty_card:
         # storeDb = db.getDB()
@@ -580,7 +581,7 @@ def selfCheckoutSubmit():
 
     # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
-    
+    print(f"Current points before purchase: {current_points}")
     if current_points > 50:
         subtotal = subtotal - 5 #should apply the discount because the user has enough points
         current_points = current_points - 50 #*substract the points after giving the discount
@@ -625,7 +626,7 @@ def selfCheckoutSubmit():
             int_user_id = int (user_id)
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
             storeDb.commit()
-            print(f"User with email {customer_email} earned {points_earned} points. Total points: {total_points}")
+            print(f"User with email {customer_email} earned {points_earned} points from subtotal of {subtotal}. Total points: {total_points}")
             # if customer:
             #     cid = int (customer['customer_id'])
             #     storeDb.execute('''
@@ -654,7 +655,10 @@ def selfCheckoutSubmit():
         if loyalty_card:
             print("loyalty card check box checked")
             receipt_data['total_points'] = total_points
+        else:
+            receipt_data['total_points'] = None
         print("Reaches here before sending email")
+
         print("Receipt data:", receipt_data)
         receipt_sender = EmailAlertSystem(
             sender_email="taliamuro3@gmail.com",
