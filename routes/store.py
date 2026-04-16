@@ -601,21 +601,22 @@ def selfCheckoutSubmit():
     total = round(subtotal + gst + qst, 2)
 
     try:
-        # 1. ATTEMPT TO FIND THE USER
-        user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
-        user_id = int (user['user_id']) if user else None # for unregistered users
+        # 1. ATTEMPT TO FIND THE USER #!This is useless why would a customer need to be registered to log the order for the admin??
+        # user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone()
+        # user_id = int (user['user_id']) if user else None # for unregistered users
 
         # Create the order
         # user_id will be NULL for guest checkout
         cur = storeDb.execute('''
-            INSERT INTO orders (user_id, order_total, payment_method, order_status)
-            VALUES (?, ?, ?, 'COMPLETED')
-        ''', (int (user_id), total, payment_method))
+            INSERT INTO orders (order_total, payment_method, order_status, customer_email)
+            VALUES (?, ?, ?, ?)
+        ''', (total, payment_method, 'COMPLETED', customer_email))
         order_id = int (cur.lastrowid)
+        print(f"New order created with ID {order_id} for email {customer_email} with total {total}")
 
         # 3. add products to order table
         for item in all_items:
-            pid = (item.get('product_id') )
+            pid = item.get('product_id') 
             if not pid:
                 res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
                 pid = res['product_id'] if res else None

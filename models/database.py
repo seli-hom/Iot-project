@@ -180,6 +180,7 @@ def init_db():
         )
     ''')
 
+    add_column_if_not_exists('orders', 'customer_email', 'TEXT')
     # Initializing order products table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS order_products (
