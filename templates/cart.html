@@ -2,10 +2,10 @@
 
 {% block content %}
 <div class="container my-4">
-    <h2 class="mb-4">Customers List </h2>
+    <h2 class="mb-4">Products List </h2>
 
-    {% if customers|length == 0 %}
-        <div class="alert alert-warning">No users found yet.</div>
+    {% if cart_items|length == 0 %}
+        <div class="alert alert-warning">No products found yet.</div>
     {% else %}
         <div class="card shadow-sm">
             <div class="card-body p-3">
@@ -13,20 +13,16 @@
                     <thead class="table-dark">
                         <tr>
                             <th>#</th>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Email</th>
-                            <th>Loyalty Points</th>
+                            <th>Name</th>
+                            <th>Price</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for customer in customers %}
+                        {% for cart_item in cart_items %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td>{{ customer.user_fname }}</td>
-                            <td>{{ customer.user_lname }}</td>
-                            <td>{{ customer.user_email }}</td>
-                            <td>{{ customer.user_loyalty_points }}</td>
+                            <td>{{ cart_item.product_name }}</td>
+                            <td>{{ cart_item.cart_product_price }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

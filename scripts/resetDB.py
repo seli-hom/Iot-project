@@ -1,15 +1,45 @@
 import sqlite3
+import sys
+import os
 
-conn = sqlite3.connect('store.db')
-cur = conn.cursor()
+# Add project root to Python path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Delete all users/customers
-cur.execute("DELETE FROM customers")
+from models import database as db
 
-# Reset auto-increment counter
-cur.execute("DELETE FROM sqlite_sequence WHERE name='customers'")
 
-conn.commit()
-conn.close()
+def reset_database():
+    print("Resetting database...")
 
-print("All users removed, auto-increment reset")
+    conn = sqlite3.connect('store.db')
+    cur = conn.cursor()
+
+    # Disable foreign keys temporarily
+    cur.execute("PRAGMA foreign_keys = OFF;")
+
+    # Get all tables
+    cur.execute("""
+        SELECT name FROM sqlite_master 
+        WHERE type='table' AND name NOT LIKE 'sqlite_%';
+    """)
+
+    tables = cur.fetchall()
+
+    # Drop all tables
+    for table in tables:
+        print(f"Dropping table: {table[0]}")
+        cur.execute(f"DROP TABLE IF EXISTS {table[0]}")
+
+    conn.commit()
+    conn.close()
+
+    print("All tables dropped")
+
+    # Reinitialize database
+    db.init_db()
+
+    print("Database reset complete")
+
+
+if __name__ == "__main__":
+    reset_database()

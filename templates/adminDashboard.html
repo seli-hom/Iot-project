@@ -38,27 +38,30 @@
                             <tbody>
                                 {% for u in all_users %}
                                 <tr>
-                                    <td>{{ u.id }}</td>
-                                    <td>{{ u.first_name }} {{ u.last_name }}</td>
-                                    <td>{{ u.email }}</td>
+                                    <td>{{ u.user_id }}</td>
+                                    <td>{{ u.user_fname }} {{ u.user_lname }}</td>
+                                    <td>{{ u.user_email }}</td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
+                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
                                             <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
-                                                <option value="customer" {% if u.role == 'customer' %}selected{% endif %}>Customer</option>
-                                                <option value="employee" {% if u.role == 'employee' %}selected{% endif %}>Employee</option>
-                                                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                                                <option value="customer" {% if u.user_role == 'customer' %}selected{% endif %}>Customer</option>
+                                                <option value="employee" {% if u.user_role == 'employee' %}selected{% endif %}>Employee</option>
+                                                <option value="admin" {% if u.user_role == 'admin' %}selected{% endif %}>Admin</option>
                                             </select>
-                                            <input type="hidden" name="verified" value="{{ u.verified }}">
+                                            <input type="hidden" name="verified" value="{{ u.user_verified }}">
                                         </form>
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
+                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id=u.user_id) }}">
                                             <input type="checkbox" name="verified" value="1" {% if u.verified %}checked{% endif %} onchange="this.form.submit()">
                                         </form>
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminDeleteUser', id=u.id) }}" onsubmit="return confirm('Delete this user?')">
+                                        <form method="POST" action="{{ url_for('store.adminDeleteUser', user_id=u.user_id) }}" onsubmit="return confirm('Delete this user?')">
                                             <button class="btn btn-sm btn-danger">Delete</button>
+                                            <!--TODO: add a popup modal to confirm that the employee/admin does want to delete this specific user -->
+                                            <!--? If the user is an employee, only admins should be able to delete them -->
+                                            <!--? If the user is an admin, the user cannot be deleted unless they are converted to an employee/customer user first -->
                                         </form>
                                     </td>
                                 </tr>
@@ -74,8 +77,8 @@
                     <ul class="list-group list-group-flush mt-2">
                         <li class="list-group-item">Total Users: {{ db_stats.total_users }}</li>
                         <li class="list-group-item">Verified Users: {{ db_stats.verified_users }}</li>
-                        <li class="list-group-item">Latest User: {{ db_stats.latest_user.first_name }} {{ db_stats.latest_user.last_name }}</li>
-                        <li class="list-group-item">Most Popular User: {{ db_stats.most_popular_user.first_name }} {{ db_stats.most_popular_user.last_name }}</li>
+                        <li class="list-group-item">Latest User: {{ db_stats.latest_user.user_fname }} {{ db_stats.latest_user.user_lname }}</li>
+                        <li class="list-group-item">Most Popular User: {{ db_stats.most_popular_user.user_fname }} {{ db_stats.most_popular_user.user_lname }}</li>
                     </ul>
                 </div>
 
@@ -85,7 +88,7 @@
                     <div id="notifications-container" class="notif-section-inner overflow-auto mt-2" style="max-height:300px;">
                         {% for n in notifications %}
                         <div class="notif-item p-2 mb-1 border rounded bg-light">
-                            <b>{{ n.title }}</b> - {{ n.msg_summary }} <small class="text-muted">{{ n.created_at }}</small>
+                            <b>{{ n.notif_title }}</b> - {{ n.notif_msg_summary }} <small class="text-muted">{{ n.notif_created_at }}</small>
                         </div>
                         {% endfor %}
                     </div>
@@ -107,27 +110,29 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                {% print(staff[0]['user_id']) %}
                                 {% for u in staff %}
                                 <tr>
-                                    <td>{{ u.id }}</td>
-                                    <td>{{ u.first_name }} {{ u.last_name }}</td>
-                                    <td>{{ u.email }}</td>
+                                    <td>{{ u.user_id }}</td>
+                                    <td>{{ u.user_fname }} {{ u.user_lname }}</td>
+                                    <td>{{ u.user_email }}</td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
+                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id = u.user_id) }}">
                                             <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
                                                 <option value="employee" {% if u.role == 'employee' %}selected{% endif %}>Employee</option>
                                                 <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
                                             </select>
-                                            <input type="hidden" name="verified" value="{{ u.verified }}">
+                                            <input type="hidden" name="verified" value="{{ u.user_verified }}">
                                         </form>
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', id=u.id) }}">
-                                            <input type="checkbox" name="verified" value="1" {% if u.verified %}checked{% endif %} onchange="this.form.submit()">
+                                        <form method="POST" action="{{ url_for('store.adminUpdateUser', user_id = u.user_id) }}">
+                                            <input type="checkbox" name="verified" value="1" {% if u.user_verified %}checked{% endif %} onchange="this.form.submit()">
                                         </form>
                                     </td>
                                     <td>
-                                        <form method="POST" action="{{ url_for('store.adminDeleteUser', id=u.id) }}" onsubmit="return confirm('Delete this user?')">
+                                        <!-- !See contraints above look at users card -->
+                                        <form method="POST" action="{{ url_for('store.adminDeleteUser', user_id = u.user_id) }}" onsubmit="return confirm('Delete this user?')">
                                             <button class="btn btn-sm btn-danger">Delete</button>
                                         </form>
                                     </td>
@@ -143,25 +148,4 @@
     </div> <!-- row -->
 </div> <!-- container-fluid -->
 
-<script>
-const sidebarLinks = document.querySelectorAll('#navbar-example3 .nav-link');
-const cards = document.querySelectorAll('.dashboard-card');
-
-const linkToCardMap = {};
-sidebarLinks.forEach(link => {
-    const targetId = link.getAttribute('href').substring(1);
-    const card = document.getElementById(targetId);
-    if(card) linkToCardMap[targetId] = card;
-});
-
-sidebarLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        cards.forEach(c => c.classList.remove('active'));
-        sidebarLinks.forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
-        const targetId = link.getAttribute('href').substring(1);
-        if(linkToCardMap[targetId]) linkToCardMap[targetId].classList.add('active');
-    });
-});
-</script>
 {% endblock %}

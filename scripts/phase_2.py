@@ -13,7 +13,8 @@ from gpiozero import OutputDevice
 # ---------------------------
 # CONFIG
 # ---------------------------
-BROKER = "10.79.90.179"
+#BROKER = "10.79.90.179"
+BROKER = "192.168.2.163"
 
 SENDER_EMAIL_ADDR = "taliamuro3@gmail.com"
 SENDER_PASSWORD = "hapc ypha dcwh ewbc"

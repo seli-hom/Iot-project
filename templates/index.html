@@ -10,20 +10,23 @@
     <!-- <h3>Please login to continue</h3> -->
     <!-- <p><b>OR</b></p> -->
     <!-- <br> -->
-    <a href="{{ url_for('store.customersRegistration') }}" class="btn btn-primary btn-lg mb-3">
+    <a
+      href="{{ url_for('store.customersRegistration') }}"
+      class="btn btn-primary btn-lg mb-3"
+    >
       Register New Customer
     </a>
-    <br>
-    <a href="{{ url_for('store.customersList') }}" class="btn btn-secondary">
+    <br />
+    <a href="{{ url_for('store.customersList') }}" class="btn btn-secondary btn-lg mb-3">
       View Existing Customers
     </a>
-    <br>
-            {% if session.get('user_role') == 'admin' %}
+    <br />
+    {% if session.get('user_role') == 'admin' %}
 
-                  <a href="{{ url_for('store.adminDashboard') }}" class=" btn btn-success">
-                     View Admin Dashboard
+    <a href="{{ url_for('store.adminDashboard') }}" class="btn btn-success btn-lg mb-3">
+      View Admin Dashboard
     </a>
-            {% endif %}
+    {% endif %}
   </div>
 </div>
 {% endblock %}
