@@ -586,10 +586,16 @@ def selfCheckoutSubmit():
     subtotal = sum(item['product_price'] for item in all_items)
     current_points = session.get('current_points', 0)
     print(f"Current points before purchase: {current_points}")
+    discount_applied = ""
     if current_points > 50:
+        print("Applying points discount...")
+        print(f"Subtotal before discount: {subtotal}")
         subtotal = subtotal - 5 #should apply the discount because the user has enough points
         current_points = current_points - 50 #*substract the points after giving the discount
-        print("Enough points!! 5$ discount applied to subtotal")
+        discount_applied = "Subtotal : " + str(subtotal) + "\n 5$ discount applied from loyalty points! "
+        print(f"Enough points!! 5$ discount applied to subtotal now {subtotal}")
+        storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_email = ?', (current_points, customer_email)) #*update the user's points in the database after the purchase
+        storeDb.commit()
     gst = round(subtotal * 0.05, 2)
     qst = round(subtotal * 0.09975, 2)
     total = round(subtotal + gst + qst, 2)
