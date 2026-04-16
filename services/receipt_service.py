@@ -54,9 +54,15 @@ class EmailAlertSystem:
         for item in receipt_data.get('items', []):
             items_text += f"- {item['product_name']}: ${item['product_price']:.2f}\n"
         
+        print(receipt_data)
+        points_info = ""
         # Body of the email
-
-
+        if receipt_data['total_points'] is not None:
+            points_info = f"You have  a total of {receipt_data['total_points']} loyalty points. \n"
+            if receipt_data['total_points'] < 50 :
+                points_info += f"Only {50 - receipt_data['total_points']} more points until you can get a 5$ discount on your next purchase!\n"
+        else:
+            points_info = f"You earned {receipt_data['purchase_points']} loyalty points with this purchase. Sign up for an account to start earning points towards discounts on future purchases!\\n"
         body = f"""
 Thank you for your purchase at Smart Makeup Store!\n
 Items Purchased:
@@ -64,10 +70,18 @@ Items Purchased:
 
 {items_text}
 ---------------------------------
+
+{receipt_data['discount']}
+
+---------------------------------
 Subtotal: ${receipt_data['subtotal']:.2f}
 GST (5%): ${receipt_data['gst']:.2f}
 QST (9.975%): ${receipt_data['qst']:.2f}
 Total: ${receipt_data['total']:.2f}
+
+Points Earned with purchase: {receipt_data['purchase_points']}
+
+{points_info}
 
 Date: {receipt_data['timestamp']}
 

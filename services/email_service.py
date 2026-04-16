@@ -20,14 +20,10 @@ def send_registration_email(user_fname, user_lname, user_email, user_id):
         "Welcome to Smart Store",
         f"Verify your account: {verification_url}",
         f"""
-        <h3>Welcome {user_fname} {user_lname}</h3>
-
-        <p>Please verify your account:</p>
-
-        <a href="{verification_url}"
-        style="padding:12px;background:#d8aeb7;color:white;border-radius:6px;text-decoration:none;">
-        Verify Account
-        </a>
+        Hello {user_fname} {user_lname},<br><br>
+        Thank you for registering at our Smart Store! As a thank you we would like to gift you 5 loyalty points to get you started on your shopping journey with us.<br><br>
+        Please verify your account to complete registration:<br>
+        <a href="{verification_url}">Verify Account</a>
         """,
         recipients=[user_email]
     )
