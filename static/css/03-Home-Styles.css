@@ -63,36 +63,37 @@
 .hero-slide-2,
 .hero-slide-3,
 .hero-slide-4 {
-  width: 100%;
-  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
+  background-size:  100% auto !important; 
   box-shadow: 0 12px 40px var(--shadow-deep), inset 0 1px var(--highlight-glow);
+  /* background-image: url('image.jpg'); */
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover
 }
 
+
 .hero-slide-1 { 
-  background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/736x/f9/40/93/f94093b81fb62c4b354935bd84153757.jpg"); 
-  background-size: 100% 275%;
-  background-position-y: 70%;
+  background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/1200x/53/81/29/53812993113f88f759a27269e8616441.jpg"); 
+  background-repeat: no-repeat;
 }
 
 .hero-slide-2 { 
-  background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/736x/6e/fb/a9/6efba951a3ab60ed3de8b3d08f8fc0ae.jpg"); 
-  background-size: 100% 250%;
-  background-position-y: 70%;
-
+  background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/736x/66/4d/a1/664da13636baa74f38d1bd0a57e1e79b.jpg"); 
+  background-repeat: no-repeat;
 }
 .hero-slide-3 { 
-  background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/control1/736x/27/42/af/2742afbc00224a7d7ef486e89764f1ef.jpg"); 
-  background-position-y: 70%;
-  background-size: 100% 225%;
+  background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/1200x/57/43/a8/5743a8a0236da3d7958eeca05757e9e9.jpg"); 
+  background-repeat: no-repeat;
 }
 .hero-slide-4 { 
   background: linear-gradient(rgba(0,0,0,.3),rgba(0,0,0,.3)), url("https://i.pinimg.com/1200x/7f/c0/85/7fc0851ea6025656494e16f42bd1941e16e.jpg"); 
-  background-size: 100% 225%;
-  background-position-y: 70%;
+  background-repeat: no-repeat;
 }
 
 .hero-slide::after {
@@ -104,12 +105,11 @@
 }
 
 .hero-content {
-  width: 90%;
-  height: 80%;
-  border-radius: 2rem;
+  width: 100%;
+  min-height: 100%;
+  padding: 13.5% 0;
   border: 2px solid var(--nude-light);
-  background: linear-gradient(120deg, var(--nude-light), var(--nude-dark));
-  backdrop-filter: blur(8px);
+  background: radial-gradient(circle, transparent 30%, var(--nude-light) 60%, var(--nude-dark) 100%) !important;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -119,6 +119,10 @@
   position: relative;
   z-index: 3;
 }
+  .hero-content > h2 {
+    font-size: 3rem !important;
+    color: var(--accent);
+  }
 
 .feature-strip {
   width: 100%;

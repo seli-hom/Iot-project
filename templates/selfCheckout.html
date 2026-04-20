@@ -95,6 +95,11 @@
                 <span>Subtotal</span>
                 <b>${{ "%.2f"|format(cart_total or 0) }}</b>
             </div>
+            <div id="checkout-data" data-count="{{ cart_items|length }}"></div>
+            <div class="summary-line">
+                <span>Subtotal</span>
+                <b>${{ "%.2f"|format(cart_total or 0) }}</b>
+            </div>
         </div>
 <div class="loyalty-card">
 
@@ -222,33 +227,26 @@
 
 <script>
 
-  async function pollRFID() {
-    try {
-      const response = await fetch("/api/scan-basket");
-      if (!response.ok) return;
+async function pollRFID() {
+let currentItemCount = Number(
+  document.getElementById("checkout-data").dataset.count
+);
+  try {
+    const response = await fetch("/api/scan-basket");
+    if (!response.ok) return;
 
-      const data = await response.json();
+    const data = await response.json();
 
-      // We inject the Jinja value into a clean JS variable first
-      const manualCount = Number(
-        "{{ session.get('manual_items', []) | length }}",
-      );
-      const rfidCount = data.item_count || 0;
-      const expectedTotal = rfidCount + manualCount;
-
-      if (expectedTotal !== currentItemCount) {
-        console.log(
-          "Change detected. RFID:",
-          rfidCount,
-          "Manual:",
-          manualCount,
-        );
-        location.reload();
-      }
-    } catch (err) {
-      console.debug("Polling RFID error or hardware busy...");
+    const newCount = data.item_count || 0;
+    if (newCount !== currentItemCount) {
+      console.log("RFID change detected");
+      location.reload();
     }
+
+  } catch (err) {
+    console.debug("Polling RFID error...");
   }
+}
 
     setInterval(pollRFID, 5000);
 
