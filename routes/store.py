@@ -92,9 +92,11 @@ def customersList():
 def productsList():
     storeDb = db.getDB()
     products = storeDb.execute(
-        '''SELECT * FROM products p  
+        '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
             LEFT JOIN product_rfid pr on pr.product_id = p.product_id
-            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id'''
+            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
+			GROUP BY p.product_id;
+'''
     ).fetchall()
     return render_template('productsList.html', products=products)
 
@@ -119,10 +121,10 @@ def productUpdate(product_id):
         return redirect(url_for('store.productsList'))
     storeDb = db.getDB()
     product = storeDb.execute(
-        '''SELECT * FROM products p  
+        '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
             LEFT JOIN product_rfid pr on pr.product_id = p.product_id
             LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
-            WHERE p.product_id = ?''',
+            WHERE p.product_id = ? GROUP BY p.product_id''',
     (product_id,)).fetchone()
     return render_template('productUpdate.html', product=product)
 
@@ -131,6 +133,25 @@ def productUpdate(product_id):
 @app.route('/admin-dashboard/products/create')
 def productCreate():
     return render_template('productCreation.html')
+
+@app.route('/admin-dashboard/products/<int:product_id>/addRFID',  methods=['POST'])
+def addRFID(product_id):
+    storeDb = db.getDB()
+    storeDb.execute('''
+                INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
+                VALUES (?, ?, ?)
+            ''', (product_id, request.form['product_rfid'],'ACTIVE'))
+    storeDb.commit()
+    return redirect(url_for('store.productsList'))
+
+@app.route('/admin-dashboard/products/<int:product_id>/removeRFID',  methods=['GET'])
+def removeRFID(product_id):
+    storeDb = db.getDB()
+    storeDb.execute('''
+            DELETE FROM product_rfid where rfid_tag = ?
+             ''', (request.form['product_rfid'],))
+    storeDb.commit()
+    return redirect(url_for('store.productsList'))
 
 @app.route('/admin-dashboard/products/add', methods=['POST'])
 def productAdd():

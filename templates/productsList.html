@@ -28,7 +28,16 @@
                             <td>{{ loop.index }}</td>
                             <td>{{ product.product_name }}</td>
                             <td>{{ product.product_price }} $</td>
-                            <td>{{ product.rfid_tag }}</td>
+                            <td>
+                            <select>
+                                {% for tag in product.rfid_tag.split('/') %}
+                             <option  name="product_rfid" value="{{tag}}"> {{tag}}</option>   
+                             {% endfor %}
+
+                             </select>
+                              <a href="" class="btn btn-danger">Delete Tag</a>
+                            </td>
+                               
                             <td>{{ product.barcode_num }}</td>
                             <td>{{ product.product_company }}</td>
                             <td>

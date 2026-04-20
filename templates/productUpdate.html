@@ -27,10 +27,7 @@
             <label class="form-label">Price</label>
             <input type="number" pattern="^\d*(\.\d{0,2})?$" class="form-control rounded" value="{{ product.product_price }}" name="product_price" required>
           </div>
-                    <div class="col-md-6">
-            <label class="form-label">RFID</label>
-            <input type="text" class="form-control rounded" name="product_rfid" value="{{ product.rfid_tag }}" required>
-          </div>
+
                     <div class="col-md-6">
             <label class="form-label">Barcode</label>
             <input type="text"  class="form-control rounded" value="{{ product.barcode_num }}" name="product_barcode" required>
@@ -61,10 +58,21 @@
 
         </div>
       </form>
+      <h5 class="card-title ">Add RFID</h5>
+<form method="POST" action="{{ url_for('store.addRFID', product_id=product.product_id) }}">
+
+            <div class="col-md-6">
+            <label class="form-label">RFID Tag</label>
+            <input type="text" class="form-control rounded" name="product_rfid" value="" >
+          </div>
+                    <div class="col-12 mt-3">
+            <button type="submit" class="btn btn-primary w-100 rounded">Add</button>
+          </div>
 
       <div class="text-center mt-2">
         <a href="{{ url_for('store.productsList') }}">View Existing Products</a>
       </div>
+</form>
 
     </div>
   </div>
