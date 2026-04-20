@@ -5,6 +5,8 @@ from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
+from services.hardware import hardware_status, motor_control
+from services import hardware  # Import the module, not the variable
 import threading
 
 app = Blueprint('store', __name__)
@@ -778,20 +780,41 @@ def remove_barcode(index):
 # TEMPERATURE & HARDWARE ROUTES
 # -----------------------------
 
-@store.route('/temperature')
+# 1. The main page route
+@app.route('/temperature')
 def temperatureMonitor():
-    """Renders the dedicated IoT monitoring page."""
+    """
+    Renders the dedicated IoT monitoring page.
+    This page contains the JavaScript and Gauges.
+    """
     return render_template('temperature.html')
 
-@store.route('/api/temp-data')
+# 2. The Data API (The "Pulse")
+@app.route('/api/temp-data')
 def get_temp_data():
-    """API endpoint for the gauges to poll sensor data."""
-    return jsonify(hardware_status)
+    """
+    The frontend JavaScript polls this endpoint every 2 seconds.
+    It returns the latest values from the background MQTT thread.
+    """
+    return jsonify(hardware.hardware_status)
 
-@store.route('/api/fan/<state>')
+# 3. The Hardware Action API
+@app.route('/api/fan/<state>')
 def api_fan_control(state):
-    """API endpoint for the toggle switch."""
-    # This calls the motor_control function (make sure it's accessible)
-    from app import motor_control 
+    """
+    Allows the user to manually toggle the fan from the dashboard.
+    State should be 'on' or 'off'.
+    """
+    if state not in ['on', 'off']:
+        return jsonify({"status": "error", "message": "Invalid state"}), 400
+        
+    # Trigger the physical GPIO pins
     motor_control(state)
-    return jsonify({"status": "success", "fan_on": hardware_status["fan_on"]})
+    
+    # Optional: Log the manual override in the shared status
+    hardware_status["last_alert"] = f"Manual Override: Fan turned {state}"
+    
+    return jsonify({
+        "status": "success", 
+        "fan_on": hardware_status["fan_on"]
+    })

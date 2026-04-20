@@ -26,11 +26,11 @@ def motor_control(state):
         Motor1.on()
         Motor2.off()
         Motor3.on()
-        store_data["fan_on"] = True
+        hardware_status["fan_on"] = True
         print("Hardware: Fan Turned ON")
     else:
         Motor1.off()
         Motor2.off()
         Motor3.off()
-        store_data["fan_on"] = False
+        hardware_status["fan_on"] = False
         print("Hardware: Fan Turned OFF")

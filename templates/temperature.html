@@ -16,7 +16,8 @@
 
 <div class="container">
     <h2 class="text-center mb-4">Fridge Temperature Monitoring</h2>
-
+    <div id="notif-log" class="mt-3 p-2 bg-light border rounded" style="max-height: 150px; overflow-y: auto;">
+    </div>
     <div class="row">
         <div class="col-lg-6 mb-4">
             <div class="card shadow p-4">
@@ -67,66 +68,69 @@
 
 <script>
     function refresh() {
-        fetch('/api/data')
-            .then(res => res.json())
-            .then(data => {
-                // Update Text (Check if element exists before writing)
-                const updateText = (id, val) => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerText = val;
-                };
-
-                updateText('raw-t1', data.frig1.temp);
-                updateText('raw-h1', data.frig1.hum);
-                updateText('raw-t2', data.frig2.temp);
-                updateText('raw-h2', data.frig2.hum);
-
-                // Update Gauges
-                const gT1 = document.getElementById('temp1');
-                const gH1 = document.getElementById('hum1');
-                const gT2 = document.getElementById('temp2');
-                const gH2 = document.getElementById('hum2');
-
-                if(gT1) gT1.setAttribute('data-value', data.frig1.temp);
-                if(gH1) gH1.setAttribute('data-value', data.frig1.hum);
-                if(gT2) gT2.setAttribute('data-value', data.frig2.temp);
-                if(gH2) gH2.setAttribute('data-value', data.frig2.hum);
-
-                // Update Fan UI (Sync Toggle with Backend)
-                const icon = document.getElementById('fanIcon');
-                const toggle = document.getElementById('fanToggle');
-                
-                if (data.fan_on) {
-                    icon.classList.add('spinning');
-                    toggle.checked = true; // keeps the UI in sync with the RPi
-                } else {
-                    icon.classList.remove('spinning');
-                    toggle.checked = false;
-                }
-
-                // 4. Notifications
-                if (data.last_alert) {
-                    const log = document.getElementById('notif-log');
-                    if (log && !log.innerHTML.includes(data.last_alert)) {
-                        const time = new Date().toLocaleTimeString();
-                        log.innerHTML = `<div>[${time}] ${data.last_alert}</div>` + log.innerHTML;
+            fetch('/api/temp-data')
+                .then(res => res.json())
+                .then(data => {
+                    // 1. Update Gauges using the Gauge API (Makes needles move)
+                    if (document.gauges && document.gauges.length > 0) {
+                        document.gauges.forEach(function(gauge) {
+                            // Check which canvas this gauge is attached to
+                            const id = gauge.options.renderTo; 
+                            
+                            if (id === 'temp1') gauge.value = data.frig1.temp;
+                            if (id === 'hum1')  gauge.value = data.frig1.hum;
+                            if (id === 'temp2') gauge.value = data.frig2.temp;
+                            if (id === 'hum2')  gauge.value = data.frig2.hum;
+                        });
                     }
-                }
-            })
-            .catch(err => console.error("Update loop error:", err));
-    }
 
-    // Toggle Function
-    document.getElementById('fanToggle').onchange = function() {
-        const state = this.checked ? 'on' : 'off';
-        fetch('/api/fan/' + state)
-            .then(res => res.json())
-            .then(response => {
-                console.log("Fan command sent:", state);
-            });
-    };
+                    // 2. Update Raw Text (Optional, for debugging)
+                    const updateText = (id, val) => {
+                        const el = document.getElementById(id);
+                        if (el) el.innerText = val;
+                    };
+                    updateText('raw-t1', data.frig1.temp);
+                    updateText('raw-h1', data.frig1.hum);
+                    updateText('raw-t2', data.frig2.temp);
+                    updateText('raw-h2', data.frig2.hum);
 
-    setInterval(refresh, 2000);
+                    // 3. Update Fan UI
+                    const icon = document.getElementById('fanIcon');
+                    const toggle = document.getElementById('fanToggle');
+                    if (data.fan_on) {
+                        icon.classList.add('spinning');
+                        toggle.checked = true;
+                    } else {
+                        icon.classList.remove('spinning');
+                        toggle.checked = false;
+                    }
+
+                    // 4. Notifications
+                    if (data.last_alert) {
+                        const log = document.getElementById('notif-log');
+                        if (log && !log.innerHTML.includes(data.last_alert)) {
+                            const time = new Date().toLocaleTimeString();
+                            log.innerHTML = `<div class="p-1 border-bottom small">[${time}] ${data.last_alert}</div>` + log.innerHTML;
+                        }
+                    }
+                })
+                .catch(err => console.error("Refresh Error:", err));
+        }
+
+        // Fan Toggle Control
+        document.getElementById('fanToggle').onchange = function() {
+            const state = this.checked ? 'on' : 'off';
+            fetch('/api/fan/' + state)
+                .then(res => res.json())
+                .then(response => {
+                    console.log("Fan command sent:", state);
+                })
+                .catch(err => console.error("Toggle Error:", err));
+        };
+
+        // Run once on load, then every 2 seconds
+        refresh(); 
+        setInterval(refresh, 2000);
 </script>
 </body>
 </html>
