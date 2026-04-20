@@ -5,8 +5,17 @@ from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
+import threading
 
 app = Blueprint('store', __name__)
+
+# GLOBAL HARDWARE STATE
+hardware_status = {
+    "frig1": {"temp": 0.0, "hum": 0.0},
+    "frig2": {"temp": 0.0, "hum": 0.0},
+    "fan_on": False,
+    "last_alert": ""
+}
 
 # -----------------------------
 # STORE HOME / DASHBOARD
@@ -764,3 +773,25 @@ def remove_barcode(index):
         return jsonify({"status": "success"}), 200
         
     return jsonify({"status": "error", "message": "Item not found"}), 404
+
+# -----------------------------
+# TEMPERATURE & HARDWARE ROUTES
+# -----------------------------
+
+@store.route('/temperature')
+def temperatureMonitor():
+    """Renders the dedicated IoT monitoring page."""
+    return render_template('temperature.html')
+
+@store.route('/api/temp-data')
+def get_temp_data():
+    """API endpoint for the gauges to poll sensor data."""
+    return jsonify(hardware_status)
+
+@store.route('/api/fan/<state>')
+def api_fan_control(state):
+    """API endpoint for the toggle switch."""
+    # This calls the motor_control function (make sure it's accessible)
+    from app import motor_control 
+    motor_control(state)
+    return jsonify({"status": "success", "fan_on": hardware_status["fan_on"]})

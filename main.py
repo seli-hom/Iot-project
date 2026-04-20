@@ -5,6 +5,7 @@ from flask_mail import Mail
 from models import database as db
 from routes.store import app as store
 from services import CheckoutManager
+from services.background_tasks import start_mqtt, start_email_checker
 import os
 
 db.init_db()
