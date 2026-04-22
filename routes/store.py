@@ -5,19 +5,12 @@ from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
-from services.hardware import hardware_status, motor_control
-from services import hardware  # Import the module, not the variable
+# from services.hardware import hardware_status, motor_control
+from services.hardware import motor_control, hardware_status
+# from services import hardware  # Import the module, not the variable
 import threading
 
 app = Blueprint('store', __name__)
-
-# GLOBAL HARDWARE STATE
-hardware_status = {
-    "frig1": {"temp": 0.0, "hum": 0.0},
-    "frig2": {"temp": 0.0, "hum": 0.0},
-    "fan_on": False,
-    "last_alert": ""
-}
 
 # -----------------------------
 # STORE HOME / DASHBOARD
@@ -796,25 +789,15 @@ def get_temp_data():
     The frontend JavaScript polls this endpoint every 2 seconds.
     It returns the latest values from the background MQTT thread.
     """
-    return jsonify(hardware.hardware_status)
+    return hardware_status
 
 # 3. The Hardware Action API
 @app.route('/api/fan/<state>')
-def api_fan_control(state):
-    """
-    Allows the user to manually toggle the fan from the dashboard.
-    State should be 'on' or 'off'.
-    """
-    if state not in ['on', 'off']:
-        return jsonify({"status": "error", "message": "Invalid state"}), 400
-        
-    # Trigger the physical GPIO pins
-    motor_control(state)
+def set_fan(state):
+    if state == "on":
+        motor_control("on")
+    else:
+        motor_control("off")
     
-    # Optional: Log the manual override in the shared status
-    hardware_status["last_alert"] = f"Manual Override: Fan turned {state}"
-    
-    return jsonify({
-        "status": "success", 
-        "fan_on": hardware_status["fan_on"]
-    })
+    # Return the new state so the dashboard stays in sync
+    return {"status": "success", "fan_on": hardware_status["fan_on"]}

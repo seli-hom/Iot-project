@@ -16,7 +16,7 @@ app = Flask(__name__)
 mail_manager = EmailAlertSystem(
     sender_email="taliamuro3@gmail.com",
     password="hapc ypha dcwh ewbc",
-    receiver_email="efremselihom1@gmail.com"
+    receiver_email="sybrouss@gmail.com"
 )
 
 # app.secret_key = "iotprojectsmartstore"

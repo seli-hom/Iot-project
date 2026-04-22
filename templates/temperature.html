@@ -3,13 +3,22 @@
 <head>
     <title>Smart Store Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.rawgit.com/Mikhus/canvas-gauges/master/gauge.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-gauges@2.1.7/gauge.min.js"></script>
     <style>
         body { background: #f4f7f6; padding: 20px; }
         .card { border-radius: 15px; border: none; margin-bottom: 20px; }
         .gauge-container { display: flex; justify-content: center; padding: 10px; }
         .spinning { animation: spin 2s linear infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } } /* rotates the svg */
+        canvas {
+            display: inline-block;
+            vertical-align: middle;
+            margin: 10px;
+        }
+        .gauge-box {
+            text-align: center;
+            min-height: 200px; /* Ensure there is enough room for the gauge to draw */
+        }
     </style>
 </head>
 <body>
@@ -24,8 +33,8 @@
                 <h4 class="text-center mb-2">Refrigerator 1</h4>
                 <center>
                     <div class="gauge-box">
-                        <canvas id="temp1" data-type="radial-gauge" data-width="180" data-height="180" data-units="°C" data-title="Temp" data-min-value="0" data-max-value="50"></canvas>
-                        <canvas id="hum1" data-type="radial-gauge" data-width="180" data-height="180" data-units="%" data-title="Humidity" data-min-value="0" data-max-value="100"></canvas>
+                        <canvas id="temp1"></canvas>
+                        <canvas id="hum1"></canvas>
                     </div>
                 </center>
             </div>
@@ -36,8 +45,8 @@
                 <h4 class="text-center mb-2">Refrigerator 2</h4>
                 <center>
                     <div class="gauge-box">
-                        <canvas id="temp2" data-type="radial-gauge" data-width="180" data-height="180" data-units="°C" data-title="Temp" data-min-value="0" data-max-value="50"></canvas>
-                        <canvas id="hum2" data-type="radial-gauge" data-width="180" data-height="180" data-units="%" data-title="Humidity" data-min-value="0" data-max-value="100"></canvas>
+                        <canvas id="temp2"></canvas>
+                        <canvas id="hum2"></canvas>
                     </div>
                 </center>
             </div>
@@ -61,76 +70,115 @@
 
 </div>
 
-<div style="display:none;">
-    <span id="raw-t1"></span><span id="raw-h1"></span>
-    <span id="raw-t2"></span><span id="raw-h2"></span>
+<div class="mt-4 p-3 bg-white shadow-sm rounded text-center">
+    <h5>Live Debug Data</h5>
+    Frig 1: <span id="raw-t1">--</span>°C / <span id="raw-h1">--</span>% | 
+    Frig 2: <span id="raw-t2">--</span>°C / <span id="raw-h2">--</span>%
 </div>
 
 <script>
-    function refresh() {
-            fetch('/api/temp-data')
-                .then(res => res.json())
-                .then(data => {
-                    // 1. Update Gauges using the Gauge API (Makes needles move)
-                    if (document.gauges && document.gauges.length > 0) {
-                        document.gauges.forEach(function(gauge) {
-                            // Check which canvas this gauge is attached to
-                            const id = gauge.options.renderTo; 
-                            
-                            if (id === 'temp1') gauge.value = data.frig1.temp;
-                            if (id === 'hum1')  gauge.value = data.frig1.hum;
-                            if (id === 'temp2') gauge.value = data.frig2.temp;
-                            if (id === 'hum2')  gauge.value = data.frig2.hum;
-                        });
-                    }
+    let myGauges = {};
 
-                    // 2. Update Raw Text (Optional, for debugging)
-                    const updateText = (id, val) => {
-                        const el = document.getElementById(id);
-                        if (el) el.innerText = val;
-                    };
-                    updateText('raw-t1', data.frig1.temp);
-                    updateText('raw-h1', data.frig1.hum);
-                    updateText('raw-t2', data.frig2.temp);
-                    updateText('raw-h2', data.frig2.hum);
-
-                    // 3. Update Fan UI
-                    const icon = document.getElementById('fanIcon');
-                    const toggle = document.getElementById('fanToggle');
-                    if (data.fan_on) {
-                        icon.classList.add('spinning');
-                        toggle.checked = true;
-                    } else {
-                        icon.classList.remove('spinning');
-                        toggle.checked = false;
-                    }
-
-                    // 4. Notifications
-                    if (data.last_alert) {
-                        const log = document.getElementById('notif-log');
-                        if (log && !log.innerHTML.includes(data.last_alert)) {
-                            const time = new Date().toLocaleTimeString();
-                            log.innerHTML = `<div class="p-1 border-bottom small">[${time}] ${data.last_alert}</div>` + log.innerHTML;
-                        }
-                    }
-                })
-                .catch(err => console.error("Refresh Error:", err));
-        }
-
-        // Fan Toggle Control
-        document.getElementById('fanToggle').onchange = function() {
-            const state = this.checked ? 'on' : 'off';
-            fetch('/api/fan/' + state)
-                .then(res => res.json())
-                .then(response => {
-                    console.log("Fan command sent:", state);
-                })
-                .catch(err => console.error("Toggle Error:", err));
+    // 1. Manually create the gauges
+    function createGauges() {
+        const common = {
+            width: 180,
+            height: 180,
+            minValue: 0,
+            animationDuration: 1500,
+            animationRule: "linear"
         };
 
-        // Run once on load, then every 2 seconds
-        refresh(); 
-        setInterval(refresh, 2000);
+        myGauges['temp1'] = new RadialGauge({ ...common, renderTo: 'temp1', title: 'Temp 1', maxValue: 50, units: '°C' }).draw();
+        myGauges['hum1'] = new RadialGauge({ ...common, renderTo: 'hum1', title: 'Hum 1', maxValue: 100, units: '%' }).draw();
+        myGauges['temp2'] = new RadialGauge({ ...common, renderTo: 'temp2', title: 'Temp 2', maxValue: 50, units: '°C' }).draw();
+        myGauges['hum2'] = new RadialGauge({ ...common, renderTo: 'hum2', title: 'Hum 2', maxValue: 100, units: '%' }).draw();
+        
+        console.log("Gauges manually created!");
+    }
+
+    function refresh() {
+    // Dynamically find the API URL to prevent NetworkErrors
+    const url = window.location.origin + '/api/temp-data';
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error('Server not responding');
+            return res.json();
+        })
+        .then(data => {
+            console.log("Hardware Update Received:", data);
+
+            // 1. DATA MAPPING WITH SAFETY FALLBACKS
+            const gaugeMap = {
+                'temp1': (data.frig1 && data.frig1.temp !== undefined) ? data.frig1.temp : 0,
+                'hum1':  (data.frig1 && data.frig1.hum !== undefined) ? data.frig1.hum : 0,
+                'temp2': (data.frig2 && data.frig2.temp !== undefined) ? data.frig2.temp : 0,
+                'hum2':  (data.frig2 && data.frig2.hum !== undefined) ? data.frig2.hum : 0
+            };
+
+            // 2. FORCE GAUGE UPDATE (Manual Reference Method)
+            if (document.gauges && document.gauges.length > 0) {
+                Object.keys(gaugeMap).forEach(id => {
+                    const gauge = document.gauges.find(g => g.options.renderTo === id);
+                    if (gauge) {
+                        gauge.value = parseFloat(gaugeMap[id]);
+                        gauge.update(); 
+                    }
+                });
+            }
+
+            // 3. UPDATE DEBUG LABELS
+            const updateLabel = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            };
+            updateLabel('raw-t1', gaugeMap['temp1']);
+            updateLabel('raw-h1', gaugeMap['hum1']);
+            updateLabel('raw-t2', gaugeMap['temp2']);
+            updateLabel('raw-h2', gaugeMap['hum2']);
+
+            // 4. FAN & UI SYNCHRONIZATION (The Fix for the Toggle)
+            const icon = document.getElementById('fanIcon');
+            const toggle = document.getElementById('fanToggle');
+            
+            if (data.fan_on) {
+                // If hardware is ON, make icon spin and flip switch to ON
+                if (icon) icon.classList.add('spinning');
+                if (toggle) toggle.checked = true;
+            } else {
+                // If hardware is OFF, stop icon and flip switch to OFF
+                if (icon) icon.classList.remove('spinning');
+                if (toggle) toggle.checked = false;
+            }
+
+            // 5. NOTIFICATION LOG
+            if (data.last_alert) {
+                const log = document.getElementById('notif-log');
+                if (log && !log.innerHTML.includes(data.last_alert)) {
+                    const time = new Date().toLocaleTimeString();
+                    log.innerHTML = `<div class="p-1 border-bottom small text-danger"><b>[${time}]</b> ${data.last_alert}</div>` + log.innerHTML;
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Refresh Loop Failed:", err);
+            const debugEl = document.getElementById('raw-t1');
+            if (debugEl) debugEl.innerText = "OFFLINE";
+        });
+    }
+
+    // Startup
+    window.addEventListener('load', function() {
+        createGauges(); // Create them immediately
+        refresh();      // Get first data
+        setInterval(refresh, 2000); // Repeat
+    });
+
+    // Fan Toggle
+    document.getElementById('fanToggle').onchange = function() {
+        fetch('api/fan/' + (this.checked ? 'on' : 'off'));
+    };
 </script>
 </body>
 </html>
