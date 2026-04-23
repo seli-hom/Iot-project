@@ -70,10 +70,30 @@
       </div>
     </div>
 
-    <form
-      method="POST"
-      action="{{ url_for('store.selfCheckoutSubmit') }}"
-      class="checkout-form"
+    <form method="POST"
+    action="{{ url_for('store.selfCheckoutSubmit') }}"
+    class="checkout-form">
+
+    <h2>Customer Confirmation</h2>
+
+    <label for="loyalty points">
+      <input
+      type="checkbox"
+      name="loyalty_points"
+      id="loyalty_points"
+      value="true"
+      />
+      I have a loyalty card
+    </label>
+
+
+    <label>
+    Email for Receipt
+    <br>
+    <input
+    type="email"
+    name="email"
+    required
     >
       <h2>Customer Confirmation</h2>
 

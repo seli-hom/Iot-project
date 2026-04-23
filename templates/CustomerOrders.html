@@ -1,10 +1,15 @@
 {%  extends "base.html" %}
 
+
 {% block content %}
 <div class="container my-4">
-    <h2 class="mb-4">Cart </h2>
+    <h2 class="mb-4">Products List </h2>
 
-    {% if cart_items|length == 0 %}
+        <!-- SIDEBAR -->
+        {% include "adminSidebar.html" with context %}
+
+
+    {% if orders|length == 0 %}
         <div class="alert alert-warning">No products found yet.</div>
     {% else %}
         <div class="card shadow-sm">
@@ -15,14 +20,18 @@
                             <th>#</th>
                             <th>Name</th>
                             <th>Price</th>
+                             <th>Status</th>
+                                <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for cart_item in cart_items %}
+                        {% for order in orders %}
                         <tr>
                             <td>{{ loop.index }}</td>
-                            <td>{{ cart_item.product_name }}</td>
-                            <td>{{ cart_item.cart_product_price }}</td>
+                            <td>{{ order.order_id }}</td>
+                            <td>{{ order.order_total }}</td>
+                             <td>{{ order.order_status }}</td>
+                             <td> <a href="{{ url_for('store.orderDetails', order_id=order.order_id) }}" class="btn btn-primary">View Details</a></td>
                         </tr>
                         {% endfor %}
                     </tbody>

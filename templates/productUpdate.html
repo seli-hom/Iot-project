@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+
+        <!-- SIDEBAR -->
+        {% include "adminSidebar.html" with context %}
+<div class="container d-flex flex-column align-items-center p-4">
+  <div class="card shadow-sm mb-4 rounded" style="min-width: 450px; max-width: 600px; width: 100%;">
+    <div class="card-body p-4">
+
+      <h3 class="card-title text-center mb-4">Update Existing Product</h3>
+
+      {% if message %}
+        <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
+          {{ message }}
+        </div>
+      {% endif %}
+
+      <form method="POST"  class="mb-3">
+        <div class="row g-2">
+
+          <div class="col-md-6">
+            <label class="form-label">Name</label>
+            <input type="text" class="form-control rounded" name="product_name" value="{{ product.product_name }}" required>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Price</label>
+            <input type="number" pattern="^\d*(\.\d{0,2})?$" class="form-control rounded" value="{{ product.product_price }}" name="product_price" required>
+          </div>
+
+                    <div class="col-md-6">
+            <label class="form-label">Barcode</label>
+            <input type="text"  class="form-control rounded" value="{{ product.barcode_num }}" name="product_barcode" required>
+          </div>
+            <div class="col-md-6">
+            <label class="form-label">Category</label>
+            <select type="text" class="form-control rounded" name="product_category" required>
+            <option value="1">1</option>  
+            <option value="2">2</option>  
+            <option value="3">3</option>  
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Company</label>
+            <input type="text" class="form-control rounded" value="{{ product.product_company }}" name="product_company" required>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Description</label>
+            <textarea  class="form-control rounded"  name="product_description" required>{{ product.product_description }}</textarea>
+          </div>
+
+
+          <div class="col-12 mt-3">
+            <button type="submit" class="btn btn-primary w-100 rounded">Submit</button>
+          </div>
+
+        </div>
+      </form>
+
+      <div class="text-center mt-2">
+        <a href="{{ url_for('store.productsList') }}">View Existing Products</a>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
