@@ -5,6 +5,8 @@ from services import email_service
 import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
+from services.rfid_service import RFIDService
+from services.receipt_service import EmailAlertSystem
 
 app = Blueprint('store', __name__)
 
@@ -16,6 +18,7 @@ def storeIndex():
     return render_template('index.html')
 
 
+
 @app.route('/store-dashboard')
 def storeDashboard():
     storeDb = db.getDB()
@@ -24,9 +27,15 @@ def storeDashboard():
     #     ORDER BY notif_created_at DESC
     #     LIMIT 5
     # ''').fetchall()
+    # notifications = storeDb.execute('''
+    #     SELECT * FROM notifications
+    #     ORDER BY notif_created_at DESC
+    #     LIMIT 5
+    # ''').fetchall()
     storeDb.close()
     return render_template(
         'storeDashboard.html',
+        # notifications=notifications,
         # notifications=notifications,
         temp=4,
         hm=65,
@@ -54,6 +63,7 @@ def get_notifications():
 
         notif_list = [
             {
+
                 "id": n["notif_id"],
                 "type": n["notif_type"],
                 "title": n["notif_title"],
@@ -69,7 +79,6 @@ def get_notifications():
     finally:
         storeDb.close()
 
-
 # -----------------------------
 # CUSTOMER ROUTES
 # -----------------------------
@@ -78,6 +87,86 @@ def customersList():
     all_customers = customers.select_customers()
     print(all_customers)
     return render_template('customersList.html', customers=all_customers)
+
+@app.route('/admin-dashboard/products')
+def productsList():
+    storeDb = db.getDB()
+    products = storeDb.execute(
+        '''SELECT * FROM products p  
+            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id'''
+    ).fetchall()
+    return render_template('productsList.html', products=products)
+
+@app.route('/admin-dashboard/products/<int:product_id>/update',methods = ['GET','POST'])
+def productUpdate(product_id):
+    if request.method == 'POST':
+        storeDb = db.getDB()
+        storeDb.execute('''
+                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?
+                                WHERE product_id = ?
+                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],product_id))        
+        storeDb.execute('''
+                    UPDATE product_barcode SET  barcode_num = ?
+                        WHERE product_id = ?
+                ''', ( request.form['product_barcode'],product_id))
+        storeDb.execute('''
+                    UPDATE  product_rfid SET  rfid_tag = ?, rfid_status = ?
+                        WHERE product_id = ?
+                ''', ( request.form['product_rfid'],'ACTIVE',product_id))
+        
+        storeDb.commit()
+        return redirect(url_for('store.productsList'))
+    storeDb = db.getDB()
+    product = storeDb.execute(
+        '''SELECT * FROM products p  
+            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
+            WHERE p.product_id = ?''',
+    (product_id,)).fetchone()
+    return render_template('productUpdate.html', product=product)
+
+
+
+@app.route('/admin-dashboard/products/create')
+def productCreate():
+    return render_template('productCreation.html')
+
+@app.route('/admin-dashboard/products/add', methods=['POST'])
+def productAdd():
+
+    storeDb = db.getDB()
+    product = storeDb.execute('''
+                INSERT INTO products (product_name, category_id, product_price, product_company, product_description)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description']))
+    
+    storeDb.execute('''
+                INSERT INTO product_barcode (product_id, barcode_num)
+                VALUES (?, ?)
+            ''', (product.lastrowid, request.form['product_barcode']))
+    storeDb.execute('''
+                INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
+                VALUES (?, ?, ?)
+            ''', (product.lastrowid, request.form['product_rfid'],'ACTIVE'))
+    storeDb.commit()
+    return redirect(url_for('store.productsList'))
+
+@app.route('/admin-dashboard/products/<int:product_id>/delete', methods=['POST', 'GET'])
+def productDelete(product_id):
+    if session.get('user_role') != 'admin':
+        flash("Unauthorized.", "danger")
+        return redirect(url_for('store.storeIndex'))
+
+    storeDb = db.getDB()
+    storeDb.execute('DELETE FROM products WHERE product_id = ?', (product_id,))
+    storeDb.execute('DELETE FROM product_barcode WHERE product_id = ?', (product_id,))
+    storeDb.execute('DELETE FROM product_rfid WHERE product_id = ?', (product_id,))
+    storeDb.commit()
+    storeDb.close()
+
+    flash("User deleted successfully.", "success")
+    return redirect(url_for('store.productsList'))
 
 
 @app.route('/customers/registration', methods=['GET', 'POST'])
@@ -89,10 +178,9 @@ def customersRegistration():
         print(request.form['fname'], request.form['lname'], request.form['email'], request.form['password'])
         try:
             cur = storeDb.execute('''
-                INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
-                VALUES (?, ?, ?, ?, 'customer', 0)
+            INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
+            VALUES (?, ?, ?, ?, 'customer', 0)
             ''', (request.form['fname'], request.form['lname'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
-   
             storeDb.commit()
           
             new_user_id = cur.lastrowid
@@ -101,40 +189,22 @@ def customersRegistration():
             storeDb.execute('''UPDATE users SET user_loyalty_points = 5 WHERE user_id = ?''', (int_id,))
             storeDb.commit()
             print(f"New user created with ID {new_user_id} and 5 loyalty points assigned.")
-    # !!not to sure we are using it tbh creates the customer in customer table
-            # customer = storeDb.execute("''' INSERT INTO customers (user_id, customer_phone, customer_address) VALUES (?, ?, ?)'''", (new_user_id, request.form['phone'], request.form['address']))
-            # storeDb.commit()
-            # customer_id = customer.lastrowid
-            # # *create the loyalty customer
-            # loyalty = storeDb.execute("''' INSERT INTO customer_loyalty (customer_id, loyalty_points) VALUES (?, 0)'''", (customer_id,5))
-            # loyalty_id = loyalty.lastrowid
-            # flash("New customer loyalty card with ID " + str(loyalty_id) + " successfully created! 5 points have been assigned as registration bonus", "success")
-            # storeDb.commit()
-            # Then create the customer profile
-           # from models import customers
-            #customer_id = customers.add_new_customer(
-              #  new_user_id,
-              #  request.form['phone'],
-              #  request.form['address']
-            #)
-
-          #  if not customer_id:
-             #   raise Exception("Failed to create customer profile")
 
             # Send verification email
             try:
-                # -------------------------------
-                # Send registration email
-                # -------------------------------
+            # -------------------------------
+            # Send registration email
+            # -------------------------------
                 from services.email_service import send_registration_email
                 send_registration_email(
-                    request.form['fname'],
-                    request.form['lname'],
-                    request.form['email'],
-                    new_user_id
+                request.form['fname'],
+                request.form['lname'],
+                request.form['email'],
+                new_user_id
                 )
                 message = "Customer invited successfully. Verification email sent!"
                 success = True
+
 
             except Exception as e:
                 import traceback
@@ -148,19 +218,26 @@ def customersRegistration():
             message = "Error creating user"
             success = False
 
+
         finally:
             storeDb.close()
 
     return render_template(
-        'customersRegistration.html',
-        message=message,
-        success=success
+    'customersRegistration.html',
+    message=message,
+    success=success
     )
+
 
 
 @app.route('/verify/<int:user_id>', methods=['GET', 'POST'])
 def customerVerification(user_id):
     storeDb = db.getDB()
+    user = storeDb.execute(
+        'SELECT * FROM users WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()
+
     user = storeDb.execute(
         'SELECT * FROM users WHERE user_id = ?',
         (user_id,)
@@ -187,6 +264,7 @@ def customerVerification(user_id):
             message = "Please fill in both password fields."
             success = False
         elif password != confirm_password:
+            message = "Passwords do not match."
             message = "Passwords do not match."
             success = False
         else:
@@ -218,12 +296,30 @@ def customerVerification(user_id):
                 except Exception as e:
                     print("Admin notification email failed:", e)
 
+                try:
+                    from services.email_service import send_new_customer_notification
+                    send_new_customer_notification(
+                        user['user_fname'],
+                        user['user_lname'],
+                        user['user_email']
+                    )
+                except Exception as e:
+                    print("Admin notification email failed:", e)
+
             except Exception as e:
+                print("Verification error:", e)
+                message = "Error verifying account."
+                success = False
                 print("Verification error:", e)
                 message = "Error verifying account."
                 success = False
 
     storeDb.close()
+    return render_template(
+        'customersVerification.html',
+        message=message,
+        success=success
+    )
     return render_template(
         'customersVerification.html',
         message=message,
@@ -247,10 +343,11 @@ def login():
     ''', (email,)).fetchone()
     storeDb.close()
 
+
     if not user:
         flash("Invalid credentials.", "danger")
         return redirect(url_for('store.customersList'))
-    
+
     if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
         session['user_first_name'] = user['user_fname']
@@ -258,12 +355,24 @@ def login():
         return redirect(url_for('store.storeIndex'))
 
 
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('store.storeIndex'))
 
+@app.route('/admin-dashboard/orders')
+def customerOrders():   
+    storeDb = db.getDB() 
+    orders = storeDb.execute('SELECT * FROM orders ORDER BY order_created_at DESC').fetchall()
+    return render_template("CustomerOrders.html", orders=orders) 
 
+
+@app.route('/admin-dashboard/orders/<int:order_id>')
+def orderDetails(order_id):   
+    storeDb = db.getDB() 
+    order = storeDb.execute('''SELECT * FROM orders where order_id = ?''', (order_id,)).fetchone()
+    return render_template("OrderDetails.html",  order=order) 
 # -----------------------------
 # FAN / THRESHOLD ROUTES
 # -----------------------------
@@ -292,6 +401,7 @@ def toggle_fan():
         print("Fan email failed:", e)
 
     return jsonify({"status": "ok", "summary": summary})
+
 
 
 @app.route('/threshold/update', methods=['POST'])
@@ -328,6 +438,11 @@ def update_threshold():
 # INBOX
 # -----------------------------
 @app.route("/inbox", endpoint='viewInbox')
+
+# -----------------------------
+# INBOX
+# -----------------------------
+@app.route("/inbox", endpoint='viewInbox')
 def storeInbox():
     try:
         emails = email_service.fetch_store_emails()
@@ -336,6 +451,12 @@ def storeInbox():
         print("Inbox error:", e)
         emails = []
 
+    return render_template("viewInbox.html", emails=emails)
+
+
+# -----------------------------
+# ADMIN DASHBOARD
+# -----------------------------
     return render_template("viewInbox.html", emails=emails)
 
 
@@ -376,7 +497,7 @@ def adminDashboard():
         "latest_user": latest_user,
         "most_popular_user": popular_user
     }
-    print(staff[0]['user_id'])
+
     return render_template(
         'adminDashboard.html',
         all_users=all_users,
@@ -390,23 +511,23 @@ def adminDashboard():
 # -----------------------------
 @app.route('/admin/user/<int:user_id>/update', methods=['POST'])
 def adminUpdateUser(user_id):
-    if session.get('user_role') != 'admin':
-        flash("Unauthorized.", "danger")
-        return redirect(url_for('store.storeIndex'))
+        if session.get('user_role') != 'admin':
+            flash("Unauthorized.", "danger")
+            return redirect(url_for('store.storeIndex'))
 
-    role = request.form.get('role')
-    verified = request.form.get('verified') == 'on'
+        role = request.form.get('role')
+        verified = request.form.get('verified') == 'on'
 
-    storeDb = db.getDB()
-    storeDb.execute(
-        'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
-        (role, verified, user_id)
-    )
-    storeDb.commit()
-    storeDb.close()
+        storeDb = db.getDB()
+        storeDb.execute(
+            'UPDATE users SET user_role = ?, user_verified = ? WHERE user_id = ?',
+            (role, verified, user_id)
+        )
+        storeDb.commit()
+        storeDb.close()
 
-    flash("User updated successfully.", "success")
-    return redirect(url_for('store.adminDashboard'))
+        flash("User updated successfully.", "success")
+        return redirect(url_for('store.adminDashboard'))
 
 
 @app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
@@ -535,37 +656,42 @@ def selfCheckout():
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
     storeDb = db.getDB()
-    
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
     loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
-    current_points = 0
+
+    safeSetPoints = 0
+    # current_points = 0
     if loyalty_card:
-        # storeDb = db.getDB()
+    # storeDb = db.getDB()
         try:
-            user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
-        
+            print("fetching user")
+            user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
+            storeDb.commit()
+            print(f"user: {user}")
             if user:
                 user_id = int (user['user_id'])
                 user_points = user['user_loyalty_points']
                 print(f"User has {user_points} points")
-                current_points += user_points
+                current_points = user_points
+                safeSetPoints = user_points
+                session.setdefault('current_points', user_points) #*stores the current points in the session to be used during the checkout process
                 print("User with email", customer_email, " has ", user_points, " points.") #!!check that this works pls
                 # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
                 # if customer:
-                #     customer_id = customer['customer_id']
-                #     loyalty_card = storeDb.execute('SELECT * FROM customer_loyalty WHERE customer_id = ?', (customer_id,)).fetchone()#*finds the loyalty card based on the found customer
-                #     # loyalty_id = loyalty_card['loyalty_id']
-                #     if loyalty_card:
-                #         loyalty_id = loyalty_card['loyalty_id']
-                #         current_points = loyalty_card['loyalty_points']
-                #         print("Customer with ID", customer, " has a loyalty card with ", current_points, " points.")
-                #         storeDb.commit()
-                #         storeDb.close()
-                #     else:
-                #         print("Loyalty card not found for customer with email:", customer_email)
+                # customer_id = customer['customer_id']
+                # loyalty_card = storeDb.execute('SELECT * FROM customer_loyalty WHERE customer_id = ?', (customer_id,)).fetchone()#*finds the loyalty card based on the found customer
+                # # loyalty_id = loyalty_card['loyalty_id']
+                # if loyalty_card:
+                # loyalty_id = loyalty_card['loyalty_id']
+                # current_points = loyalty_card['loyalty_points']
+                # print("Customer with ID", customer, " has a loyalty card with ", current_points, " points.")
+                # storeDb.commit()
+                # storeDb.close()
                 # else:
-                #     print("No customer found with user ID:", user_id)       
+                # print("Loyalty card not found for customer with email:", customer_email)
+                # else:
+                # print("No customer found with user ID:", user_id)
             else:
                 print("No user found with email:", customer_email)
         except Exception as e:
@@ -580,39 +706,49 @@ def selfCheckoutSubmit():
 
     # Calculate and round taxes/total
     subtotal = sum(item['product_price'] for item in all_items)
-    
-    if current_points > 50:
+    current_points = session.get('current_points', 0)
+    print(f"Current points before purchase: {current_points}")
+    print(f"Safe set points taken from user table: {safeSetPoints}")
+    discount_applied = ""
+    if current_points >= 50 or safeSetPoints >= 50: #*check if the user has enough points to apply the discount either from the session or from the database query
+        print("Applying points discount...")
+        print(f"Subtotal before discount: {subtotal}")
+
+        discount_applied = "Subtotal before discount: " + str(subtotal) + "\n Congrats you accumulated 50 points, 5$ discount applied from loyalty points! "
         subtotal = subtotal - 5 #should apply the discount because the user has enough points
-        current_points = current_points - 50 #*substract the points after giving the discount
-        print("Enough points!! 5$ discount applied to subtotal")
+        current_points = safeSetPoints - 50 #*substract the points after giving the discount
+        print(f"Enough points!! 5$ discount applied to subtotal now {subtotal}")
+        storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_email = ?', (current_points, customer_email)) #*update the user's points in the database after the purchase
+        storeDb.commit()
     gst = round(subtotal * 0.05, 2)
     qst = round(subtotal * 0.09975, 2)
     total = round(subtotal + gst + qst, 2)
 
     try:
-        # 1. ATTEMPT TO FIND THE USER
-        user = storeDb.execute('SELECT user_id FROM users WHERE user_email = ?', (customer_email,)).fetchone()
-        user_id = int (user['user_id']) if user else None # for unregistered users
+    # 1. ATTEMPT TO FIND THE USER #!This is useless why would a customer need to be registered to log the order for the admin??
+    # user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone()
+    # user_id = int (user['user_id']) if user else None # for unregistered users
 
-        # Create the order
-        # user_id will be NULL for guest checkout
+    # Create the order
+    # user_id will be NULL for guest checkout
         cur = storeDb.execute('''
-            INSERT INTO orders (user_id, order_total, payment_method, order_status)
-            VALUES (?, ?, ?, 'COMPLETED')
-        ''', (user_id, total, payment_method))
+        INSERT INTO orders (order_total, payment_method, order_status, customer_email)
+        VALUES (?, ?, ?, ?)
+        ''', (total, payment_method, 'COMPLETED', customer_email))
         order_id = int (cur.lastrowid)
+        print(f"New order created with ID {order_id} for email {customer_email} with total {total}")
+
 
         # 3. add products to order table
         for item in all_items:
-            pid = item.get('product_id') 
+            pid = item.get('product_id')
             if not pid:
                 res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
                 pid = res['product_id'] if res else None
-            
             if pid:
                 storeDb.execute('''
-                    INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
-                    VALUES (?, ?, 1, ?)
+                INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
+                VALUES (?, ?, 1, ?)
                 ''', (order_id, pid, item['product_price']))
 
         # Loylaty logic if user exists
@@ -625,56 +761,55 @@ def selfCheckoutSubmit():
             int_user_id = int (user_id)
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
             storeDb.commit()
-            print(f"User with email {customer_email} earned {points_earned} points. Total points: {total_points}")
+            print(f"User with email {customer_email} had {current_points} and earned {points_earned} points from subtotal of {subtotal}. Total points: {total_points}")
             # if customer:
-            #     cid = int (customer['customer_id'])
-            #     storeDb.execute('''
-            #         UPDATE customer_loyalty 
-            #         SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
-            #         WHERE customer_id = ?
-            #     ''', (points_earned, cid))
-                
-            #     storeDb.execute('''
-            #         INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
-            #         VALUES (?, 'EARN', ?, ?)
-            #     ''', (cid, points_earned, f"Points earned from Order #{order_id}"))
+            # cid = int (customer['customer_id'])
+            # storeDb.execute('''
+            # UPDATE customer_loyalty
+            # SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
+            # WHERE customer_id = ?
+            # ''', (points_earned, cid))
+            # storeDb.execute('''
+            # INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
+            # VALUES (?, 'EARN', ?, ?)
+            # ''', (cid, points_earned, f"Points earned from Order #{order_id}"))
 
         storeDb.commit()
 
         # send email receipt
         receipt_data = {
-            'items': all_items,
-            'total': total,
-            'subtotal': subtotal,
-            'gst': gst,
-            'qst': qst,
-            'timestamp': session.get('cart_timestamp', 'N/A'),
-            'purchase_points': round(subtotal/10, 2) 
+        'discount' : discount_applied,
+        'items': all_items,
+        'total': total,
+        'subtotal': subtotal,
+        'gst': gst,
+        'qst': qst,
+        'timestamp': session.get('cart_timestamp', 'N/A'),
+        'purchase_points': round(subtotal/10, 2)
         }
         if loyalty_card:
             print("loyalty card check box checked")
             receipt_data['total_points'] = total_points
+        else:
+            receipt_data['total_points'] = None
         print("Reaches here before sending email")
+
         print("Receipt data:", receipt_data)
         receipt_sender = EmailAlertSystem(
-            sender_email="taliamuro3@gmail.com",
-            password="hapc ypha dcwh ewbc",
-            receiver_email=customer_email
+        sender_email="taliamuro3@gmail.com",
+        password="hapc ypha dcwh ewbc",
+        receiver_email=customer_email
         )
         print(receipt_sender.receiver_email)
         receipt_sender.send_receipt_email(customer_email, receipt_data)
-        
         # Clear session
         session.pop('cart_items', None)
         session.pop('manual_items', None)
         session.modified = True
-        
         message = "Success! Receipt sent."
         if user_id:
             message = f"Success! {points_earned} points added and receipt sent."
-        
         flash(message, "success")
-        
     except Exception as e:
         storeDb.rollback()
         print(f"Checkout Database Error: {e}")

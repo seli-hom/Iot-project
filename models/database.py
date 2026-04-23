@@ -27,6 +27,7 @@ def add_column_if_not_exists(table_name, column_name, column_type, default_value
     else:
         print(f"Column '{column_name}' already exists in '{table_name}'")
 
+
 def init_db():
     """
     Initializes the database:
@@ -49,6 +50,8 @@ def init_db():
             user_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)
 
     add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)
     #storeDb.execute('''
@@ -179,6 +182,8 @@ def init_db():
             FOREIGN KEY(user_id) REFERENCES users(user_id)
         )
     ''')
+
+    add_column_if_not_exists('orders', 'customer_email', 'TEXT')
 
     # Initializing order products table
     storeDb.execute('''
