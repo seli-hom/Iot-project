@@ -200,6 +200,7 @@ def init_db():
             FOREIGN KEY(product_id) REFERENCES products(product_id)
         )
     ''')
+    
 
     # Initializing cart table
     storeDb.execute('''

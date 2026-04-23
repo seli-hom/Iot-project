@@ -1,162 +1,45 @@
 import sqlite3
+from models import database as db
 
-def getDB():
+def select_orders():
     """
-    Returns a database connection object
-    SQLite connections are allowed in multiple threads safely
+    Returns all orders from the database.
     """
-    conn = sqlite3.connect('store.db', check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+    storeDb = db.getDB()
+    try:
+        users = storeDb.execute('''
+            SELECT * FROM orders
+        ''').fetchall()
+        return users
+    finally:
+        storeDb.close()
 
-def init_db():
+
+
     """
-    Initializes the database:
-    - Creates tables if they don't exist
-    - Adds missing columns
+    Updates the role of a user (customer, employee, admin)
     """
-    storeDb = getDB()
-
-    # Initializing users table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_fname TEXT NOT NULL,
-            last_lname TEXT NOT NULL,
-            user_email TEXT UNIQUE NOT NULL,
-            user_password TEXT,
-            user_role TEXT DEFAULT 'customer',
-            user_verified INTEGER DEFAULT 0,
-            user_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Initializing customers table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS customers (
-            customer_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE NOT NULL,
-            customer_phone TEXT,
-            customer_address TEXT,
-            customer_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
-        )
-    ''')
-
-    # Initializing customer loyalty table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS customer_loyalty (
-            loyalty_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            customer_id INTEGER UNIQUE NOT NULL,
-            loyalty_points INTEGER DEFAULT 0,
-            loyalty_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            loyalty_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
-        )
-    ''')
-
-    # Initializing loyalty transactions table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS loyalty_transactions (
-            transaction_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            customer_id INTEGER NOT NULL,
-            transaction_type TEXT CHECK(transaction_type IN ('EARN','SPEND','ADJUST')) NOT NULL,
-            transaction_points INTEGER NOT NULL,
-            transaction_description TEXT,
-            transaction_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
-        )
-    ''')
-
-    # Initializing notifications table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS notifications (
-            notif_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            notif_type TEXT CHECK(notif_type IN ('email','system','alert')) NOT NULL,
-            notif_title TEXT NOT NULL,
-            notif_msg_summary TEXT NOT NULL,
-            notif_msg_extended TEXT NOT NULL,
-            notif_user_id INTEGER,
-            notif_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(notif_user_id) REFERENCES users(user_id)
-        )
-    ''')
-
-    # Initializing categories table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS categories (
-            category_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_type TEXT NOT NULL,
-            category_desc_summary TEXT NOT NULL,
-            category_desc_extended TEXT NOT NULL,
-            category_created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Initializing orders table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS orders (
-            order_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            order_total REAL NOT NULL,
-            order_status TEXT DEFAULT 'PENDING',
-            order_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
-        )
-    ''')
-
-    # Initializing order products table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS order_products (
-            order_product_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            order_product_quantity INTEGER NOT NULL,
-            order_product_unit_price REAL DEFAULT NULL,
-            FOREIGN KEY(order_id) REFERENCES orders(order_id),
-            FOREIGN KEY(product_id) REFERENCES products(product_id)
-        )
-    ''')
-
-    # Initializing products table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS products (
-            product_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id INTEGER DEFAULT NULL,
-            product_name TEXT NOT NULL,
-            product_description TEXT DEFAULT NULL,
-            product_price REAL NOT NULL,
-            product_stock_quantity INTEGER DEFAULT 0,
-            product_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            product_updated_at DATETIME,
-            FOREIGN KEY(category_id) REFERENCES categories(category_id)
-        )
-    ''')
-
-    # Initializing cart table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS cart (
-            cart_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            cart_created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(user_id)
-        )
-    ''')
-
-    # Initializing cart products table
-    storeDb.execute('''
-        CREATE TABLE IF NOT EXISTS cart_products (
-            cart_product_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            cart_id INTEGER NOT NULL,
-            product_id INTEGER NOT NULL,
-            cart_product_quantity INTEGER NOT NULL,
-            cart_product_price REAL,
-            FOREIGN KEY(cart_id) REFERENCES cart(cart_id),
-            FOREIGN KEY(product_id) REFERENCES products(product_id)
-        )
-    ''')
-
-    storeDb.commit()
-    storeDb.close()
-
-    print("Database initialized: tables created / updated")
+    storeDb = db.getDB()
+    try:
+        storeDb.execute('UPDATE users SET role = ? WHERE id = ?', (role, user_id))
+        storeDb.commit()
+        return True
+    except Exception as e:
+        print("Failed to update user role:", e)
+        return False
+    finally:
+        storeDb.close()
+        
+        
+def view_specific_order_details(order_id):
+    """
+    Returns details for a specific order.
+    """
+    storeDb = db.getDB()
+    try:
+        orders = storeDb.execute('''
+            SELECT * FROM orders_products WHERE order_id = ?
+        ''', (order_id,)).fetchall()
+        return orders
+    finally:
+        storeDb.close()

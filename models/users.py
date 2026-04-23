@@ -72,3 +72,17 @@ def update_user_role(user_id, role):
         return False
     finally:
         storeDb.close()
+        
+        
+def view_past_orders(user_id):
+    """
+    Returns all orders for a specific user.
+    """
+    storeDb = db.getDB()
+    try:
+        orders = storeDb.execute('''
+            SELECT * FROM orders WHERE user_id = ?
+        ''', (user_id,)).fetchall()
+        return orders
+    finally:
+        storeDb.close()
