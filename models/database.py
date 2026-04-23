@@ -8,6 +8,7 @@ def getDB():
     conn = sqlite3.connect('store.db', check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn
+
 def add_column_if_not_exists(table_name, column_name, column_type, default_value=None):
     """
     Adds a column to a table if it doesn't already exist
@@ -53,7 +54,9 @@ def init_db():
 
     # add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)
 
-    add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)
+    add_column_if_not_exists('users', 'user_loyalty_points', 'INTEGER', default_value=0)   
+
+
     #storeDb.execute('''
     #    ALTER TABLE users ADD COLUMN user_loyalty_points INTEGER DEFAULT 0
    # ''')
@@ -183,8 +186,8 @@ def init_db():
         )
     ''')
 
-    add_column_if_not_exists('orders', 'customer_email', 'TEXT')
 
+    add_column_if_not_exists('orders', 'customer_email', 'TEXT')
     # Initializing order products table
     storeDb.execute('''
         CREATE TABLE IF NOT EXISTS order_products (

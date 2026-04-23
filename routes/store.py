@@ -175,6 +175,7 @@ def customersRegistration():
     success = None
     if request.method == 'POST':
         storeDb = db.getDB()
+
         print(request.form['fname'], request.form['lname'], request.form['email'], request.form['password'])
         try:
             cur = storeDb.execute('''
@@ -195,26 +196,33 @@ def customersRegistration():
             # -------------------------------
             # Send registration email
             # -------------------------------
+                from scripts import gpio_blue_red as gpr
                 from services.email_service import send_registration_email
                 send_registration_email(
-                request.form['fname'],
-                request.form['lname'],
-                request.form['email'],
-                new_user_id
+                    request.form['fname'],
+                    request.form['lname'],
+                    request.form['email'],
+                    new_user_id
                 )
+                gpr.new_customer_success()
+
                 message = "Customer invited successfully. Verification email sent!"
                 success = True
 
 
             except Exception as e:
                 import traceback
+                from scripts import gpio_blue_red as gpr
                 print("Email sending failed:", e)
                 traceback.print_exc()
                 message = "User created, but email failed."
+                gpr.new_customer_success()
                 success = False
 
         except Exception as e:
+            from scripts import gpio_blue_red as gpr
             print("Error creating user:", e)
+            gpr.new_customer_fail()
             message = "Error creating user"
             success = False
 
