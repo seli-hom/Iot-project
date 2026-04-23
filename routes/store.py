@@ -100,6 +100,15 @@ def productsList():
     ).fetchall()
     return render_template('productsList.html', products=products)
 
+@app.route('/admin-dashboard/products/<int:product_id>/Tags')
+def TagsList(product_id):
+    storeDb = db.getDB()
+    tags = storeDb.execute(
+        '''SELECT * from product_rfid where product_id = ?;
+'''
+    ,(product_id,)).fetchall()
+    return render_template('TagsList.html', tags=tags,product_id=product_id)
+
 @app.route('/admin-dashboard/products/<int:product_id>/update',methods = ['GET','POST'])
 def productUpdate(product_id):
     if request.method == 'POST':
@@ -134,6 +143,11 @@ def productUpdate(product_id):
 def productCreate():
     return render_template('productCreation.html')
 
+@app.route('/admin-dashboard/products/<int:product_id>/Tags/create')
+def tagCreate(product_id):
+    return render_template('tagCreation.html',product_id=product_id)
+
+
 @app.route('/admin-dashboard/products/<int:product_id>/addRFID',  methods=['POST'])
 def addRFID(product_id):
     storeDb = db.getDB()
@@ -142,14 +156,14 @@ def addRFID(product_id):
                 VALUES (?, ?, ?)
             ''', (product_id, request.form['product_rfid'],'ACTIVE'))
     storeDb.commit()
-    return redirect(url_for('store.productsList'))
+    return redirect(url_for('store.TagsList',product_id=product_id))
 
-@app.route('/admin-dashboard/products/<int:product_id>/removeRFID',  methods=['GET'])
-def removeRFID(product_id):
+@app.route('/admin-dashboard/products/<int:rfid_id>/removeRFID',  methods=['GET'])
+def removeRFID(rfid_id):
     storeDb = db.getDB()
-    storeDb.execute('''
-            DELETE FROM product_rfid where rfid_tag = ?
-             ''', (request.form['product_rfid'],))
+    data = storeDb.execute('''
+            DELETE FROM product_rfid where rfid_id = ?
+             ''', (rfid_id,))
     storeDb.commit()
     return redirect(url_for('store.productsList'))
 

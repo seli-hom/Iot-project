@@ -1,0 +1,39 @@
+{% extends "base.html" %} {% block content %}
+
+<!-- SIDEBAR -->
+{% include "adminSidebar.html" with context %}
+<div class="container d-flex flex-column align-items-center p-4">
+  <div
+    class="card shadow-sm mb-4 rounded"
+    style="min-width: 450px; max-width: 600px; width: 100%"
+  >
+    <div class="card-body p-4">
+      <h5 class="card-title">Add RFID</h5>
+      <form
+        method="POST"
+        action="{{ url_for('store.addRFID', product_id=product_id) }}"
+      >
+        <div class="col-md-12">
+          <label class="form-label">RFID Tag</label>
+          <input
+            type="text"
+            class="form-control rounded"
+            name="product_rfid"
+            value=""
+          />
+        </div>
+        <div class="col-12 mt-3">
+          <button type="submit" class="btn btn-primary w-100 rounded">
+            Add
+          </button>
+        </div>
+      </form>
+
+      <div class="text-center mt-2">
+        <a href="{{ url_for('store.TagsList', product_id=product_id) }}">View Existing Tags</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
