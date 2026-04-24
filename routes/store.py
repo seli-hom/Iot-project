@@ -1,13 +1,21 @@
 from flask import render_template, request, Blueprint, session, redirect, url_for, flash, jsonify
+import bcrypt
+
+# Models & Database
 from models import database as db
 from models import customers, users
+
+# Hardware & Scripts
+# from scripts import gpio_blue_red as gpr
+
+# Services
 from services import email_service
-import bcrypt
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
 
+# Blueprint Setup
 app = Blueprint('store', __name__)
 
 # -----------------------------
@@ -210,57 +218,50 @@ def customersRegistration():
     success = None
     if request.method == 'POST':
         storeDb = db.getDB()
-        print(request.form['fname'], request.form['lname'], request.form['email'], request.form['password'])
+        # print(...) removed for brevity
         try:
             cur = storeDb.execute('''
             INSERT INTO users (user_fname, user_lname, user_email, user_password, user_role, user_verified)
             VALUES (?, ?, ?, ?, 'customer', 0)
             ''', (request.form['fname'], request.form['lname'], request.form['email'], bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())))
             storeDb.commit()
+            
             new_user_id = cur.lastrowid
-            print(f"New user created with ID {new_user_id}")
             int_id = (int)(new_user_id)
             storeDb.execute('''UPDATE users SET user_loyalty_points = 5 WHERE user_id = ?''', (int_id,))
             storeDb.commit()
-            print(f"New user created with ID {new_user_id} and 5 loyalty points assigned.")
+            
+            print(f"DEBUG: User {new_user_id} saved to DB. Triggering Blue LED...")
+            
+            # --- TRIGGER BLUE LED HERE ---
+            from scripts import gpio_blue_red as gpr
+            gpr.blink_blue() 
 
-            # Send verification email
+            # Send verification email logic...
             try:
-            # -------------------------------
-            # Send registration email
-            # -------------------------------
                 from services.email_service import send_registration_email
-                send_registration_email(
-                request.form['fname'],
-                request.form['lname'],
-                request.form['email'],
-                new_user_id
-                )
+                send_registration_email(request.form['fname'], request.form['lname'], request.form['email'], new_user_id)
                 message = "Customer invited successfully. Verification email sent!"
                 success = True
-
-
             except Exception as e:
-                import traceback
                 print("Email sending failed:", e)
-                traceback.print_exc()
                 message = "User created, but email failed."
-                success = False
+                success = True # Set to True because the DB part succeeded
 
         except Exception as e:
             print("Error creating user:", e)
             message = "Error creating user"
             success = False
-
+            
+            # --- TRIGGER RED LED HERE ---
+            from scripts import gpio_blue_red as gpr
+            gpr.blink_red()
 
         finally:
             storeDb.close()
 
-    return render_template(
-    'customersRegistration.html',
-    message=message,
-    success=success
-    )
+    return render_template('customersRegistration.html', message=message, success=success)
+
 
 
 
