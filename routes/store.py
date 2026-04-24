@@ -12,7 +12,7 @@ from models import customers, users
 from services import email_service
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
-from services.hardware import hardware_status
+from services.hardware import hardware_status, motor_control
 
 # Blueprint Setup
 app = Blueprint('store', __name__)
@@ -238,9 +238,9 @@ def customersRegistration():
 
             # Send verification email logic...
             try:
-                from services.email_service import send_registration_email
-                send_registration_email(request.form['fname'], request.form['lname'], request.form['email'], new_user_id)
-                message = "Customer invited successfully. Verification email sent!"
+                # from services.email_service import send_registration_email
+                # send_registration_email(request.form['fname'], request.form['lname'], request.form['email'], new_user_id)
+                message = "Customer account created successfully."
                 success = True
             except Exception as e:
                 print("Email sending failed:", e)
