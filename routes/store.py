@@ -12,8 +12,6 @@ from models import customers, users
 from services import email_service
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
-from services.rfid_service import RFIDService
-from services.receipt_service import EmailAlertSystem
 
 # Blueprint Setup
 app = Blueprint('store', __name__)
@@ -924,3 +922,36 @@ def remove_barcode(index):
         return jsonify({"status": "success"}), 200
         
     return jsonify({"status": "error", "message": "Item not found"}), 404
+
+# -----------------------------
+# TEMPERATURE & HARDWARE ROUTES
+# -----------------------------
+
+# 1. The main page route
+@app.route('/temperature')
+def temperatureMonitor():
+    """
+    Renders the dedicated IoT monitoring page.
+    This page contains the JavaScript and Gauges.
+    """
+    return render_template('temperature.html')
+
+# 2. The Data API (The "Pulse")
+@app.route('/api/temp-data')
+def get_temp_data():
+    """
+    The frontend JavaScript polls this endpoint every 2 seconds.
+    It returns the latest values from the background MQTT thread.
+    """
+    return hardware_status
+
+# 3. The Hardware Action API
+@app.route('/api/fan/<state>')
+def set_fan(state):
+    if state == "on":
+        motor_control("on")
+    else:
+        motor_control("off")
+    
+    # Return the new state so the dashboard stays in sync
+    return {"status": "success", "fan_on": hardware_status["fan_on"]}
