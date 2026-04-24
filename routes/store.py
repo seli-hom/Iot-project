@@ -693,44 +693,11 @@ def selfCheckoutSubmit():
     storeDb = db.getDB()
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
-    loyalty_card = request.form.get('loyalty_points') == 'true' #checks if customer has a membership loyalty card
-
-    safeSetPoints = 0
-    # current_points = 0
-    if loyalty_card:
-    # storeDb = db.getDB()
-        try:
-            print("fetching user")
-            user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone() #*finds the user based on the email provided
-            storeDb.commit()
-            print(f"user: {user}")
-            if user:
-                user_id = int (user['user_id'])
-                user_points = user['user_loyalty_points']
-                print(f"User has {user_points} points")
-                current_points = user_points
-                safeSetPoints = user_points
-                session.setdefault('current_points', user_points) #*stores the current points in the session to be used during the checkout process
-                print("User with email", customer_email, " has ", user_points, " points.") #!!check that this works pls
-                # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()#*finds the customer based on the found user
-                # if customer:
-                # customer_id = customer['customer_id']
-                # loyalty_card = storeDb.execute('SELECT * FROM customer_loyalty WHERE customer_id = ?', (customer_id,)).fetchone()#*finds the loyalty card based on the found customer
-                # # loyalty_id = loyalty_card['loyalty_id']
-                # if loyalty_card:
-                # loyalty_id = loyalty_card['loyalty_id']
-                # current_points = loyalty_card['loyalty_points']
-                # print("Customer with ID", customer, " has a loyalty card with ", current_points, " points.")
-                # storeDb.commit()
-                # storeDb.close()
-                # else:
-                # print("Loyalty card not found for customer with email:", customer_email)
-                # else:
-                # print("No customer found with user ID:", user_id)
-            else:
-                print("No user found with email:", customer_email)
-        except Exception as e:
-            print("Error user lookup:", e)
+    
+    # 1. Check if they WANT to use their points (checkbox from our previous step)
+    use_discount = request.form.get('use_discount') == 'true'
+    
+    # 2. Basic Cart Validation
     rfid_items = session.get('cart_items', [])
     manual_items = session.get('manual_items', [])
     all_items = rfid_items + manual_items
@@ -739,121 +706,135 @@ def selfCheckoutSubmit():
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
-    # Calculate and round taxes/total
+    # Initialize variables for the flow
     subtotal = sum(item['product_price'] for item in all_items)
-    current_points = session.get('current_points', 0)
-    print(f"Current points before purchase: {current_points}")
-    print(f"Safe set points taken from user table: {safeSetPoints}")
-    discount_applied = ""
-    if current_points >= 50 or safeSetPoints >= 50: #*check if the user has enough points to apply the discount either from the session or from the database query
-        print("Applying points discount...")
-        print(f"Subtotal before discount: {subtotal}")
+    user_id = None
+    current_points = 0
+    discount_applied_msg = ""
 
-        discount_applied = "Subtotal before discount: " + str(subtotal) + "\n Congrats you accumulated 50 points, 5$ discount applied from loyalty points! "
-        subtotal = subtotal - 5 #should apply the discount because the user has enough points
-        current_points = safeSetPoints - 50 #*substract the points after giving the discount
-        print(f"Enough points!! 5$ discount applied to subtotal now {subtotal}")
-        storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_email = ?', (current_points, customer_email)) #*update the user's points in the database after the purchase
+    # 3. User Lookup (Check if they are a loyalty member)
+    try:
+        user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone()
+        if user:
+            user_id = int(user['user_id'])
+            current_points = user['user_loyalty_points'] or 0
+            print(f"DEBUG: Found User {user_id} with {current_points} points.")
+    except Exception as e:
+        print(f"DEBUG: User lookup failed: {e}")
+
+    # 4. Handle $5 Discount Logic (Redemption)
+    # Only applies if user exists, has 50+ points, AND checked the box
+    if use_discount and user_id and current_points >= 50:
+        print("DEBUG: Redeeming 50 points for $5 discount.")
+        discount_applied_msg = f"Subtotal before discount: ${subtotal:.2f}\nCongrats! $5.00 discount applied from loyalty points!"
+        
+        subtotal -= 5.0
+        current_points -= 50  # Deduct the points immediately
+        
+        # Update DB for the deduction
+        storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (current_points, user_id))
         storeDb.commit()
+    else:
+        print("DEBUG: No discount applied (Either opted out or insufficient points).")
+
+    # 5. Calculate Final Financials
     gst = round(subtotal * 0.05, 2)
     qst = round(subtotal * 0.09975, 2)
     total = round(subtotal + gst + qst, 2)
 
     try:
-    # 1. ATTEMPT TO FIND THE USER #!This is useless why would a customer need to be registered to log the order for the admin??
-    # user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone()
-    # user_id = int (user['user_id']) if user else None # for unregistered users
-
-    # Create the order
-    # user_id will be NULL for guest checkout
+        # 6. Create the Order Record
         cur = storeDb.execute('''
-        INSERT INTO orders (order_total, payment_method, order_status, customer_email)
-        VALUES (?, ?, ?, ?)
+            INSERT INTO orders (order_total, payment_method, order_status, customer_email)
+            VALUES (?, ?, ?, ?)
         ''', (total, payment_method, 'COMPLETED', customer_email))
-        order_id = int (cur.lastrowid)
-        print(f"New order created with ID {order_id} for email {customer_email} with total {total}")
+        order_id = cur.lastrowid
 
-
-        # 3. add products to order table
+        # 7. Add Products to order_products table
         for item in all_items:
             pid = item.get('product_id')
+            # Fallback if product_id is missing from session
             if not pid:
                 res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
                 pid = res['product_id'] if res else None
+            
             if pid:
                 storeDb.execute('''
-                INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
-                VALUES (?, ?, 1, ?)
+                    INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
+                    VALUES (?, ?, 1, ?)
                 ''', (order_id, pid, item['product_price']))
 
-        # Loylaty logic if user exists
-        points_earned = 0
-        total_points = None
+        # 8. Calculate and Add Points Earned from THIS purchase
+        # Points are usually earned on the subtotal AFTER discounts
+        points_earned = int(subtotal // 10) 
+        total_points_final = current_points # Default if guest
+        
         if user_id:
-            points_earned = int(subtotal/10) #* change to a point per 10$ instead of per dollar
-            # customer = storeDb.execute('SELECT customer_id FROM customers WHERE user_id = ?', (user_id,)).fetchone()
-            total_points = int (current_points + points_earned)
-            int_user_id = int (user_id)
-            storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points, int_user_id))
-            storeDb.commit()
-            print(f"User with email {customer_email} had {current_points} and earned {points_earned} points from subtotal of {subtotal}. Total points: {total_points}")
-            # if customer:
-            # cid = int (customer['customer_id'])
-            # storeDb.execute('''
-            # UPDATE customer_loyalty
-            # SET loyalty_points = loyalty_points + ?, loyalty_updated_at = CURRENT_TIMESTAMP
-            # WHERE customer_id = ?
-            # ''', (points_earned, cid))
-            # storeDb.execute('''
-            # INSERT INTO loyalty_transactions (customer_id, transaction_type, transaction_points, transaction_description)
-            # VALUES (?, 'EARN', ?, ?)
-            # ''', (cid, points_earned, f"Points earned from Order #{order_id}"))
+            total_points_final = current_points + points_earned
+            storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points_final, user_id))
+            print(f"DEBUG: User earned {points_earned}. New Balance: {total_points_final}")
 
         storeDb.commit()
 
-        # send email receipt
+        # 9. Prepare and Send Receipt
         receipt_data = {
-        'discount' : discount_applied,
-        'items': all_items,
-        'total': total,
-        'subtotal': subtotal,
-        'gst': gst,
-        'qst': qst,
-        'timestamp': session.get('cart_timestamp', 'N/A'),
-        'purchase_points': round(subtotal/10, 2)
+            'discount' : discount_applied_msg,
+            'items': all_items,
+            'total': total,
+            'subtotal': subtotal,
+            'gst': gst,
+            'qst': qst,
+            'timestamp': session.get('cart_timestamp', 'N/A'),
+            'purchase_points': points_earned, # MUST be 'purchase_points' to match your Class
+            'total_points': total_points_final      # This matches your if/else in the Class
         }
-        if loyalty_card:
-            print("loyalty card check box checked")
-            receipt_data['total_points'] = total_points
-        else:
-            receipt_data['total_points'] = None
-        print("Reaches here before sending email")
 
-        print("Receipt data:", receipt_data)
+        # Send via your Email Service
         receipt_sender = EmailAlertSystem(
-        sender_email="taliamuro3@gmail.com",
-        password="hapc ypha dcwh ewbc",
-        receiver_email=customer_email
+            sender_email="taliamuro3@gmail.com",
+            password="hapc ypha dcwh ewbc", # Note: Usually better in environment variables!
+            receiver_email=customer_email
         )
-        print(receipt_sender.receiver_email)
         receipt_sender.send_receipt_email(customer_email, receipt_data)
-        # Clear session
+
+        # 10. Clean up Session
         session.pop('cart_items', None)
         session.pop('manual_items', None)
+        session.pop('current_points', None)
         session.modified = True
-        message = "Success! Receipt sent."
-        if user_id:
-            message = f"Success! {points_earned} points added and receipt sent."
-        flash(message, "success")
+
+        flash(f"Success! Order #{order_id} complete. Receipt sent to {customer_email}", "success")
+
     except Exception as e:
         storeDb.rollback()
-        print(f"Checkout Database Error: {e}")
-        flash("Order completed, but there was an error updating your profile.", "warning")
+        print(f"CRITICAL ERROR during checkout: {e}")
+        flash("There was an error processing your order. Please contact staff.", "danger")
     finally:
         storeDb.close()
 
     return redirect(url_for('store.storeIndex'))
 
+@app.route('/api/check-loyalty/<email>') 
+def check_loyalty(email):
+    try:
+        storeDb = db.getDB()
+        # Use .fetchone() so we get a dictionary-like object
+        user = storeDb.execute('SELECT user_loyalty_points FROM users WHERE user_email = ?', (email,)).fetchone()
+        storeDb.close()
+        
+        if user:
+            # Safely handle None values for points
+            pts = user['user_loyalty_points'] if user['user_loyalty_points'] is not None else 0
+            return jsonify({
+                "exists": True, 
+                "points": pts, 
+                "eligible": pts >= 50
+            })
+        
+        return jsonify({"exists": False})
+    except Exception as e:
+        print(f"LOYALTY ERROR: {e}")
+        return jsonify({"exists": False, "error": str(e)}), 500
 # -----------------------------
 # RFID ROUTES
 # -----------------------------

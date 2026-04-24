@@ -2,6 +2,66 @@
 
 {% block content %}
 
+<style>
+    /* Layout */
+.checkout-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 30px;
+    align-items: start;
+}
+
+/* Scanned Items Card */
+.order-summary {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid #dee2e6;
+}
+
+.summary-items {
+    list-style: none;
+    padding: 0;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+/* Remove Button Styling */
+.btn-remove {
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 10px;
+    line-height: 1;
+}
+
+/* Loyalty & Payment Section */
+.checkout-form {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.loyalty-box {
+    background: #e7f3ff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+</style>
+
 <div id="notifications-container"></div>
 
 <input type="text" id="barcode-gate" style="position: absolute; opacity: 0; pointer-events: none;">
@@ -75,6 +135,10 @@
                 <strong>Total:</strong>
                 <strong>${{ "%.2f"|format(total) }}</strong>
             </div>
+            <div class="total-row" id="discount-row" style="display: none; color: #d9534f;">
+                <span>Loyalty Discount:</span>
+                <span id="summary-discount-amount">-$5.00</span>
+            </div>
         </div>
     </div>
 
@@ -84,15 +148,29 @@
 
     <h2>Customer Confirmation</h2>
 
-    <label for="loyalty points">
-      <input
-      type="checkbox"
-      name="loyalty_points"
-      id="loyalty_points"
-      value="true"
-      />
-      I have a loyalty card
-    </label>
+    <div class="loyalty-box">
+        <h3><i class="fas fa-star"></i> Loyalty Program</h3>
+        <div class="input-group mb-2">
+            <input type="email" name="email" id="loyalty-email-input" 
+                class="form-control" placeholder="Enter email for points">
+            <button class="btn btn-outline-secondary" type="button" id="btn-verify-points">
+                Verify
+            </button>
+        </div>
+        
+        <div id="discount-offer" style="display: none;" class="alert alert-info mt-2">
+            <p>You have <span id="user-points-display">0</span> points!</p>
+            <div id="eligible-claim" style="display: none;">
+                <label class="d-flex align-items-center">
+                    <input type="checkbox" name="use_discount" id="use-discount-checkbox" value="true" class="me-2"> 
+                    <strong>Redeem 50 points for a $5.00 discount?</strong>
+                </label>
+            </div>
+            <div id="not-eligible-msg" style="display: none;" class="small text-muted">
+                (You need 50 points to redeem a discount)
+            </div>
+        </div>
+    </div>
 
 
     <label>
@@ -281,6 +359,65 @@
             console.error("Error communicating with server:", err);
         }
     }
+
+    document.getElementById('btn-verify-points').addEventListener('click', async () => {
+        const emailInput = document.getElementById('loyalty-email-input');
+        const email = emailInput.value.trim();
+
+        try {
+            const response = await fetch(`/api/check-loyalty/${encodeURIComponent(email)}`);
+            
+            // This check prevents the "Unexpected character" error
+            if (!response.ok) {
+                console.error("Server returned non-JSON response. Status:", response.status);
+                alert("Could not reach the loyalty server. Please check your connection.");
+                return;
+            }
+
+            const data = await response.json();
+            
+            if (data.exists) {
+                document.getElementById('discount-offer').style.display = 'block';
+                document.getElementById('user-points-display').innerText = data.points;
+                
+                // Show/Hide the discount checkbox based on eligibility
+                const claimDiv = document.getElementById('eligible-claim');
+                const lowPointsDiv = document.getElementById('not-eligible-msg');
+                
+                if (data.eligible) {
+                    claimDiv.style.display = 'block';
+                    lowPointsDiv.style.display = 'none';
+                } else {
+                    claimDiv.style.display = 'none';
+                    lowPointsDiv.style.display = 'block';
+                }
+            } else {
+                alert("Loyalty account not found for this email.");
+            }
+        } catch (err) {
+            console.error("Fetch error:", err);
+        }
+    });
+
+    const discountCheckbox = document.getElementById('use-discount-checkbox');
+    const discountRow = document.getElementById('discount-row');
+    const finalTotalDisplay = document.querySelector('.final-total strong:last-child');
+
+    // Store the original total from Jinja so we can go back and forth
+    let originalTotal = parseFloat("{{ total }}");
+
+    discountCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Show the discount row and subtract 5
+            discountRow.style.display = 'flex';
+            let newTotal = originalTotal - 5.00;
+            finalTotalDisplay.innerText = `$${newTotal.toFixed(2)}`;
+        } else {
+            // Hide discount and reset to original
+            discountRow.style.display = 'none';
+            finalTotalDisplay.innerText = `$${originalTotal.toFixed(2)}`;
+        }
+    });
 
 </script>
 
