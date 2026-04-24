@@ -12,6 +12,7 @@ from models import customers, users
 from services import email_service
 from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
+from services.hardware import hardware_status
 
 # Blueprint Setup
 app = Blueprint('store', __name__)
