@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block content %}
+<body>
+
+<div class="container">
+    <h2 class="text-center mb-4">Fridge Temperature Monitoring</h2>
+    <div id="notif-log" class="card shadow-sm p-4">
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow p-4">
+                <h4 class="text-center mb-2">Refrigerator 1</h4>
+                <center>
+                    <div class="gauge-box">
+                        <canvas id="temp1"></canvas>
+                        <canvas id="hum1"></canvas>
+                    </div>
+                </center>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow p-4">
+                <h4 class="text-center mb-2">Refrigerator 2</h4>
+                <center>
+                    <div class="gauge-box">
+                        <canvas id="temp2"></canvas>
+                        <canvas id="hum2"></canvas>
+                    </div>
+                </center>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm p-4">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <svg id="fanIcon" width="50" height="50" viewBox="0 0 1024 1024" fill="#0d6efd">
+                    <path d="M793.6 552.448c16.896 4.608 30.208 9.216 40.96 14.848V558.08c0-121.856-68.608-227.84-169.984-281.088-0.512 11.776-3.072 26.112-7.68 42.496 80.384 47.104 134.656 133.632 136.704 232.96zM517.12 558.08m-87.04 0a87.04 87.04 0 1 0 174.08 0 87.04 87.04 0 1 0-174.08 0Z"></path>
+                    <path d="M761.344 856.064c-26.112 0-52.224-6.656-76.288-20.48-39.424-22.528-96.768-94.208-171.008-213.504-74.24 118.784-131.584 190.976-171.008 213.504-73.216 42.496-167.424 16.896-209.92-56.32-20.48-35.328-26.112-76.8-15.36-116.736 10.752-39.424 35.84-72.704 71.68-93.184 38.4-22.016 125.44-35.84 259.072-40.96h9.728l-4.608-9.728C390.144 399.36 357.888 315.904 357.888 271.36c0-84.48 69.12-153.6 153.6-153.6s153.6 69.12 153.6 153.6c0 44.032-31.744 126.976-94.72 245.76l-5.12 11.264 13.824 0.512c133.632 5.12 221.184 18.944 259.072 40.96 73.216 42.496 98.816 136.704 56.32 209.92-28.16 49.152-79.872 76.288-133.12 76.288z"></path>
+                </svg>
+                <b class="ms-2">Fan</b>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="fanToggle" style="transform: scale(1.5);">
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- <div class="mt-4 p-3 bg-white shadow-sm rounded text-center">
+    <h5>Live Debug Data</h5>
+    Frig 1: <span id="raw-t1">--</span>°C / <span id="raw-h1">--</span>% | 
+    Frig 2: <span id="raw-t2">--</span>°C / <span id="raw-h2">--</span>%
+</div> -->
+
+<script>
+    let myGauges = {};
+
+    // 1. Manually create the gauges
+    function createGauges() {
+        const common = {
+            width: 180,
+            height: 180,
+            minValue: 0,
+            animationDuration: 1500,
+            animationRule: "linear"
+        };
+
+        myGauges['temp1'] = new RadialGauge({ ...common, renderTo: 'temp1', title: 'Temp 1', maxValue: 50, units: '°C' }).draw();
+        myGauges['hum1'] = new RadialGauge({ ...common, renderTo: 'hum1', title: 'Hum 1', maxValue: 100, units: '%' }).draw();
+        myGauges['temp2'] = new RadialGauge({ ...common, renderTo: 'temp2', title: 'Temp 2', maxValue: 50, units: '°C' }).draw();
+        myGauges['hum2'] = new RadialGauge({ ...common, renderTo: 'hum2', title: 'Hum 2', maxValue: 100, units: '%' }).draw();
+        
+        console.log("Gauges manually created!");
+    }
+
+    function refresh() {
+    // Dynamically find the API URL to prevent NetworkErrors
+    const url = window.location.origin + '/api/temp-data';
+
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error('Server not responding');
+            return res.json();
+        })
+        .then(data => {
+            console.log("Hardware Update Received:", data);
+
+            // 1. DATA MAPPING WITH SAFETY FALLBACKS
+            const gaugeMap = {
+                'temp1': (data.frig1 && data.frig1.temp !== undefined) ? data.frig1.temp : 0,
+                'hum1':  (data.frig1 && data.frig1.hum !== undefined) ? data.frig1.hum : 0,
+                'temp2': (data.frig2 && data.frig2.temp !== undefined) ? data.frig2.temp : 0,
+                'hum2':  (data.frig2 && data.frig2.hum !== undefined) ? data.frig2.hum : 0
+            };
+
+            // 2. FORCE GAUGE UPDATE (Manual Reference Method)
+            if (document.gauges && document.gauges.length > 0) {
+                Object.keys(gaugeMap).forEach(id => {
+                    const gauge = document.gauges.find(g => g.options.renderTo === id);
+                    if (gauge) {
+                        gauge.value = parseFloat(gaugeMap[id]);
+                        gauge.update(); 
+                    }
+                });
+            }
+
+            // 3. UPDATE DEBUG LABELS
+            const updateLabel = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = val;
+            };
+            updateLabel('raw-t1', gaugeMap['temp1']);
+            updateLabel('raw-h1', gaugeMap['hum1']);
+            updateLabel('raw-t2', gaugeMap['temp2']);
+            updateLabel('raw-h2', gaugeMap['hum2']);
+
+            // 4. FAN & UI SYNCHRONIZATION (The Fix for the Toggle)
+            const icon = document.getElementById('fanIcon');
+            const toggle = document.getElementById('fanToggle');
+            
+            if (data.fan_on) {
+                // If hardware is ON, make icon spin and flip switch to ON
+                if (icon) icon.classList.add('spinning');
+                if (toggle) toggle.checked = true;
+            } else {
+                // If hardware is OFF, stop icon and flip switch to OFF
+                if (icon) icon.classList.remove('spinning');
+                if (toggle) toggle.checked = false;
+            }
+
+            // 5. NOTIFICATION LOG
+            if (data.last_alert) {
+                const log = document.getElementById('notif-log');
+                if (log && !log.innerHTML.includes(data.last_alert)) {
+                    const time = new Date().toLocaleTimeString();
+                    log.innerHTML = `<div class="p-1 small text-danger"><b>[${time}]</b> ${data.last_alert}</div>` + log.innerHTML;
+                }
+            }
+        })
+        .catch(err => {
+            console.error("Refresh Loop Failed:", err);
+            const debugEl = document.getElementById('raw-t1');
+            if (debugEl) debugEl.innerText = "OFFLINE";
+        });
+    }
+
+    // Startup
+    window.addEventListener('load', function() {
+        createGauges(); // Create them immediately
+        refresh();      // Get first data
+        setInterval(refresh, 2000); // Repeat
+    });
+
+    // Fan Toggle
+    document.getElementById('fanToggle').onchange = function() {
+        fetch('api/fan/' + (this.checked ? 'on' : 'off'));
+    };
+</script>
+</body>
+</html>
+{% endblock %}

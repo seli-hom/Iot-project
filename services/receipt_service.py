@@ -31,20 +31,32 @@ class EmailAlertSystem:
     def check_for_yes(self):
         try:
             mail = imaplib.IMAP4_SSL("imap.gmail.com")
-            # Login to inbox to check for reply
             mail.login(self.sender_email, self.password)
             mail.select("inbox")
-            # Look for unseen messages from sender email
+            
             status, messages = mail.search(None, 'UNSEEN')
             for num in messages[0].split():
                 _, data = mail.fetch(num, "(RFC822)")
                 msg = email.message_from_bytes(data[0][1])
-                content = msg.get_payload(decode=True).decode().lower() if not msg.is_multipart() else ""
+                
+                content = ""
+                if msg.is_multipart():
+                    # Loop through the email parts to find the text body
+                    for part in msg.walk():
+                        if part.get_content_type() == "text/plain":
+                            content = part.get_payload(decode=True).decode().lower()
+                            break
+                else:
+                    content = msg.get_payload(decode=True).decode().lower()
+
                 if "yes" in content:
-                    self.waiting_for_reply = False
+                    print("DEBUG: Found YES in email body!")
+                    self.waiting_for_reply = False # Stop looking
+                    mail.logout()
                     return True
             mail.logout()
-        except: pass
+        except Exception as e: 
+            print(f"IMAP Error: {e}")
         return False
     
 
@@ -72,7 +84,6 @@ class EmailAlertSystem:
 
         {receipt_data['discount']}
 
-        ---------------------------------
         Subtotal: ${receipt_data['subtotal']:.2f}
         GST (5%): ${receipt_data['gst']:.2f}
         QST (9.975%): ${receipt_data['qst']:.2f}
