@@ -61,8 +61,6 @@
 }
 </style>
 
-<div id="notifications-container"></div>
-
 <input
   type="text"
   id="barcode-gate"
@@ -215,27 +213,6 @@
 </div>
 
 <script>
-  // NOTIFICATION LOADING
-  async function loadNotifications() {
-    const container = document.getElementById("notifications-container");
-    if (!container) return;
-
-    try {
-      const response = await fetch("/api/notifications");
-      if (!response.ok) return;
-      const data = await response.json();
-
-      container.innerHTML = data.map(n => `
-            <div class="notif-item">
-                <strong>${n.notif_title}</strong>
-                <p>${n.notif_msg_summary}</p>
-            </div>
-        `).join("");
-    } catch (err) {
-      console.debug("Notifications not available.");
-    }
-  }
-
   // BARCODE & FOCUS LOGIC
   const gate = document.getElementById("barcode-gate");
 
