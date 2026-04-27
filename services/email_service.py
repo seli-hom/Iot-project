@@ -221,3 +221,16 @@ def fetch_store_emails():
     except Exception as e:
         print("Error fetching emails:", e)
     return emails
+
+
+def customer_count_alert(count):
+    send_email(
+        "Store Occupancy Alert",
+        f"Current Bluetooth device count: {count}",
+        f"""
+        <b>Store Occupancy Alert</b><br><br>
+        Current Bluetooth device count: <b>{count}</b><br><br>
+        Please take necessary actions to ensure safety and comfort.
+        """,
+        roles=["admin", "employee"]
+    )

@@ -8,6 +8,7 @@ from services import CheckoutManager
 from services.background_tasks import start_mqtt, start_email_checker
 import os
 from services.receipt_service import EmailAlertSystem
+from scripts import Bluetooth
 
 db.init_db()
 
@@ -40,6 +41,6 @@ if __name__ == '__main__':
     # Pass the instance to the background tasks
     start_mqtt("127.0.0.1", mail_manager)
     start_email_checker(mail_manager)
-
+    Bluetooth.count_people_in_store()
     app.run(debug=True, host= '0.0.0.0', port=5000, threaded=True, use_reloader=False)
     # app.run(debug=True, host= '0.0.0.0', port=5001)
