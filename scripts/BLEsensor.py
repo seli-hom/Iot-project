@@ -1,35 +1,33 @@
-import asyncio
-from bleak import BleakClient
+import requests
 from services import email_service
 
-# Configuration
-DEVICE_ADDRESS = "XX:XX:XX:XX:XX:XX"
-CHARACTERISTIC_UUID = "your-uuid-here"
-CHECK_INTERVAL = 10  # Seconds between reads
-latest_value = None
-
-async def read_at_intervals():
-    global latest_value
+response = requests.get('http://localhost:3001/context/device/c30000455da8/3')
+devices = response.json()
     
-    async with BleakClient(DEVICE_ADDRESS) as client:
-        while True:
-            if client.is_connected:
-                # 1. Read the raw bytes
-                raw_data = await client.read_gatt_char(CHARACTERISTIC_UUID)
-                
-                # 2. Store in your variable (adjust conversion as needed)
-                latest_value = float(raw_data.decode('utf-8'))
-                
-                # 3. Perform your threshold check here
-                if latest_value > 22:
-                    print(f"Threshold exceeded: {latest_value}")
-                    email_service.send_fan_toggle_email(latest_value)
-                    # Trigger your email/alert logic here
-                
-                print(f"Logged value: {latest_value}")
-                
-            # 4. Wait for the next interval
-            await asyncio.sleep(CHECK_INTERVAL)
 
-# To run it:
-# asyncio.run(read_at_intervals())
+def temperature_humidity():
+    # Ask Pareto Anywhere for the current list of devices it sees
+    print(devices)
+    temperature = devices['temperature']
+    temperature = round(temperature, 2)
+    humidity = devices['humidity']
+    humidity = round(humidity, 2)
+    temperature_humidity = [
+        {"temperature": temperature},
+        {"humidity": humidity}
+    ]
+    return ltemperature_humidity
+
+def PIR():
+    # Ask Pareto Anywhere for the current list of devices it sees
+    print(devices)
+    PIR = devices['PIR']
+    print("Motion detected:", PIR)
+    return PIR
+
+def photo_sensor():
+    # Ask Pareto Anywhere for the current list of devices it sees
+    print(devices)
+    photo_sensor = devices['light']
+    print("Light level:", photo_sensor)
+    return photo_sensor
