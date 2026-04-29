@@ -961,11 +961,32 @@ def set_fan(state):
 @app.route('/ble-scan')
 def ble_scan():
     from scripts import BLEsensor
-    ht = BLEsensor.temperature_humidity
-    humidity = ht["humidity"]
-    temperature = ht["temperature"]
-    ps = BLEsensor.photo_sensor()()
-    motion = BLEsensor.pir()
-    return jsonify({"PS": ps, "HT": {"temperature": temperature, "humidity": humidity}, "PIR": motion})
+    import logging
 
+# This silences the specific logger for Werkzeug (Flask's server)
+    # log = logging.getLogger('werkzeug')
+    # log.setLevel(logging.ERROR)
+    data = BLEsensor.get_data()
+    print(data)
+    # Extract values for the response
+    ht = data["HT"]
+    ps = data["light"]
+    batteryState = data["batteryState"]
+    
+    # Fix the PIR list issue here
+    motion = data["motion"]
+    if isinstance(motion, list):
+        motion = motion[0]
+
+    
+    return jsonify({
+        "PS": ps, 
+        "HT": {"temperature": ht["temperature"], "humidity": ht["humidity"]}, 
+        "PIR": motion, 
+        "batteryState": batteryState
+    })
+    
+@app.route('/ble-scan-view')
+def ble_scan_view():
+    return render_template('BLESensorData.html')
 
