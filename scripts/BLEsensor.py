@@ -18,7 +18,7 @@ def temperature_humidity():
     ]
     return ltemperature_humidity
 
-def PIR():
+def pir():
     # Ask Pareto Anywhere for the current list of devices it sees
     print(devices)
     PIR = devices['PIR']

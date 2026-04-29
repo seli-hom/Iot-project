@@ -956,3 +956,16 @@ def set_fan(state):
     
     # Return the new state so the dashboard stays in sync
     return {"status": "success", "fan_on": hardware_status["fan_on"]}
+
+# BLE sensor data reading route
+@app.route('/ble-scan')
+def ble_scan():
+    from scripts import BLEsensor
+    ht = BLEsensor.temperature_humidity
+    humidity = ht["humidity"]
+    temperature = ht["temperature"]
+    ps = BLEsensor.photo_sensor()()
+    motion = BLEsensor.pir()
+    return jsonify({"PS": ps, "HT": {"temperature": temperature, "humidity": humidity}, "PIR": motion})
+
+
