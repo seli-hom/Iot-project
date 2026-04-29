@@ -185,8 +185,58 @@ def logout():
     session.clear()
     return redirect(url_for('store.storeIndex'))
 
+<<<<<<< Updated upstream
 @app.route('/fan/<int:id>', methods=['POST'])
 def toggle_fan(id):
+=======
+@app.route('/admin-dashboard/orders')
+def customerOrders():   
+    storeDb = db.getDB() 
+    orders = storeDb.execute('''SELECT  SUM(order_total) as total,DATE(order_created_at) as date, op.* FROM orders o
+        LEFT JOIN order_products op  on op.order_id = o.order_id
+        GROUP BY DATE(order_created_at)
+     ORDER BY o.order_created_at DESC''').fetchall()
+    return render_template("CustomerOrders.html", orders=orders) 
+
+
+@app.route('/admin-dashboard/report/<int:id>')
+def orderDetails(id):   
+    storeDb = db.getDB() 
+    orders = storeDb.execute('''SELECT * FROM orders where user_id = ?''', (id,)).fetchall()
+    return render_template("OrderDetails.html",  orders=orders) 
+
+@app.route('/admin-dashboard/orders/<string:date>')
+def orderData(date):   
+    storeDb = db.getDB() 
+    orders = storeDb.execute('''SELECT * FROM orders where DATE(order_created_at) = ?''', (date,)).fetchall()
+    json_data = json.dumps( [dict(ix) for ix in orders] )
+    
+    return  json_data
+
+
+@app.route('/admin-dashboard/orders/<int:id>')
+def orderClientData(id):   
+    storeDb = db.getDB() 
+    orders = storeDb.execute('''SELECT * FROM orders WHERE user_id = ?''', (id,)).fetchall()
+    json_data = json.dumps( [dict(ix) for ix in orders] )
+    
+    return  json_data
+
+
+@app.route('/admin-dashboard/orders/<string:date>/download')
+def downloadReport(date):   
+    storeDb = db.getDB() 
+    orders = storeDb.execute('''SELECT * FROM orders where DATE(order_created_at) = ?''', (date,)).fetchall()
+    with open("reports/"+date+".csv", 'w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(orders)
+    return redirect(url_for('store.customerOrders'))
+# -----------------------------
+# FAN / THRESHOLD ROUTES
+# -----------------------------
+@app.route('/fan', methods=['POST'])
+def toggle_fan():
+>>>>>>> Stashed changes
     data = request.get_json()
     state = data.get("state")  
 
