@@ -46,7 +46,7 @@
       sold.push(data[index]["quantity_sold"]);
     }
     console.log(sold)
-        console.log( myChart.data.datasets[0].data);
+    
     myChart.data.datasets[0].data = sold;
     myChart.data.label = names;
     myChart.update();
@@ -64,6 +64,7 @@
         }
           
       
+    
        
         TableBody.innerHTML= html
   }

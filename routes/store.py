@@ -180,18 +180,15 @@ def productAdd():
 
     storeDb = db.getDB()
     product = storeDb.execute('''
-                INSERT INTO products (product_name, category_id, product_price, product_company, product_description)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description']))
+                INSERT INTO products (product_name, category_id, product_price, product_company, product_description,product_stock_quantity)
+                VALUES (?, ?, ?, ?, ?,?)
+            ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],request.form['stock']))
     
     storeDb.execute('''
                 INSERT INTO product_barcode (product_id, barcode_num)
                 VALUES (?, ?)
             ''', (product.lastrowid, request.form['product_barcode']))
-    storeDb.execute('''
-                INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
-                VALUES (?, ?, ?)
-            ''', (product.lastrowid, request.form['product_rfid'],'ACTIVE'))
+
     storeDb.commit()
     return redirect(url_for('store.productsList'))
 
