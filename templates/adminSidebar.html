@@ -14,6 +14,40 @@
       <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.adminDashboard') }}#db-overview-section">Database Overview</a>
             <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.productsList') }}">Products</a>
             <a class="nav-link px-2 py-1 rounded" href="{{ url_for('store.customerOrders') }}">Customer Orders</a>
+             <button
+        class="btn btn-toggle align-items-center rounded collapsed"
+        data-bs-toggle="collapse"
+        data-bs-target="#dashboard-collapse"
+        aria-expanded="false"
+        style="text-align: left"
+      >
+        Reports
+      </button>
+      <div class="collapse" id="dashboard-collapse">
+        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ms-4">
+          <li>
+            <a
+              href="{{ url_for('store.reportCustomers') }}"
+              class="nav-link rounded"
+              >Customers</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('store.reportInventory') }}"
+              class="nav-link rounded"
+              >Inventory</a
+            >
+          </li>
+          <li>
+            <a
+              href="{{ url_for('store.reportSales') }}"
+              class="nav-link rounded"
+              >Sales</a
+            >
+          </li>
+        </ul>
+        </div>
 
       <br>
       <br>

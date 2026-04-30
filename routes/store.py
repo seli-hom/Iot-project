@@ -1,6 +1,7 @@
 from flask import render_template, request, Blueprint, session, redirect, url_for, flash, jsonify
 import bcrypt
-
+import json
+import datetime
 # Models & Database
 from models import database as db
 from models import customers, users
@@ -578,6 +579,94 @@ def adminDeleteUser(user_id):
     flash("User deleted successfully.", "success")
     return redirect(url_for('store.adminDashboard'))
 
+@app.route('/admin-dashboard/reports/customers')
+def reportCustomers():   
+    storeDb = db.getDB() 
+    date = datetime.datetime.today() -  datetime.timedelta(weeks=1)
+    new_customer = storeDb.execute('''SELECT users.*, COUNT(users.user_id) as customers FROM users where user_role = 'customer' AND DATE(user_created_at) >  ?''',(date.date(),)).fetchone()
+    all_customers = storeDb.execute('''SELECT users.*, COUNT(users.user_id) as customers FROM users where user_role = 'customer' ''').fetchone()
+    old_customers = new_customer = storeDb.execute('''SELECT users.*, COUNT(users.user_id) as customers FROM users where user_role = 'customer' AND DATE(user_created_at) <  ?''',(date.date(),)).fetchone()
+    return render_template("customerReport.html",new_customers=new_customer,all_customers=all_customers,old_customers=old_customers) 
+
+@app.route('/admin-dashboard/reports/customers/fetch')
+def reportCustomersFetch():   
+    storeDb = db.getDB() 
+    date = request.args.get('start')
+    date = request.args.get('end')
+    query = '''
+    SELECT  COUNT(u.user_id) as customers,  String_agg(Date(o.order_created_at),' / ') as order_days FROM users u
+	LEFT JOIN orders o on o.user_id = u.user_id WHERE 1=1 '''
+    params = []
+    if request.args.get('start') is not None:
+        query = query +' AND DATE(o.order_created_at) > ?'
+        params.append(request.args.get('start'))
+    if request.args.get('end') is not None:
+        params.append(request.args.get('end'))
+        query = query + ' AND DATE(o.order_created_at) < ?'
+
+    query = query + ' GROUP BY u.user_id'
+    customers = storeDb.execute(query,params).fetchall()
+
+    json_data = json.dumps( [dict(ix) for ix in customers] )
+    if(customers.__sizeof__() < 50):
+        json_data = '[{"customers": 0}]'
+    
+    return json_data
+
+@app.route('/admin-dashboard/reports/inventory')
+def reportInventory():   
+    storeDb = db.getDB() 
+    products = storeDb.execute('''
+        SELECT p.*, c.category_type
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+    ''').fetchall()
+
+    return render_template("inventoryReport.html",products=products ) 
+
+@app.route('/admin-dashboard/reports/inventory/fetch')
+def reportInventoryFetch():   
+    storeDb = db.getDB() 
+    products = storeDb.execute('''
+        SELECT p.*, c.category_type
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+    ''').fetchall()
+    json_data = json.dumps( [dict(ix) for ix in products] )
+    return json_data
+
+@app.route('/admin-dashboard/reports/sales')
+def reportSales():   
+    storeDb = db.getDB() 
+    products = storeDb.execute('''
+       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold  FROM orders o
+ LEFT JOIN order_products op on o.order_id = op.order_id
+ LEFT JOIN products p on op.product_id = p.product_id
+GROUP BY p.product_id
+    ''').fetchall()
+    return render_template("salesReport.html", products=products ) 
+
+@app.route('/admin-dashboard/reports/sales/fetch')
+def reportSalesFetch():   
+
+    storeDb = db.getDB() 
+    params= []
+    query = '''
+       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold  FROM orders o
+     LEFT JOIN order_products op on o.order_id = op.order_id
+     LEFT JOIN products p on op.product_id = p.product_id WHERE 1=1
+    '''
+    print(request.args.get('start'))
+    if request.args.get('start') is not None:
+        query = query +' AND DATE(o.order_created_at) > ?'
+        params.append(request.args.get('start'))
+    if request.args.get('end') is not None:
+        params.append(request.args.get('end'))
+        query = query + ' AND DATE(o.order_created_at) < ?'
+    query = query + 'GROUP BY p.product_id Order BY quantity_sold'
+    products = storeDb.execute(query,params).fetchall()
+    json_data = json.dumps( [dict(ix) for ix in products] )
+    return json_data
 
 # -----------------------------
 # PRODUCTS / CART / CHECKOUT
