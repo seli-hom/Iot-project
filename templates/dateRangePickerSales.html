@@ -1,0 +1,71 @@
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"
+></script>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"
+/>
+
+<div class="col-md-4 mb-4">
+  <input class="form-control" type="text" name="daterange" />
+</div>
+<script>
+  $(function () {
+    $('input[name="daterange"]').daterangepicker(
+      {
+        opens: "left",
+      },
+      function (start, end, label) {
+        createCanvasDate(start.format("YYYY-MM-DD"), end.format("YYYY-MM-DD"));
+      },
+    );
+  });
+
+  async function createCanvasDate(start, end) {
+    console.log(start);
+    data = await fetch(
+      `http://127.0.0.1:5000/admin-dashboard/reports/sales/fetch?start=${start}&end=${end}`,
+    ).then((response) => {
+      return response.json();
+    });
+    let names = [];
+    let sold = [];
+    console.log(myChart.data.datasets);
+    for (let index = 0; index < data.length; index++) {
+      names.push(data[index]["product_name"]);
+      sold.push(data[index]["quantity_sold"]);
+    }
+    console.log(sold)
+        console.log( myChart.data.datasets[0].data);
+    myChart.data.datasets[0].data = sold;
+    myChart.data.label = names;
+    myChart.update();
+    console.log( myChart.data.datasets[0].data);
+        let TableBody = document.getElementById('tableBody');
+        TableBody.innerHTML= `
+        `
+        let html =``
+        for (let index = 0; index < data.length; index++) {
+          html +=`<tr> 
+          
+              <td>${data[index]['product_name']?? 'None'}</td>
+            <td>${data[index]['quantity_sold']?? 0}</td>`
+           html += `</tr>`
+        }
+          
+      
+       
+        TableBody.innerHTML= html
+  }
+  createCanvas();
+</script>

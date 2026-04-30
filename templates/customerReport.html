@@ -1,0 +1,75 @@
+{% extends "base.html" %} {% block content %}
+<div class="container my-4">
+  <h2 class="mb-4">Customer Report</h2>
+
+  <!-- SIDEBAR -->
+  {% include "adminSidebar.html" with context %}
+  <div class="card shadow-sm">
+    <div class="card-body p-3">
+      {% include "dateRangePickerCustomer.html" with context %}
+      <table class="table table-striped table-hover mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>All Customers</th>
+            <th>New Customers</th>
+            <th>Returning Customers</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr>
+            <td>{{ all_customers.customers }}</td>
+            <td>{{ new_customers.customers }}</td>
+            <td>{{ old_customers.customers }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="height: 400px; width: 600px">
+        <canvas id="chart"> </canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="
+https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
+"></script>
+
+<script>
+
+
+  let myChart = new Chart(
+    chart, // TypeScript needs "as any" here
+    {
+      type: "bar",
+      options: {
+        scales: {
+          y: {
+            min: 0,
+            max: 20,
+          },
+        },
+      },
+      data: {
+        labels: ['Customers'],
+        datasets: [
+          {
+            label: "Number Of Customers",
+            data: [{{all_customers.customers}}],
+          },
+        ],
+      },
+    },
+  );
+  chart.append(myChart);
+</script>
+<script>
+  $("#inline-picker")
+    .mobiscroll()
+    .datepicker({
+      controls: ["calendar"],
+      select: "range",
+      display: "inline",
+      touchUi: true,
+    });
+</script>
+{% endblock %}
