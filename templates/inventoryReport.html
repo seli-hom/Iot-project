@@ -13,6 +13,7 @@
             <th>Product Id</th>
             <th>Name</th>
             <th>Stock</th>
+            <th>Last Restocked</th>
           </tr>
         </thead>
         <tbody>
@@ -22,6 +23,7 @@
             <td>{{ product.product_id }}</td>
             <td>{{ product.product_name }}</td>
             <td>{{ product.product_stock_quantity }}</td>
+            <td>{{ product.last_restock }}</td>
           </tr>
           {% endfor %}
         </tbody>

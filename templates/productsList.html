@@ -16,6 +16,7 @@
             <th>RFID</th>
             <th>Barcode</th>
             <th>Company</th>
+            <th>Stock</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -26,7 +27,7 @@
             <td>{{ product.product_name }}</td>
             <td>{{ product.product_price }} $</td>
             <td>
-              {% if  product.rfid_tag ==none %}
+              {% if product.rfid_tag ==none %}
               <div>No RFID Tags found.</div>
               {% else %} {% for tag in product.rfid_tag.split('/')%}
               <div>{{tag}}</div>
@@ -41,6 +42,8 @@
 
             <td>{{ product.barcode_num }}</td>
             <td>{{ product.product_company }}</td>
+
+            <td>{{ product.product_stock_quantity }}</td>
             <td>
               <a
                 href="{{ url_for('store.productUpdate', product_id=product.product_id) }}"

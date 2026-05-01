@@ -122,17 +122,24 @@ def productUpdate(product_id):
     if request.method == 'POST':
         storeDb = db.getDB()
         storeDb.execute('''
-                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?
+                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?, product_stock_quantity = ?
                                 WHERE product_id = ?
-                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],product_id))        
+                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],request.form['product_stock'],product_id))        
         storeDb.execute('''
                     UPDATE product_barcode SET  barcode_num = ?
                         WHERE product_id = ?
                 ''', ( request.form['product_barcode'],product_id))
-        storeDb.execute('''
-                    UPDATE  product_rfid SET  rfid_tag = ?, rfid_status = ?
+        stock =  storeDb.execute('''
+                    SELECT product_stock_quantity FROM products
                         WHERE product_id = ?
-                ''', ( request.form['product_rfid'],'ACTIVE',product_id))
+                ''', (product_id,)).fetchone()
+        
+        if stock['product_stock_quantity'] != request.form['product_stock']:
+            storeDb.execute('''
+                        UPDATE products 
+                        SET product_updated_at = CURRENT_TIMESTAMP 
+                        WHERE product_id = ?;
+                    ''', (product_id,))
         
         storeDb.commit()
         return redirect(url_for('store.productsList'))
@@ -614,7 +621,7 @@ def reportCustomersFetch():
 def reportInventory():   
     storeDb = db.getDB() 
     products = storeDb.execute('''
-        SELECT p.*, c.category_type
+        SELECT p.*,DATE(p.product_updated_at) as last_restock, c.category_type
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
     ''').fetchall()
