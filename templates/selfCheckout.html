@@ -1,38 +1,37 @@
-{% extends "base.html" %} 
-{% block content %}
+{% extends "base.html" %} {% block content %}
 
 <style>
-    /* Layout */
-.checkout-grid {
+  /* Layout */
+  .checkout-grid {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
     gap: 30px;
     align-items: start;
-}
+  }
 
-/* Scanned Items Card */
-.order-summary {
+  /* Scanned Items Card */
+  .order-summary {
     background: #f8f9fa;
     padding: 25px;
     border-radius: 12px;
     border: 1px solid #dee2e6;
-}
+  }
 
-.summary-items {
+  .summary-items {
     list-style: none;
     padding: 0;
-}
+  }
 
-.summary-item {
+  .summary-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
     border-bottom: 1px solid #eee;
-}
+  }
 
-/* Remove Button Styling */
-.btn-remove {
+  /* Remove Button Styling */
+  .btn-remove {
     background: #ff4444;
     color: white;
     border: none;
@@ -43,22 +42,22 @@
     font-weight: bold;
     margin-left: 10px;
     line-height: 1;
-}
+  }
 
-/* Loyalty & Payment Section */
-.checkout-form {
+  /* Loyalty & Payment Section */
+  .checkout-form {
     background: white;
     padding: 25px;
     border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
 
-.loyalty-box {
+  .loyalty-box {
     background: #e7f3ff;
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 20px;
-}
+  }
 </style>
 
 <div id="notifications-container"></div>
@@ -72,138 +71,175 @@
 <div class="container checkout-page">
   <h1 class="mb-4">Self Checkout</h1>
 
-  {# 1. Initial Data Setup #}
-  {% set rfid_items = session.get('cart_items', []) %} 
-  {% set manual_items = session.get('manual_items', []) %} 
-  {% set all_items = rfid_items + manual_items %} 
-
-  {% if not all_items %}
-    <div class="empty-cart-msg">
-        <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
-    </div>
+  {# 1. Initial Data Setup #} {% set rfid_items = session.get('cart_items', [])
+  %} {% set manual_items = session.get('manual_items', []) %} {% set all_items =
+  rfid_items + manual_items %} {% if not all_items %}
+  <div class="empty-cart-msg">
+    <p>Your cart is empty. Scan items or use the barcode reader to begin.</p>
+  </div>
   {% else %}
 
   <div class="checkout-grid">
     <div class="order-summary">
       <h2>Scanned Items</h2>
 
-      {# 2. Calculate Totals #}
-      {% set subtotal = all_items | map(attribute='product_price') | sum %} 
-      {% set gst = subtotal * 0.05 %} 
-      {% set qst = subtotal * 0.09975 %} 
-      {% set total = subtotal + gst + qst %}
+      {# 2. Calculate Totals #} {% set subtotal = all_items |
+      map(attribute='product_price') | sum %} {% set gst = subtotal * 0.05 %} {%
+      set qst = subtotal * 0.09975 %} {% set total = subtotal + gst + qst %}
 
       <ul class="summary-items">
-        {% set rfid_count = rfid_items | length %} 
-        
-        {% for item in all_items %}
+        {% set rfid_count = rfid_items | length %} {% for item in all_items %}
         <li class="summary-item">
           <div class="item-info">
             <span>{{ item.product_name }}</span>
             <strong>${{ "%.2f"|format(item.product_price) }}</strong>
           </div>
 
-          {# Only manual items (barcode) get the remove button #} 
-          {% if loop.index0 >= rfid_count %} 
-            {% set manual_index = loop.index0 - rfid_count %}
-            <button
-              type="button"
-              onclick="removeItem('{{ manual_index }}')"
-              class="btn-remove"
-              title="Remove manual item"
-            >
-              &times;
-            </button>
+          {# Only manual items (barcode) get the remove button #} {% if
+          loop.index0 >= rfid_count %} {% set manual_index = loop.index0 -
+          rfid_count %}
+          <button
+            type="button"
+            onclick="removeItem('{{ manual_index }}')"
+            class="btn-remove"
+            title="Remove manual item"
+          >
+            &times;
+          </button>
           {% endif %}
         </li>
         {% endfor %}
       </ul>
 
-        <div class="summary-total">
-            <div class="total-row">
-                <span>Subtotal:</span>
-                <span>${{ "%.2f"|format(subtotal) }}</span>
-            </div>
-            <div class="total-row">
-                <span>GST (5%):</span>
-                <span>${{ "%.2f"|format(gst) }}</span>
-            </div>
-            <div class="total-row">
-                <span>QST (9.975%):</span>
-                <span>${{ "%.2f"|format(qst) }}</span>
-            </div>
-            <hr>
-            <div class="total-row final-total">
-                <strong>Total:</strong>
-                <strong>${{ "%.2f"|format(total) }}</strong>
-            </div>
-            <div class="total-row" id="discount-row" style="display: none; color: #d9534f;">
-                <span>Loyalty Discount:</span>
-                <span id="summary-discount-amount">-$5.00</span>
-            </div>
+      <div class="summary-total">
+        <div class="total-row">
+          <span>Subtotal:</span>
+          <span>${{ "%.2f"|format(subtotal) }}</span>
         </div>
+        <div class="total-row">
+          <span>GST (5%):</span>
+          <span>${{ "%.2f"|format(gst) }}</span>
+        </div>
+        <div class="total-row">
+          <span>QST (9.975%):</span>
+          <span>${{ "%.2f"|format(qst) }}</span>
+        </div>
+        <hr />
+        <div class="total-row final-total">
+          <strong>Total:</strong>
+          <strong>${{ "%.2f"|format(total) }}</strong>
+        </div>
+        <div
+          class="total-row"
+          id="discount-row"
+          style="display: none; color: #d9534f"
+        >
+          <span>Loyalty Discount:</span>
+          <span id="summary-discount-amount">-$5.00</span>
+        </div>
+      </div>
     </div>
 
     {# 3. Checkout Form #}
-    <form method="POST" action="{{ url_for('store.selfCheckoutSubmit') }}" class="checkout-form">
+    <form
+      method="POST"
+      action="{{ url_for('store.selfCheckoutSubmit') }}"
+      class="checkout-form"
+    >
       <h2>Customer Confirmation</h2>
 
-    <div class="loyalty-box">
+      <div class="loyalty-box">
         <h3><i class="fas fa-star"></i> Loyalty Program</h3>
         <div class="input-group mb-2">
-            <input type="email" name="email" id="loyalty-email-input" 
-                class="form-control" placeholder="Enter email for points">
-            <button class="btn btn-outline-secondary" type="button" id="btn-verify-points">
-                Verify
-            </button>
+          <input
+            type="email"
+            name="email"
+            id="loyalty-email-input"
+            class="form-control"
+            placeholder="Enter email for points"
+          />
+          <button
+            class="btn btn-outline-secondary"
+            type="button"
+            id="btn-verify-points"
+          >
+            Verify
+          </button>
         </div>
-        
-        <div id="discount-offer" style="display: none;" class="alert alert-info mt-2">
-            <p>You have <span id="user-points-display">0</span> points!</p>
-            <div id="eligible-claim" style="display: none;">
-                <label class="d-flex align-items-center">
-                    <input type="checkbox" name="use_discount" id="use-discount-checkbox" value="true" class="me-2"> 
-                    <strong>Redeem 50 points for a $5.00 discount?</strong>
-                </label>
-            </div>
-            <div id="not-eligible-msg" style="display: none;" class="small text-muted">
-                (You need 50 points to redeem a discount)
-            </div>
-        </div>
-    </div>
 
+        <div
+          id="discount-offer"
+          style="display: none"
+          class="alert alert-info mt-2"
+        >
+          <p>You have <span id="user-points-display">0</span> points!</p>
+          <div id="eligible-claim" style="display: none">
+            <label class="d-flex align-items-center">
+              <input
+                type="checkbox"
+                name="use_discount"
+                id="use-discount-checkbox"
+                value="true"
+                class="me-2"
+              />
+              <strong>Redeem 50 points for a $5.00 discount?</strong>
+            </label>
+          </div>
+          <div
+            id="not-eligible-msg"
+            style="display: none"
+            class="small text-muted"
+          >
+            (You need 50 points to redeem a discount)
+          </div>
+        </div>
+      </div>
 
       <label>
         Email for Receipt
-        <input type="email" name="email" class="form-control" placeholder="example@email.com" required />
+        <input
+          type="email"
+          name="email"
+          class="form-control"
+          placeholder="example@email.com"
+          required
+        />
       </label>
 
       <label>
         Phone (optional)
-        <input type="text" name="phone" class="form-control" placeholder="514-555-0100" />
+        <input
+          type="text"
+          name="phone"
+          class="form-control"
+          placeholder="514-555-0100"
+        />
       </label>
 
       <h2>Payment Method</h2>
 
       <div class="payment-options">
-          <label class="radio-label">
-            <input type="radio" name="payment_method" value="tap" checked />
-            Tap / NFC
-          </label>
+        <label class="radio-label">
+          <input type="radio" name="payment_method" value="tap" checked />
+          Tap / NFC
+        </label>
 
-          <label class="radio-label">
-            <input type="radio" name="payment_method" value="card" />
-            Chip / Card
-          </label>
+        <label class="radio-label">
+          <input type="radio" name="payment_method" value="card" />
+          Chip / Card
+        </label>
 
-          <label class="radio-label">
-            <input type="radio" name="payment_method" value="mobile" />
-            Mobile Pay
-          </label>
+        <label class="radio-label">
+          <input type="radio" name="payment_method" value="mobile" />
+          Mobile Pay
+        </label>
       </div>
 
       <div class="payment-placeholder">
-        <p><i class="fas fa-rss"></i> Tap your card on the reader to complete payment</p>
+        <p>
+          <i class="fas fa-rss"></i> Tap your card on the reader to complete
+          payment
+        </p>
       </div>
 
       <button type="submit" class="checkout-submit btn btn-primary mt-3">
@@ -225,12 +261,16 @@
       if (!response.ok) return;
       const data = await response.json();
 
-      container.innerHTML = data.map(n => `
+      container.innerHTML = data
+        .map(
+          (n) => `
             <div class="notif-item">
                 <strong>${n.notif_title}</strong>
                 <p>${n.notif_msg_summary}</p>
             </div>
-        `).join("");
+        `,
+        )
+        .join("");
     } catch (err) {
       console.debug("Notifications not available.");
     }
@@ -240,11 +280,14 @@
   const gate = document.getElementById("barcode-gate");
 
   function grabFocus() {
-    if (document.activeElement.tagName !== "INPUT" || document.activeElement.id === "barcode-gate") {
+    if (
+      document.activeElement.tagName !== "INPUT" ||
+      document.activeElement.id === "barcode-gate"
+    ) {
       gate.focus();
     }
   }
-  
+
   document.addEventListener("keydown", grabFocus);
   document.addEventListener("click", grabFocus);
 
@@ -254,11 +297,15 @@
       gate.value = "";
       if (code) {
         try {
-          const response = await fetch(`/api/add-barcode/${code}`, { method: "POST" });
+          const response = await fetch(`/api/add-barcode/${code}`, {
+            method: "POST",
+          });
           if (response.ok) location.reload();
           else if (response.status === 404) alert("Unknown product: " + code);
+          else if (response.status === 418) alert("Product Out of Stock: " + code);
         } catch (err) {
-          console.error("Barcode fetch failed", err);
+          console.error("Barcode fetch failed"
+          , err);
         }
       }
     }
@@ -277,7 +324,9 @@
       if (!response.ok) return;
 
       const data = await response.json();
-      const manualCount = Number("{{ session.get('manual_items', []) | length }}");
+      const manualCount = Number(
+        "{{ session.get('manual_items', []) | length }}",
+      );
       const rfidCount = data.item_count || 0;
       const expectedTotal = rfidCount + manualCount;
 
@@ -290,88 +339,102 @@
   }
 
   setInterval(pollRFID, 5000);
-  window.onload = () => { gate.focus(); loadNotifications(); };
+  window.onload = () => {
+    gate.focus();
+    loadNotifications();
+  };
 
-    async function removeItem(indexStr) {
-        const index = parseInt(indexStr); // Convert it back to a number for Python
-        
-        // Optional: add a confirm so you don't accidentally delete items
-        if (!confirm("Remove this manual scan?")) return;
+  async function removeItem(indexStr) {
+    const index = parseInt(indexStr); // Convert it back to a number for Python
 
-        try {
-            const response = await fetch(`/api/remove-barcode/${index}`, { 
-                method: 'POST' 
-            });
-            
-            if (response.ok) {
-                location.reload();
-            } else {
-                console.error("Failed to remove item.");
-            }
-        } catch (err) {
-            console.error("Error communicating with server:", err);
-        }
+    // Optional: add a confirm so you don't accidentally delete items
+    if (!confirm("Remove this manual scan?")) return;
+
+    try {
+      const response = await fetch(`/api/remove-barcode/${index}`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        location.reload();
+      } else {
+        console.error("Failed to remove item.");
+      }
+    } catch (err) {
+      console.error("Error communicating with server:", err);
     }
+  }
 
-    document.getElementById('btn-verify-points').addEventListener('click', async () => {
-        const emailInput = document.getElementById('loyalty-email-input');
-        const email = emailInput.value.trim();
+  document
+    .getElementById("btn-verify-points")
+    .addEventListener("click", async () => {
+      const emailInput = document.getElementById("loyalty-email-input");
+      const email = emailInput.value.trim();
 
-        try {
-            const response = await fetch(`/api/check-loyalty/${encodeURIComponent(email)}`);
-            
-            // This check prevents the "Unexpected character" error
-            if (!response.ok) {
-                console.error("Server returned non-JSON response. Status:", response.status);
-                alert("Could not reach the loyalty server. Please check your connection.");
-                return;
-            }
+      try {
+        const response = await fetch(
+          `/api/check-loyalty/${encodeURIComponent(email)}`,
+        );
 
-            const data = await response.json();
-            
-            if (data.exists) {
-                document.getElementById('discount-offer').style.display = 'block';
-                document.getElementById('user-points-display').innerText = data.points;
-                
-                // Show/Hide the discount checkbox based on eligibility
-                const claimDiv = document.getElementById('eligible-claim');
-                const lowPointsDiv = document.getElementById('not-eligible-msg');
-                
-                if (data.eligible) {
-                    claimDiv.style.display = 'block';
-                    lowPointsDiv.style.display = 'none';
-                } else {
-                    claimDiv.style.display = 'none';
-                    lowPointsDiv.style.display = 'block';
-                }
-            } else {
-                alert("Loyalty account not found for this email.");
-            }
-        } catch (err) {
-            console.error("Fetch error:", err);
+        // This check prevents the "Unexpected character" error
+        if (!response.ok) {
+          console.error(
+            "Server returned non-JSON response. Status:",
+            response.status,
+          );
+          alert(
+            "Could not reach the loyalty server. Please check your connection.",
+          );
+          return;
         }
-    });
 
-    const discountCheckbox = document.getElementById('use-discount-checkbox');
-    const discountRow = document.getElementById('discount-row');
-    const finalTotalDisplay = document.querySelector('.final-total strong:last-child');
+        const data = await response.json();
 
-    // Store the original total from Jinja so we can go back and forth
-    let originalTotal = parseFloat("{{ total }}");
+        if (data.exists) {
+          document.getElementById("discount-offer").style.display = "block";
+          document.getElementById("user-points-display").innerText =
+            data.points;
 
-    discountCheckbox.addEventListener('change', function() {
-        if (this.checked) {
-            // Show the discount row and subtract 5
-            discountRow.style.display = 'flex';
-            let newTotal = originalTotal - 5.00;
-            finalTotalDisplay.innerText = `$${newTotal.toFixed(2)}`;
+          // Show/Hide the discount checkbox based on eligibility
+          const claimDiv = document.getElementById("eligible-claim");
+          const lowPointsDiv = document.getElementById("not-eligible-msg");
+
+          if (data.eligible) {
+            claimDiv.style.display = "block";
+            lowPointsDiv.style.display = "none";
+          } else {
+            claimDiv.style.display = "none";
+            lowPointsDiv.style.display = "block";
+          }
         } else {
-            // Hide discount and reset to original
-            discountRow.style.display = 'none';
-            finalTotalDisplay.innerText = `$${originalTotal.toFixed(2)}`;
+          alert("Loyalty account not found for this email.");
         }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
     });
 
+  const discountCheckbox = document.getElementById("use-discount-checkbox");
+  const discountRow = document.getElementById("discount-row");
+  const finalTotalDisplay = document.querySelector(
+    ".final-total strong:last-child",
+  );
+
+  // Store the original total from Jinja so we can go back and forth
+  let originalTotal = parseFloat("{{ total }}");
+
+  discountCheckbox.addEventListener("change", function () {
+    if (this.checked) {
+      // Show the discount row and subtract 5
+      discountRow.style.display = "flex";
+      let newTotal = originalTotal - 5.0;
+      finalTotalDisplay.innerText = `$${newTotal.toFixed(2)}`;
+    } else {
+      // Hide discount and reset to original
+      discountRow.style.display = "none";
+      finalTotalDisplay.innerText = `$${originalTotal.toFixed(2)}`;
+    }
+  });
 </script>
 
 {% endblock %}

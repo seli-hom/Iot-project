@@ -848,12 +848,6 @@ def selfCheckoutSubmit():
                     INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
                     VALUES (?, ?, 1, ?)
                 ''', (order_id, pid, item['product_price']))
-                storeDb.execute('''
-                        UPDATE products 
-                        SET product_stock_quantity = product_stock_quantity - 1
-                        WHERE product_id = ?
-                        AND product_stock_quantity > 0
-                         ''', (pid,))
 
         # 8. Calculate and Add Points Earned from THIS purchase
         # Points are usually earned on the subtotal AFTER discounts
@@ -980,21 +974,16 @@ def add_barcode(code):
     storeDb = db.getDB() 
     
     query = '''
-        SELECT p.product_name, p.product_price, p.product_company,p.product_stock_quantity
+        SELECT p.product_name, p.product_price, p.product_company 
         FROM products p
         JOIN product_barcode pb ON p.product_id = pb.product_id
         WHERE pb.barcode_num = ?
     '''
-
-
     
     product = storeDb.execute(query, (code,)).fetchone()
     storeDb.close()
 
-
     if product:
-        if product['product_stock_quantity'] == 0:
-           return jsonify({"status": "Out_of_Stock"}), 418
         # different session key for barcode scans
         manual_cart = session.get('manual_items', [])
         manual_cart.append({
