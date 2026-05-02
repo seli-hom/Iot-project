@@ -598,17 +598,18 @@ def reportCustomersFetch():
     date = request.args.get('start')
     date = request.args.get('end')
     query = '''
-    SELECT  COUNT(u.user_id) as customers,  String_agg(Date(o.order_created_at),' / ') as order_days FROM users u
-	LEFT JOIN orders o on o.user_id = u.user_id WHERE 1=1 '''
+    SELECT DATE(user_created_at) as date,COUNT(user_id) as customer_count from users
+    WHERE user_role  = 'customer'
+    '''
     params = []
     if request.args.get('start') is not None:
-        query = query +' AND DATE(o.order_created_at) > ?'
+        query = query +' AND DATE(date) > ?'
         params.append(request.args.get('start'))
     if request.args.get('end') is not None:
         params.append(request.args.get('end'))
-        query = query + ' AND DATE(o.order_created_at) < ?'
+        query = query + ' AND DATE(date) < ?'
 
-    query = query + ' GROUP BY u.user_id'
+    query = query + ' GROUP BY date'
     customers = storeDb.execute(query,params).fetchall()
 
     json_data = json.dumps( [dict(ix) for ix in customers] )

@@ -27,8 +27,6 @@
       },
       function (start, end, label) {
         createCanvasDate(start.format("YYYY-MM-DD"), end.format("YYYY-MM-DD"));
-        
-        
       },
     );
   });
@@ -41,13 +39,16 @@
       return response.json();
     });
 
-    myChart.data.datasets[0].data.pop();
-    if (typeof data[0]["customers"] == "undefined") {
-      data[0]["customers"] = 0;
+    let counts = [];
+    let dates = [];
+    console.log(myChart.data.datasets);
+    for (let index = 0; index < data.length; index++) {
+      counts.push(data[index]["customer_count"]);
+      dates.push(data[index]["date"]);
     }
-    myChart.data.datasets[0].data.push(data[0]["customers"] ?? 0);
+
+    myChart.data.datasets[0].data = counts;
+    myChart.data.labels = dates;
     myChart.update();
-
-
   }
 </script>

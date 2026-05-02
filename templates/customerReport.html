@@ -35,26 +35,24 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
 "></script>
 
 <script>
-
-
   let myChart = new Chart(
     chart, // TypeScript needs "as any" here
     {
-      type: "bar",
+      type: "line",
       options: {
         scales: {
           y: {
             min: 0,
-            max: 20,
+            max: 10,
           },
         },
       },
       data: {
-        labels: ['Customers'],
+        labels: ["Customers"],
         datasets: [
           {
             label: "Number Of Customers",
-            data: [{{all_customers.customers}}],
+            data: [],
           },
         ],
       },
@@ -62,14 +60,5 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
   );
   chart.append(myChart);
 </script>
-<script>
-  $("#inline-picker")
-    .mobiscroll()
-    .datepicker({
-      controls: ["calendar"],
-      select: "range",
-      display: "inline",
-      touchUi: true,
-    });
-</script>
+
 {% endblock %}
