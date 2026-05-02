@@ -24,13 +24,7 @@
       Self-Checkout
     </a>
     <br />
-    <a
-      href="{{ url_for('store.customersList') }}"
-      class="btn btn-secondary btn-lg mb-3"
-    >
-      View Existing Customers
-    </a>
-    <br />
+
     {% if session.get('user_role') == 'admin' %}
 
     <a

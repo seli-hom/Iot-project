@@ -1034,7 +1034,7 @@ def remove_barcode(index):
 # -----------------------------
 
 # 1. The main page route
-@app.route('/temperature')
+@app.route('/admin-dashboard/temperature')
 def temperatureMonitor():
     """
     Renders the dedicated IoT monitoring page.
@@ -1091,7 +1091,7 @@ def ble_scan():
         "batteryState": batteryState
     })
     
-@app.route('/ble-scan-view')
+@app.route('/admin-dashboard/ble-scan-view')
 def ble_scan_view():
     return render_template('BLESensorData.html')
 
