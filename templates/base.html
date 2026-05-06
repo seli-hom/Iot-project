@@ -16,7 +16,6 @@
             <a class="navbar-brand" href="{{ url_for('store.storeIndex') }}">
             <b>Smart Makeup Store</b>
             </a>
-            <a href="{{ url_for('store.selfCheckout') }}" class="text-white text-decoration-none">Self Checkout</a>
 
           <div class="ms-auto text-white d-flex align-items-center">
             {% if session.get('user_first_name') %}
@@ -25,9 +24,6 @@
               <form method="GET" action="{{ url_for('store.logout') }}">
                 <button type="submit" class="btn btn-danger btn-sm">Logout</button>
               </form>
-              <div>
-                <a href="" class="text-white text-decoration-none">View Orders</a>
-              </div>
             {% else %}
               <!-- logged-out view -->
               <span class="me-2">Welcome Anon</span>
