@@ -99,15 +99,16 @@ def customersList():
 
 @app.route('/productList')
 def productList():
+    storeDb = db.getDB()
     # You need a JOIN or a subquery to count how many RFID tags exist for each product
     query = """
         SELECT p.*, COUNT(r.rfid_tag) as stock_quantity
         FROM products p
-        LEFT JOIN rfid_tags r ON p.product_id = r.product_id
+        LEFT JOIN product_barcode r ON p.product_id = r.product_id
         GROUP BY p.product_id
     """
-    products = db.engine.execute(query).fetchall()
-    return render_template('ProductList.html', products=products)
+    products = storeDb.execute(query).fetchall()
+    return render_template('productsList.html', products=products)
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags')
 def TagsList(product_id):
