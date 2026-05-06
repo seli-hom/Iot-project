@@ -25,6 +25,9 @@
               <form method="GET" action="{{ url_for('store.logout') }}">
                 <button type="submit" class="btn btn-danger btn-sm">Logout</button>
               </form>
+              <div>
+                <a href="" class="text-white text-decoration-none">View Orders</a>
+              </div>
             {% else %}
               <!-- logged-out view -->
               <span class="me-2">Welcome Anon</span>

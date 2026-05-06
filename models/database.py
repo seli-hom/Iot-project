@@ -1,4 +1,5 @@
 import sqlite3
+import bcrypt
 
 def getDB():
     """
@@ -158,7 +159,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS product_barcode (
             barcode_id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
-            barcode_num TEXT UNIQUE NOT NULL,
+            barcode_num TEXT NOT NULL,
             FOREIGN KEY(product_id) REFERENCES products(product_id)
         )
     ''')
@@ -276,6 +277,15 @@ def init_db():
             storeDb.execute('INSERT OR IGNORE INTO product_rfid (product_id, rfid_tag) VALUES (?, ?)', (new_id, rfid))
         else:
             pass
+
+    # Hash the password
+    password = "123"
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    storeDb.execute('''
+        INSERT OR IGNORE INTO users (user_fname, user_lname, user_email, user_password, user_role)
+        VALUES (?, ?, ?, ?, ?)
+    ''', ("Admin", "User", "admin@gmail.com", hashed, "admin"))
 
     # print("Database checked: New items added or existing items skipped.")
 
