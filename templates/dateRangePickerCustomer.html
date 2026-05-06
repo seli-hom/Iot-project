@@ -1,0 +1,54 @@
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"
+></script>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"
+/>
+
+<div class="col-md-4 mb-4">
+  <input class="form-control" type="text" name="daterange" />
+</div>
+<script>
+  $(function () {
+    $('input[name="daterange"]').daterangepicker(
+      {
+        opens: "left",
+      },
+      function (start, end, label) {
+        createCanvasDate(start.format("YYYY-MM-DD"), end.format("YYYY-MM-DD"));
+      },
+    );
+  });
+
+  async function createCanvasDate(start, end) {
+    console.log(start);
+    data = await fetch(
+      `http://127.0.0.1:5000/admin-dashboard/reports/customers/fetch?start=${start}&end=${end}`,
+    ).then((response) => {
+      return response.json();
+    });
+
+    let counts = [];
+    let dates = [];
+    console.log(myChart.data.datasets);
+    for (let index = 0; index < data.length; index++) {
+      counts.push(data[index]["customer_count"]);
+      dates.push(data[index]["date"]);
+    }
+
+    myChart.data.datasets[0].data = counts;
+    myChart.data.labels = dates;
+    myChart.update();
+  }
+</script>

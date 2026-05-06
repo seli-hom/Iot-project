@@ -1,6 +1,5 @@
 from flask import render_template, request, Blueprint, session, redirect, url_for, flash, jsonify
 import bcrypt
-
 import json
 import datetime
 # Models & Database
@@ -97,17 +96,17 @@ def customersList():
     print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
-@app.route('/productList')
-def productList():
-    # You need a JOIN or a subquery to count how many RFID tags exist for each product
-    query = """
-        SELECT p.*, COUNT(r.rfid_tag) as stock_quantity
-        FROM products p
-        LEFT JOIN rfid_tags r ON p.product_id = r.product_id
-        GROUP BY p.product_id
-    """
-    products = db.engine.execute(query).fetchall()
-    return render_template('ProductList.html', products=products)
+@app.route('/admin-dashboard/products')
+def productsList():
+    storeDb = db.getDB()
+    products = storeDb.execute(
+        '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
+            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
+			GROUP BY p.product_id;
+'''
+    ).fetchall()
+    return render_template('productsList.html', products=products)
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags')
 def TagsList(product_id):
@@ -123,24 +122,17 @@ def productUpdate(product_id):
     if request.method == 'POST':
         storeDb = db.getDB()
         storeDb.execute('''
-                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?, product_stock_quantity = ?
+                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?
                                 WHERE product_id = ?
-                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],request.form['product_stock'],product_id))        
+                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],product_id))        
         storeDb.execute('''
                     UPDATE product_barcode SET  barcode_num = ?
                         WHERE product_id = ?
                 ''', ( request.form['product_barcode'],product_id))
-        stock =  storeDb.execute('''
-                    SELECT product_stock_quantity FROM products
+        storeDb.execute('''
+                    UPDATE  product_rfid SET  rfid_tag = ?, rfid_status = ?
                         WHERE product_id = ?
-                ''', (product_id,)).fetchone()
-        
-        if stock['product_stock_quantity'] != request.form['product_stock']:
-            storeDb.execute('''
-                        UPDATE products 
-                        SET product_updated_at = CURRENT_TIMESTAMP 
-                        WHERE product_id = ?;
-                    ''', (product_id,))
+                ''', ( request.form['product_rfid'],'ACTIVE',product_id))
         
         storeDb.commit()
         return redirect(url_for('store.productsList'))
@@ -599,18 +591,17 @@ def reportCustomersFetch():
     date = request.args.get('start')
     date = request.args.get('end')
     query = '''
-    SELECT DATE(user_created_at) as date,COUNT(user_id) as customer_count from users
-    WHERE user_role  = 'customer'
-    '''
+    SELECT  COUNT(u.user_id) as customers,  String_agg(Date(o.order_created_at),' / ') as order_days FROM users u
+	LEFT JOIN orders o on o.user_id = u.user_id WHERE 1=1 '''
     params = []
     if request.args.get('start') is not None:
-        query = query +' AND DATE(date) > ?'
+        query = query +' AND DATE(o.order_created_at) > ?'
         params.append(request.args.get('start'))
     if request.args.get('end') is not None:
         params.append(request.args.get('end'))
-        query = query + ' AND DATE(date) < ?'
+        query = query + ' AND DATE(o.order_created_at) < ?'
 
-    query = query + ' GROUP BY date'
+    query = query + ' GROUP BY u.user_id'
     customers = storeDb.execute(query,params).fetchall()
 
     json_data = json.dumps( [dict(ix) for ix in customers] )
@@ -623,7 +614,7 @@ def reportCustomersFetch():
 def reportInventory():   
     storeDb = db.getDB() 
     products = storeDb.execute('''
-        SELECT p.*,DATE(p.product_updated_at) as last_restock, c.category_type
+        SELECT p.*, c.category_type
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
     ''').fetchall()
@@ -857,12 +848,6 @@ def selfCheckoutSubmit():
                     INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
                     VALUES (?, ?, 1, ?)
                 ''', (order_id, pid, item['product_price']))
-                storeDb.execute('''
-                        UPDATE products 
-                        SET product_stock_quantity = product_stock_quantity - 1
-                        WHERE product_id = ?
-                        AND product_stock_quantity > 0
-                         ''', (pid,))
 
         # 8. Calculate and Add Points Earned from THIS purchase
         # Points are usually earned on the subtotal AFTER discounts
@@ -989,21 +974,16 @@ def add_barcode(code):
     storeDb = db.getDB() 
     
     query = '''
-        SELECT p.product_name, p.product_price, p.product_company,p.product_stock_quantity
+        SELECT p.product_name, p.product_price, p.product_company 
         FROM products p
         JOIN product_barcode pb ON p.product_id = pb.product_id
         WHERE pb.barcode_num = ?
     '''
-
-
     
     product = storeDb.execute(query, (code,)).fetchone()
     storeDb.close()
 
-
     if product:
-        if product['product_stock_quantity'] == 0:
-           return jsonify({"status": "Out_of_Stock"}), 418
         # different session key for barcode scans
         manual_cart = session.get('manual_items', [])
         manual_cart.append({
@@ -1035,7 +1015,7 @@ def remove_barcode(index):
 # -----------------------------
 
 # 1. The main page route
-@app.route('/admin-dashboard/temperature')
+@app.route('/temperature')
 def temperatureMonitor():
     """
     Renders the dedicated IoT monitoring page.
@@ -1092,18 +1072,7 @@ def ble_scan():
         "batteryState": batteryState
     })
     
-@app.route('/admin-dashboard/ble-scan-view')
+@app.route('/ble-scan-view')
 def ble_scan_view():
     return render_template('BLESensorData.html')
 
-# Get scan for adding new product
-@app.route('/api/scan-single-tag')
-def scan_single_tag():
-    try:
-        # This calls your specific logic from rfid_service.py
-        tags = rfid_svc.perform_basket_scan(scan_duration=1.5)
-        if tags and len(tags) > 0:
-            return jsonify({"success": True, "tag": tags[0]})
-        return jsonify({"success": False, "error": "No tag found in range"})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
