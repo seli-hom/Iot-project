@@ -269,7 +269,7 @@ def init_db():
             cursor = storeDb.execute('''
                 INSERT INTO products (product_name, product_price, product_company, category_id, product_stock_quantity)
                 VALUES (?, ?, ?, ?, ?)
-            ''', (name, price, company, category_id, 10))
+            ''', (name, price, company, category_id, 1))
             new_id = cursor.lastrowid
             
             # Since the product is new, add the identifiers
