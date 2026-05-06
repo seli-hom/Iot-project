@@ -45,59 +45,15 @@
       <a
         class="nav-link px-2 py-1 rounded"
         href="{{ url_for('store.ble_scan_view') }}"
-        >BLE Scan</a
+        >Bluetooth Sensor</a
       >
 
       <br />
       <br />
-      <!-- Store Panel -->
       <a
         class="nav-link px-2 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}"
-      >
-        <span class="text-primary fw-bold mt-2 mb-2">Store Panel</span>
-      </a>
-      <a
-        class="nav-link px-2 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}#frig-1"
-        >Frig 1</a
-      >
-      <a
-        class="nav-link px-4 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}#frig-1-temp"
-        >Temperature</a
-      >
-      <a
-        class="nav-link px-4 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}#frig-1-humidity"
-        >Humidity</a
-      >
-
-      <a
-        class="nav-link px-2 py-1 rounded mt-2"
-        href="{{ url_for('store.storeDashboard') }}#frig-2"
-        >Frig 2</a
-      >
-      <a
-        class="nav-link px-4 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}#frig-2-temp"
-        >Temperature</a
-      >
-      <a
-        class="nav-link px-4 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}#frig-2-humidity"
-        >Humidity</a
-      >
-
-      <a
-        class="nav-link px-2 py-1 rounded mt-2"
-        href="{{ url_for('store.storeDashboard') }}#fan-section"
-        >Fan</a
-      >
-      <a
-        class="nav-link px-2 py-1 rounded"
-        href="{{ url_for('store.storeDashboard') }}#notifications-section"
-        >Notifications</a
+        href="{{ url_for('store.temperatureMonitor') }}#frig-1"
+        >Temperature Controller</a
       >
     </nav>
   </div>
