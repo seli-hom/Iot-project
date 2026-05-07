@@ -1,5 +1,6 @@
 import smtplib, imaplib, email, time
 from email.mime.text import MIMEText
+import datetime
 
 class EmailAlertSystem:
     def __init__(self, sender_email, password, receiver_email):
@@ -33,8 +34,10 @@ class EmailAlertSystem:
             mail = imaplib.IMAP4_SSL("imap.gmail.com")
             mail.login(self.sender_email, self.password)
             mail.select("inbox")
+
+            today = datetime.date.today().strftime("%d-%b-%Y")
             
-            status, messages = mail.search(None, 'UNSEEN')
+            status, messages = mail.search(None, f'(UNSEEN ON {today})')
             for num in messages[0].split():
                 _, data = mail.fetch(num, "(RFC822)")
                 msg = email.message_from_bytes(data[0][1])

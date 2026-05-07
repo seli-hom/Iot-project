@@ -190,7 +190,7 @@ def fetch_store_emails():
         mail.login(username, password)
         mail.select("inbox")
 
-        status, messages = mail.search(None, "ALL")
+        status, messages = mail.search(None, "UNSEEN")
 
         for num in reversed(messages[0].split()):
             status, data = mail.fetch(num, "(RFC822)")
