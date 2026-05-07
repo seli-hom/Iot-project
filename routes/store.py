@@ -175,7 +175,7 @@ def productList():
     query = """
         SELECT p.*, COUNT(r.rfid_tag) as stock_quantity
         FROM products p
-        LEFT JOIN product_barcode r ON p.product_id = r.product_id
+        LEFT JOIN product_rfid r ON p.product_id = r.product_id
         GROUP BY p.product_id
     """
     products = storeDb.execute(query).fetchall()
