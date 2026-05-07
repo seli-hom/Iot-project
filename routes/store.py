@@ -270,7 +270,7 @@ def addRFID(product_id):
             INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
             VALUES (?, ?, ?)
         ''', (product_id, request.form['product_rfid'],'ACTIVE'))
-    storeDb.commit() 
+        storeDb.commit() 
     
     except Exception as e:
         print(f"Error adding RFID tag: {e}")
