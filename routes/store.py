@@ -1,5 +1,6 @@
 from flask import render_template, request, Blueprint, session, redirect, url_for, flash, jsonify
 import bcrypt
+
 import json
 import datetime
 # Models & Database
@@ -167,16 +168,17 @@ def customersList():
     all_customers = customers.select_customers()
     return render_template('customersList.html', customers=all_customers)
 
-@app.route('/admin-dashboard/products')
-def productsList():
+@app.route('/productList')
+def productList():
     storeDb = db.getDB()
-    products = storeDb.execute(
-        '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
-            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
-            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
-			GROUP BY p.product_id;
-'''
-    ).fetchall()
+    # You need a JOIN or a subquery to count how many RFID tags exist for each product
+    query = """
+        SELECT p.*, COUNT(r.rfid_tag) as stock_quantity
+        FROM products p
+        LEFT JOIN product_barcode r ON p.product_id = r.product_id
+        GROUP BY p.product_id
+    """
+    products = storeDb.execute(query).fetchall()
     return render_template('productsList.html', products=products)
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags')
@@ -1171,3 +1173,14 @@ def ble_scan():
 def ble_scan_view():
     return render_template('BLESensorData.html')
 
+# Get scan for adding new product
+@app.route('/api/scan-single-tag')
+def scan_single_tag():
+    try:
+        # This calls your specific logic from rfid_service.py
+        tags = rfid_svc.perform_basket_scan(scan_duration=1.5)
+        if tags and len(tags) > 0:
+            return jsonify({"success": True, "tag": tags[0]})
+        return jsonify({"success": False, "error": "No tag found in range"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})

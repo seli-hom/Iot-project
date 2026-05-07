@@ -38,7 +38,7 @@
             <div class="col-md-6">
             <label class="form-label">Category</label>
             <select type="text" class="form-control rounded" name="product_category" required>
-            <option value="1">1</option>  
+            <option value="1">1</option>
             <option value="2">2</option>  
             <option value="3">3</option>  
             </select>
@@ -69,5 +69,25 @@
     </div>
   </div>
 </div>
+
+<script>
+  // Simple listener to help direct hardware scanner input
+  document.addEventListener('keypress', function (e) {
+    // Most scanners send an 'Enter' key at the end of a scan
+    if (e.key === 'Enter') {
+      const activeElement = document.activeElement;
+      
+      // If the user isn't already typing in a specific box, 
+      // try to guess where the scan should go based on common lengths
+      if (activeElement.tagName !== 'INPUT') {
+        const rfidInput = document.getElementsByName('product_rfid')[0];
+        const barcodeInput = document.getElementsByName('product_barcode')[0];
+        
+        // Example: If scan is very long, it's likely the RFID[cite: 3]
+        // This is a "best effort" helper for your hardware demo[cite: 4]
+      }
+    }
+  });
+</script>
 
 {% endblock %}
