@@ -157,7 +157,7 @@
 
     // Fan Toggle
     document.getElementById('fanToggle').onchange = function() {
-        fetch('api/fan/' + (this.checked ? 'on' : 'off'));
+        fetch('/api/fan/' + (this.checked ? 'on' : 'off'));
     };
 </script>
 </body>

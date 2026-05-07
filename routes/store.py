@@ -1168,14 +1168,18 @@ def get_temp_data():
     return hardware_status
 
 # 3. The Hardware Action API
-@app.route('/api/fan/<state>', endpoint='fan_on_link')
+@app.route('/api/fan/<state>', endpoint='fan_on_link') # Add endpoint name here
 def set_fan(state):
     if state == "on":
         motor_control("on")
+        # Ensure your email service isn't causing a secondary crash
+        try:
+            email_service.send_fan_toggle_email("on") 
+        except:
+            pass
     else:
         motor_control("off")
     
-    # Return the new state so the dashboard stays in sync
     return {"status": "success", "fan_on": hardware_status["fan_on"]}
 
 # BLE sensor data reading route
