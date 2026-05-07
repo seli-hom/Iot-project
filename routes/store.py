@@ -185,29 +185,17 @@ def customersList():
 
 @app.route('/admin-dashboard/products')
 def productList():
-    storeDb = db.getDB() # Use the connection from your database.py
-    
-    # We MUST use GROUP_CONCAT(r.rfid_tag, '/') so the template split('/') logic works
+    storeDb = db.getDB()
+    # This query counts how many unique tags are left for each product
     query = '''
         SELECT p.*, 
-                (SELECT GROUP_CONCAT(r.rfid_tag, '/') 
-                FROM product_rfid r 
-                WHERE r.product_id = p.product_id) as rfid_tag,
-                (SELECT COUNT(r.rfid_tag)
-                FROM product_rfid r 
-                WHERE r.product_id = p.product_id) + p.product_stock_quantity	as stock
-                FROM products p
+               (SELECT GROUP_CONCAT(r.rfid_tag, '/') FROM product_rfid r WHERE r.product_id = p.product_id) as rfid_tag,
+               (SELECT COUNT(r.rfid_id) FROM product_rfid r WHERE r.product_id = p.product_id) as stock
+        FROM products p
     '''
-    
-    try:
-        products = storeDb.execute(query).fetchall() 
-        # Make sure the variable name passed here is exactly 'products'
-        return render_template('productsList.html', products=products)
-    except Exception as e:
-        print(f"SQL Error: {e}")
-        return f"Database Error: {e}", 500
-    finally:
-        storeDb.close()
+    products = storeDb.execute(query).fetchall()
+    storeDb.close()
+    return render_template('productsList.html', products=products)
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags')
 def tagsList(product_id):
@@ -920,16 +908,158 @@ def selfCheckout():
                            cart_items=cart_items, 
                            cart_total=cart_total)
 
+# @app.route('/self-checkout/submit', methods=['POST'])
+# def selfCheckoutSubmit():
+#     storeDb = db.getDB()
+#     customer_email = request.form.get('email')
+#     payment_method = request.form.get('payment_method')
+    
+#     # 0. Get the specific RFID tags scanned for this purchase
+#     # These were passed via hidden inputs in our updated selfCheckout.html
+#     tags_to_delete = request.form.getlist('sold_rfid_tags')
+    
+#     # 1. Check if they WANT to use their points
+#     use_discount = request.form.get('use_discount') == 'true'
+    
+#     # 2. Basic Cart Validation
+#     rfid_items = session.get('cart_items', [])
+#     manual_items = session.get('manual_items', [])
+#     all_items = rfid_items + manual_items
+
+#     if not all_items:
+#         flash("No items found in basket.", "danger")
+#         return redirect(url_for('store.selfCheckout'))
+
+#     # Initialize variables for the flow
+#     subtotal = sum(item['product_price'] for item in all_items)
+#     user_id = None
+#     current_points = 0
+#     discount_applied_msg = ""
+
+#     # 3. User Lookup (Check if they are a loyalty member)
+#     try:
+#         user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone()
+#         if user:
+#             user_id = int(user['user_id'])
+#             current_points = user['user_loyalty_points'] or 0
+#             print(f"DEBUG: Found User {user_id} with {current_points} points.")
+#     except Exception as e:
+#         print(f"DEBUG: User lookup failed: {e}")
+
+#     # 4. Handle $5 Discount Logic (Redemption)
+#     if use_discount and user_id and current_points >= 50:
+#         print("DEBUG: Redeeming 50 points for $5 discount.")
+#         discount_applied_msg = f"Subtotal before discount: ${subtotal:.2f}\nCongrats! $5.00 discount applied from loyalty points!"
+        
+#         subtotal -= 5.0
+#         current_points -= 50  
+        
+#         storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (current_points, user_id))
+#         storeDb.commit()
+
+#     # 5. Calculate Final Financials
+#     gst = round(subtotal * 0.05, 2)
+#     qst = round(subtotal * 0.09975, 2)
+#     total = round(subtotal + gst + qst, 2)
+
+#     try:
+#         # 6. Create the Order Record
+#         cur = storeDb.execute('''
+#             INSERT INTO orders (order_total, payment_method, order_status, customer_email)
+#             VALUES (?, ?, ?, ?)
+#         ''', (total, payment_method, 'COMPLETED', customer_email))
+#         order_id = cur.lastrowid
+        
+#         # Link to logged in user if applicable
+#         if session.get('user_id'):
+#             storeDb.execute('UPDATE orders SET user_id = ? WHERE order_id = ?', (session['user_id'], order_id))
+
+#         # 7. Add Products to order_products AND Cleanup RFID Table
+#         for item in all_items:
+#             pid = item.get('product_id')
+#             if not pid:
+#                 res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
+#                 pid = res['product_id'] if res else None
+            
+#             if pid:
+#                 # Record the sale
+#                 storeDb.execute('''
+#                     INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
+#                     VALUES (?, ?, 1, ?)
+#                 ''', (order_id, pid, item['product_price']))
+                
+#                 # Update legacy stock quantity if you still use it
+#                 storeDb.execute('''
+#                     UPDATE products SET product_stock_quantity = product_stock_quantity - 1
+#                     WHERE product_id = ? AND product_stock_quantity > 0
+#                 ''', (pid,))
+
+#         # --- DYNAMIC INVENTORY CLEANUP ---
+#         # This is the new logic to remove the specific scanned RFID tags from the DB
+#         if tags_to_delete:
+#             for hex_code in tags_to_delete:
+#                 storeDb.execute('DELETE FROM product_rfid WHERE rfid_tag = ?', (hex_code,))
+#                 print(f"DEBUG: Tag {hex_code} removed from DB (Sale Complete).")
+
+#         # 8. Calculate and Add Points Earned
+#         points_earned = int(subtotal // 10) 
+#         total_points_final = current_points
+        
+#         if user_id:
+#             total_points_final = current_points + points_earned
+#             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points_final, user_id))
+
+#         storeDb.commit()
+
+#         # 9. Prepare and Send Receipt
+#         receipt_data = {
+#             'discount': discount_applied_msg,
+#             'items': all_items,
+#             'total': total,
+#             'subtotal': subtotal,
+#             'gst': gst,
+#             'qst': qst,
+#             'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+#             'purchase_points': points_earned,
+#             'total_points': total_points_final
+#         }
+
+#         # Send via Email Service
+#         receipt_sender = EmailAlertSystem(
+#             sender_email="taliamuro3@gmail.com",
+#             password="fghd zvac bttr nvxf",
+#             receiver_email=customer_email
+#         )
+#         receipt_sender.send_receipt_email(customer_email, receipt_data)
+
+#         # 10. Clean up Session
+#         session.pop('cart_items', None)
+#         session.pop('manual_items', None)
+#         session.pop('current_points', None)
+#         session.modified = True
+
+#         flash(f"Success! Order complete. Receipt sent to {customer_email}.", "success")
+
+#     except Exception as e:
+#         storeDb.rollback()
+#         print(f"CRITICAL ERROR during checkout: {e}")
+#         flash("There was an error processing your order.", "danger")
+#     finally:
+#         storeDb.close()
+
+#     return redirect(url_for('store.selfCheckout'))
+
 @app.route('/self-checkout/submit', methods=['POST'])
 def selfCheckoutSubmit():
     storeDb = db.getDB()
     customer_email = request.form.get('email')
     payment_method = request.form.get('payment_method')
     
-    # 1. Check if they WANT to use their points (checkbox from our previous step)
+    # Capture specific tags passed from the frontend hidden inputs
+    tags_to_delete = request.form.getlist('sold_rfid_tags')
     use_discount = request.form.get('use_discount') == 'true'
     
-    # 2. Basic Cart Validation
+    # Pull current cart state from session
     rfid_items = session.get('cart_items', [])
     manual_items = session.get('manual_items', [])
     all_items = rfid_items + manual_items
@@ -938,125 +1068,114 @@ def selfCheckoutSubmit():
         flash("No items found in basket.", "danger")
         return redirect(url_for('store.selfCheckout'))
 
-    # Initialize variables for the flow
     subtotal = sum(item['product_price'] for item in all_items)
     user_id = None
     current_points = 0
     discount_applied_msg = ""
 
-    # 3. User Lookup (Check if they are a loyalty member)
+    # 1. Loyalty Lookup
     try:
         user = storeDb.execute('SELECT * FROM users WHERE user_email = ?', (customer_email,)).fetchone()
         if user:
             user_id = int(user['user_id'])
             current_points = user['user_loyalty_points'] or 0
-            print(f"DEBUG: Found User {user_id} with {current_points} points.")
     except Exception as e:
-        print(f"DEBUG: User lookup failed: {e}")
+        print(f"User lookup error: {e}")
 
-    # 4. Handle $5 Discount Logic (Redemption)
-    # Only applies if user exists, has 50+ points, AND checked the box
+    # 2. Redemption Logic
     if use_discount and user_id and current_points >= 50:
-        print("DEBUG: Redeeming 50 points for $5 discount.")
-        discount_applied_msg = f"Subtotal before discount: ${subtotal:.2f}\nCongrats! $5.00 discount applied from loyalty points!"
-        
+        discount_applied_msg = f"Redeemed 50 points for $5.00 discount."
         subtotal -= 5.0
-        current_points -= 50  # Deduct the points immediately
-        
-        # Update DB for the deduction
+        current_points -= 50
+        # Update points immediately in case of redemption
         storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (current_points, user_id))
-        storeDb.commit()
-    else:
-        print("DEBUG: No discount applied (Either opted out or insufficient points).")
 
-    # 5. Calculate Final Financials
+    # 3. Financial Calculations
     gst = round(subtotal * 0.05, 2)
     qst = round(subtotal * 0.09975, 2)
     total = round(subtotal + gst + qst, 2)
 
     try:
-        # 6. Create the Order Record
+        # 4. CREATE ORDER RECORD
+        # We include the user_id (if logged in) and the customer_email (for guest/loyalty lookup)
         cur = storeDb.execute('''
-            INSERT INTO orders (order_total, payment_method, order_status, customer_email)
-            VALUES (?, ?, ?, ?)
-        ''', (total, payment_method, 'COMPLETED', customer_email))
+            INSERT INTO orders (order_total, payment_method, order_status, customer_email, user_id)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (total, payment_method, 'COMPLETED', customer_email, session.get('user_id')))
         order_id = cur.lastrowid
-        if session['user_id'] is not None:
-            storeDb.execute('''
-                        UPDATE orders
-                        SET user_id = ?
-                        WHERE order_id = ?;
-                    ''',(session['user_id'],cur.lastrowid))
-            storeDb.commit()
-        # 7. Add Products to order_products table
+
+        # 5. PROCESS ITEMS: Add to order_products & Clean up physical inventory
         for item in all_items:
+            # Try to get product_id from session or lookup by name
             pid = item.get('product_id')
-            # Fallback if product_id is missing from session
             if not pid:
                 res = storeDb.execute('SELECT product_id FROM products WHERE product_name = ?', (item['product_name'],)).fetchone()
                 pid = res['product_id'] if res else None
             
             if pid:
+                # Add record to order_products table
                 storeDb.execute('''
                     INSERT INTO order_products (order_id, product_id, order_product_quantity, order_product_unit_price)
                     VALUES (?, ?, 1, ?)
                 ''', (order_id, pid, item['product_price']))
+                
+                # Update the general stock count in the products table
                 storeDb.execute('''
-                        UPDATE products 
-                        SET product_stock_quantity = product_stock_quantity - 1
-                        WHERE product_id = ?
-                        AND product_stock_quantity > 0
-                         ''', (pid,))
+                    UPDATE products SET product_stock_quantity = product_stock_quantity - 1 
+                    WHERE product_id = ? AND product_stock_quantity > 0
+                ''', (pid,))
 
-        # 8. Calculate and Add Points Earned from THIS purchase
-        # Points are usually earned on the subtotal AFTER discounts
-        points_earned = int(subtotal // 10) 
-        total_points_final = current_points # Default if guest
-        
+        # 6. DELETE PHYSICAL RFID TAGS
+        # This removes the specific hex codes from product_rfid so they are 'gone' from stock
+        if tags_to_delete:
+            for hex_tag in tags_to_delete:
+                storeDb.execute('DELETE FROM product_rfid WHERE rfid_tag = ?', (hex_tag,))
+                print(f"Inventory Cleanup: Removed {hex_tag}")
+
+        # 7. Loyalty Points Accrual
+        points_earned = int(subtotal // 10)
+        total_points_final = current_points
         if user_id:
             total_points_final = current_points + points_earned
             storeDb.execute('UPDATE users SET user_loyalty_points = ? WHERE user_id = ?', (total_points_final, user_id))
-            print(f"DEBUG: User earned {points_earned}. New Balance: {total_points_final}")
 
+        # Commit all database changes (Orders, Order_Products, RFID Deletion, and Points)
         storeDb.commit()
 
-        # 9. Prepare and Send Receipt
+        # 8. Receipt and Cleanup
         receipt_data = {
-            'discount' : discount_applied_msg,
+            'discount': discount_applied_msg,
             'items': all_items,
             'total': total,
             'subtotal': subtotal,
             'gst': gst,
             'qst': qst,
-            'timestamp': session.get('cart_timestamp', 'N/A'),
-            'purchase_points': points_earned, # MUST be 'purchase_points' to match your Class
-            'total_points': total_points_final      # This matches your if/else in the Class
+            'timestamp': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'purchase_points': points_earned,
+            'total_points': total_points_final
         }
 
-        # Send via your Email Service
         receipt_sender = EmailAlertSystem(
             sender_email="taliamuro3@gmail.com",
-            password="fghd zvac bttr nvxf", # Note: Usually better in environment variables!
+            password="fghd zvac bttr nvxf",
             receiver_email=customer_email
         )
         receipt_sender.send_receipt_email(customer_email, receipt_data)
 
-        # 10. Clean up Session
         session.pop('cart_items', None)
         session.pop('manual_items', None)
-        session.pop('current_points', None)
         session.modified = True
-
-        flash(f"Success! Order #{order_id} complete. Receipt sent to {customer_email}", "success")
+        
+        flash(f"Order #{order_id} successful! Stock updated and receipt sent.", "success")
 
     except Exception as e:
         storeDb.rollback()
-        print(f"CRITICAL ERROR during checkout: {e}")
-        flash("There was an error processing your order. Please contact staff.", "danger")
+        print(f"Database Error: {e}")
+        flash("Error during checkout. Please try again.", "danger")
     finally:
         storeDb.close()
 
-    return redirect(url_for('store.storeIndex'))
+    return redirect(url_for('store.selfCheckout'))
 
 @app.route('/api/check-loyalty/<email>') 
 def check_loyalty(email):

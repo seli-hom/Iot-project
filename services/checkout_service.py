@@ -20,7 +20,7 @@ class CheckoutManager:
             placeholders = ', '.join(['?'] * len(unique_tags))
             # Joining products with product_rfid to get names/prices
             query = f'''
-                SELECT p.product_name, p.product_price, p.product_company
+                SELECT p.product_id, p.product_name, p.product_price, p.product_company, r.rfid_tag
                 FROM products p
                 JOIN product_rfid r ON p.product_id = r.product_id
                 WHERE LOWER(r.rfid_tag) IN ({placeholders})
@@ -47,3 +47,27 @@ class CheckoutManager:
             }
         finally:
             conn.close()
+
+def finalize_checkout(self, cart_items):
+    """
+    Call this when the 'Pay' button is pressed and successful.
+    cart_items should be a list of tags scanned during the session.
+    """
+    try:
+        storeDb = db.getDB()
+        for item in cart_items:
+            # item['rfid_tag'] is the hex code
+            tag_hex = item.get('rfid_tag')
+            
+            # Remove the specific physical tag from the database
+            storeDb.execute('DELETE FROM product_rfid WHERE rfid_tag = ?', (tag_hex,))
+            
+            # Optional: Log the sale in a separate 'sales' table if you have one
+            print(f"CLEANUP: Tag {tag_hex} removed from inventory (Sold).")
+            
+        storeDb.commit()
+        storeDb.close()
+        return True
+    except Exception as e:
+        print(f"CHECKOUT ERROR: Could not clear tags: {e}")
+        return False
