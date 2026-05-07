@@ -1,3 +1,4 @@
+# sudo ln -s /dev/ttyAMA10 /dev/ttyUSB0
 import serial
 import time
 from models import database as db
