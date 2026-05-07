@@ -214,7 +214,7 @@ def tagsList(product_id):
         '''SELECT * from product_rfid where product_id = ?;
 '''
     ,(product_id,)).fetchall()
-    return render_template('tagsList.html', tags=tags,product_id=product_id)
+    return render_template('TagsList.html', tags=tags,product_id=product_id)
 
 @app.route('/admin-dashboard/products/<int:product_id>/update',methods = ['GET','POST'])
 def productUpdate(product_id):
@@ -1160,7 +1160,7 @@ def get_temp_data():
     return hardware_status
 
 # 3. The Hardware Action API
-@app.route('/api/fan/<state>' )
+@app.route('/api/fan/<state>', endpoint='fan_on_link')
 def set_fan(state):
     if state == "on":
         motor_control("on")
