@@ -96,17 +96,17 @@ def customersList():
     print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
-@app.route('/admin-dashboard/products')
-def productsList():
-    storeDb = db.getDB()
-    products = storeDb.execute(
-        '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
-            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
-            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
-			GROUP BY p.product_id;
-'''
-    ).fetchall()
-    return render_template('productsList.html', products=products)
+# @app.route('/admin-dashboard/products')
+# def productList():
+#     storeDb = db.getDB()
+#     products = storeDb.execute(
+#         '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
+#             LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+#             LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
+# 			GROUP BY p.product_id;
+# '''
+#     ).fetchall()
+#     return render_template('productList.html', products=products)
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags')
 def TagsList(product_id):
@@ -135,7 +135,7 @@ def productUpdate(product_id):
                 ''', ( request.form['product_rfid'],'ACTIVE',product_id))
         
         storeDb.commit()
-        return redirect(url_for('store.productsList'))
+        return redirect(url_for('store.productList'))
     storeDb = db.getDB()
     product = storeDb.execute(
         '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
@@ -173,7 +173,7 @@ def removeRFID(rfid_id):
             DELETE FROM product_rfid where rfid_id = ?
              ''', (rfid_id,))
     storeDb.commit()
-    return redirect(url_for('store.productsList'))
+    return redirect(url_for('store.productList'))
 
 @app.route('/admin-dashboard/products/add', methods=['POST'])
 def productAdd():
@@ -190,7 +190,7 @@ def productAdd():
             ''', (product.lastrowid, request.form['product_barcode']))
 
     storeDb.commit()
-    return redirect(url_for('store.productsList'))
+    return redirect(url_for('store.productList'))
 
 @app.route('/admin-dashboard/products/<int:product_id>/delete', methods=['POST', 'GET'])
 def productDelete(product_id):
@@ -206,7 +206,7 @@ def productDelete(product_id):
     storeDb.close()
 
     flash("User deleted successfully.", "success")
-    return redirect(url_for('store.productsList'))
+    return redirect(url_for('store.productList'))
 
 
 @app.route('/customers/registration', methods=['GET', 'POST'])
