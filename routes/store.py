@@ -720,7 +720,7 @@ def reportCustomersFetch():
 def reportInventory():   
     storeDb = db.getDB() 
     products = storeDb.execute('''
-        SELECT p.*, p.product_stock_quantity + COUNT(rfid_tag) as stock, DATE(p.product_updated_at) as last_restock, c.category_type
+        SELECT p.*, COUNT(rfid_tag) as stock, DATE(p.product_updated_at) as last_restock, c.category_type
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN product_rfid r ON p.product_id = r.product_id
