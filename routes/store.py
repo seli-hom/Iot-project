@@ -265,11 +265,19 @@ def tagCreate(product_id):
 @app.route('/admin-dashboard/products/<int:product_id>/addRFID',  methods=['POST'])
 def addRFID(product_id):
     storeDb = db.getDB()
-    storeDb.execute('''
-                INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
-                VALUES (?, ?, ?)
-            ''', (product_id, request.form['product_rfid'],'ACTIVE'))
-    storeDb.commit()
+    try:
+        storeDb.execute('''
+            INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
+            VALUES (?, ?, ?)
+        ''', (product_id, request.form['product_rfid'],'ACTIVE'))
+    storeDb.commit() 
+    
+    except Exception as e:
+        print(f"Error adding RFID tag: {e}")
+        flash("Error Adding RFID Tag. This tag is already in use please use a new tag", "danger")
+
+    finally:
+        storeDb.close()
     return redirect(url_for('store.tagsList',product_id=product_id))
 
 @app.route('/admin-dashboard/products/<int:rfid_id>/removeRFID',  methods=['GET'])
