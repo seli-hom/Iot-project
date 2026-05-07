@@ -1,6 +1,11 @@
 {% extends "base.html" %} {% block content %}
 <div class="container my-4">
   <h2 class="mb-4">Tags List</h2>
+  {% if message %}
+        <div class="alert {{ 'alert-success' if success else 'alert-danger' }}">
+          {{ message }}
+        </div>
+      {% endif %}
   <!-- SIDEBAR -->
   {% include "adminSidebar.html" with context %} {% if tags|length == 0 %}
   <div class="alert alert-warning">No users found yet.</div>
