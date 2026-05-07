@@ -26,6 +26,16 @@
 </style>
 
 <div class="container my-4">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
   <h2 class="mb-4">Inventory & Tag Management</h2>
   {% include "adminSidebar.html" with context %} {% if products|length == 0 %}
   <div class="alert alert-warning">No products found.</div>
@@ -106,47 +116,6 @@
       <a href="{{url_for('store.productCreate')}}" class="btn btn-primary">Add New Product</a>
 
   {% endif %} {% for product in products %}
-  <!-- <div
-    class="modal fade"
-    id="addRfidModal{{ product.product_id }}"
-    tabindex="-1"
-  >
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header text-dark">
-          <h5 class="modal-title">
-            Stock Entry: {{ product.product_name }}
-          </h5>
-          <button
-            type="button"
-            class="btn-close"
-            data-bs-dismiss="modal"
-          ></button>
-        </div>
-        <form
-          method="POST"
-          action="{{ url_for('store.addRFID', product_id=product.product_id) }}"
-        >
-          <div class="modal-body text-dark">
-            <label class="form-label">Enter EPC/RFID Hex Code</label>
-            <input
-              type="text"
-              name="product_rfid"
-              class="form-control"
-              placeholder="Paste Hex Code here..."
-              required
-              autofocus
-            />
-          </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary w-100">
-              Add to Inventory
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div> -->
 
   <div class="modal fade" id="addRfidModal{{ product.product_id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

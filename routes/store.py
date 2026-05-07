@@ -272,20 +272,40 @@ def addRFID(product_id):
         try:
             storeDb = db.getDB()
             
-            # Use INSERT instead of UPDATE to create a new row for every tag
-            storeDb.execute('''
-                INSERT INTO product_rfid (product_id, rfid_tag) 
-                VALUES (?, ?)
-            ''', (product_id, tag_to_add))
+            # 1. Check if this specific tag is already in the database
+            # We JOIN with the products table to get the name of the product it belongs to
+            query = '''
+                SELECT p.product_name 
+                FROM product_rfid pr
+                JOIN products p ON pr.product_id = p.product_id
+                WHERE pr.rfid_tag = ?
+            '''
+            duplicate_check = storeDb.execute(query, (tag_to_add,)).fetchone()
             
-            storeDb.commit()
+            if duplicate_check:
+                # 2. Return the SPECIFIC message you wanted
+                product_name = duplicate_check['product_name']
+                msg = f"Tag {tag_to_add} is already assigned to '{product_name}'!"
+                print(f"DEBUG: Blocked duplicate. {msg}")
+                flash(msg, "danger")
+            else:
+                # 3. If it doesn't exist, add it as a new row
+                storeDb.execute(
+                    'INSERT INTO product_rfid (product_id, rfid_tag) VALUES (?, ?)',
+                    (product_id, tag_to_add)
+                )
+                storeDb.commit()
+                flash(f"Successfully added tag to inventory.", "success")
+                print(f"DEBUG: Tag {tag_to_add} added successfully.")
+            
             storeDb.close()
-            
-            print(f"DEBUG: New row created for Product {product_id} with Tag {tag_to_add}")
-            flash(f"Tag {tag_to_add} added as new stock!")
+
         except Exception as e:
-            print(f"DEBUG ERROR: {e}")
-            flash("Database error.")
+            # THIS LINE IS KEY: It will print the real error (e.g., "no such table") in your terminal
+            print(f"CRITICAL DATABASE ERROR: {e}")
+            flash(f"Internal Database Error: {str(e)}", "danger")
+    else:
+        flash("No RFID tag detected.", "warning")
     
     return redirect(url_for('store.productList'))
 
