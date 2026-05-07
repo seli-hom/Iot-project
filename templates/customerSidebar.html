@@ -1,0 +1,45 @@
+<!-- adminSidebar.html -->
+<nav
+  class="admin-sidebar col-md-3 col-lg-2 d-md-block bg-light vh-100 border-end shadow-sm"
+>
+  <div class="position-sticky top-0 pt-4 pb-4 px-2">
+    <nav class="nav flex-column">
+      <!-- Admin Panel -->
+
+      <a
+        class="nav-link px-2 py-1 rounded"
+        href="{{ url_for('store.customersDashboard',user_id = session['user_id']) }}"
+      >
+        <span class="text-primary fw-bold mb-2">Customer Panel</span>
+      </a>
+
+      <button
+        class="btn btn-toggle align-items-center rounded collapsed"
+        data-bs-toggle="collapse"
+        data-bs-target="#dashboard-collapse"
+        aria-expanded="false"
+        style="text-align: left"
+      >
+        Purchase History
+      </button>
+      <div class="collapse" id="dashboard-collapse">
+        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ms-4">
+          <li>
+            <a
+              href="{{ url_for('store.customersDashboard',user_id = session['user_id']) }}"
+              class="nav-link rounded"
+              >Items</a
+            >
+            <a
+              href="{{ url_for('store.customerOrders') }}"
+              class="nav-link rounded"
+              >Orders</a
+            >
+          </li>
+        </ul>
+      </div>
+
+      <br />
+    </nav>
+  </div>
+</nav>

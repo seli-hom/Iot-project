@@ -90,10 +90,81 @@ def get_notifications():
 # -----------------------------
 # CUSTOMER ROUTES
 # -----------------------------
+@app.route('/customers/my-profile/')
+def customersDashboard():
+    storeDb = db.getDB()
+    orders = storeDb.execute('''
+        Select *, DATE(o.order_created_at) as date  from orders o
+            LEFT JOIN order_products op  on op.order_id = o.order_id
+            LEFT JOIN products p on op.product_id = p.product_id
+            WHERE o.user_id = ?
+        ''', (session['user_id'],)).fetchall()
+
+    return render_template('customerDashboard.html', user_orders = orders)
+@app.route('/customers/my-profile/orders')
+def customerOrders():
+    storeDb = db.getDB()
+    orders = storeDb.execute('''
+        Select *, DATE(o.order_created_at) as date  from orders o
+            WHERE o.user_id = ?
+        ''', (session['user_id'],)).fetchall()
+
+    return render_template('customerOrders.html', user_orders = orders)
+
+@app.route('/customers/my-profile/items/fetch')
+def customerItemsFetch():
+    params = [session['user_id'],]
+    query = '''
+        Select *, DATE(o.order_created_at) as date  from orders o
+            LEFT JOIN order_products op  on op.order_id = o.order_id
+            LEFT JOIN products p on op.product_id = p.product_id
+            WHERE o.user_id = ?
+        '''
+    if request.args.get('start') is not None:
+        query = query +' AND DATE(date) >= ?'
+        params.append(request.args.get('start'))
+    if request.args.get('end') is not None:
+        params.append(request.args.get('end'))
+        query = query + ' AND DATE(date) <= ?'
+    if request.args.get('q') is not None:
+        params.append(request.args.get('q'))
+        query = query + ' AND p.product_name like CONCAT("%",?,"%")'
+    storeDb = db.getDB()
+    print(params)
+    orders = storeDb.execute(query, (params)).fetchall()
+    
+    json_data = json.dumps( [dict(ix) for ix in orders] )
+
+    return json_data
+
+@app.route('/customers/my-profile/orders/fetch')
+def customerOrdersFetch():
+    params = [session['user_id'],]
+    query = '''
+        Select *, DATE(o.order_created_at) as date  from orders o
+            WHERE o.user_id = ?
+        '''
+    if request.args.get('start') is not None:
+        query = query +' AND DATE(date) >= ?'
+        params.append(request.args.get('start'))
+    if request.args.get('end') is not None:
+        params.append(request.args.get('end'))
+        query = query + ' AND DATE(date) <= ?'
+    if request.args.get('q') is not None:
+        params.append(request.args.get('q'))
+        query = query + ' AND p.product_name like CONCAT(%,?,%)'
+    storeDb = db.getDB()
+    print(params)
+    orders = storeDb.execute(query, (params)).fetchall()
+    
+    json_data = json.dumps( [dict(ix) for ix in orders] )
+
+    return json_data
+
+
 @app.route('/customers')
 def customersList():
     all_customers = customers.select_customers()
-    print(all_customers)
     return render_template('customersList.html', customers=all_customers)
 
 @app.route('/admin-dashboard/products')
@@ -109,13 +180,13 @@ def productsList():
     return render_template('productsList.html', products=products)
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags')
-def TagsList(product_id):
+def tagsList(product_id):
     storeDb = db.getDB()
     tags = storeDb.execute(
         '''SELECT * from product_rfid where product_id = ?;
 '''
     ,(product_id,)).fetchall()
-    return render_template('TagsList.html', tags=tags,product_id=product_id)
+    return render_template('tagsList.html', tags=tags,product_id=product_id)
 
 @app.route('/admin-dashboard/products/<int:product_id>/update',methods = ['GET','POST'])
 def productUpdate(product_id):
@@ -389,6 +460,7 @@ def login():
 
     if bcrypt.checkpw(password.encode('utf-8'), user['user_password']):
         session['user_email'] = user['user_email']
+        session['user_id'] = user['user_id']
         session['user_first_name'] = user['user_fname']
         session['user_role'] = user['user_role']
         return redirect(url_for('store.storeIndex'))
@@ -400,11 +472,11 @@ def logout():
     session.clear()
     return redirect(url_for('store.storeIndex'))
 
-@app.route('/admin-dashboard/orders')
-def customerOrders():   
-    storeDb = db.getDB() 
-    orders = storeDb.execute('SELECT * FROM orders ORDER BY order_created_at DESC').fetchall()
-    return render_template("CustomerOrders.html", orders=orders) 
+#@app.route('/admin-dashboard/orders')
+#def customerOrders():   
+  #storeDb = db.getDB() 
+#   orders = storeDb.execute('SELECT * FROM orders ORDER BY order_created_at DESC').fetchall()
+ # return render_template("CustomerOrders.html", orders=orders) 
 
 
 @app.route('/admin-dashboard/orders/<int:order_id>')
@@ -595,8 +667,6 @@ def reportCustomers():
 @app.route('/admin-dashboard/reports/customers/fetch')
 def reportCustomersFetch():   
     storeDb = db.getDB() 
-    date = request.args.get('start')
-    date = request.args.get('end')
     query = '''
     SELECT DATE(user_created_at) as date,COUNT(user_id) as customer_count from users
     WHERE user_role  = 'customer'
@@ -842,7 +912,13 @@ def selfCheckoutSubmit():
             VALUES (?, ?, ?, ?)
         ''', (total, payment_method, 'COMPLETED', customer_email))
         order_id = cur.lastrowid
-
+        if session['user_id'] is not None:
+            storeDb.execute('''
+                        UPDATE orders
+                        SET user_id = ?
+                        WHERE order_id = ?;
+                    ''',(session['user_id'],cur.lastrowid))
+            storeDb.commit()
         # 7. Add Products to order_products table
         for item in all_items:
             pid = item.get('product_id')

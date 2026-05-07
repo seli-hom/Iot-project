@@ -1,0 +1,58 @@
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"
+></script>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"
+></script>
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"
+/>
+
+<div class="col-md-4 mb-4">
+  <input class="form-control" type="text" name="daterange" />
+</div>
+<script>
+  $(function () {
+    $('input[name="daterange"]').daterangepicker(
+      {
+        opens: "left",
+      },
+      function (start, end, label) {
+        populateTable(start.format("YYYY-MM-DD"), end.format("YYYY-MM-DD"));
+      },
+    );
+  });
+
+  async function populateTable(start, end) {
+    data = await fetch(
+      `http://127.0.0.1:5000/customers/my-profile/orders/fetch?start=${start}&end=${end}`,
+    ).then((response) => {
+      return response.json();
+    });
+
+    let TableBody = document.getElementById("tableBody");
+    TableBody.innerHTML = `
+        `;
+    let html = ``;
+    for (let index = 0; index < data.length; index++) {
+      html += `<tr> 
+          
+              <td>${data[index]["order_id"] ?? "None"}</td>
+               <td>${data[index]["order_status"] ?? "None"}</td>
+                <td>${data[index]["payment_method"] ?? "None"}</td>
+                 <td>${data[index]["order_total"] ?? "None"}</td>
+                  <td>${data[index]["date"] ?? "None"}</td>`;
+      html += `</tr>`;
+    }
+    TableBody.innerHTML = html;
+    console.log(data);
+  }
+</script>
