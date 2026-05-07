@@ -999,7 +999,7 @@ def selfCheckoutSubmit():
         # Send via your Email Service
         receipt_sender = EmailAlertSystem(
             sender_email="taliamuro3@gmail.com",
-            password="hapc ypha dcwh ewbc", # Note: Usually better in environment variables!
+            password="fghd zvac bttr nvxf", # Note: Usually better in environment variables!
             receiver_email=customer_email
         )
         receipt_sender.send_receipt_email(customer_email, receipt_data)
@@ -1160,7 +1160,7 @@ def get_temp_data():
     return hardware_status
 
 # 3. The Hardware Action API
-@app.route('/api/fan/<state>')
+@app.route('/api/fan/<state>' )
 def set_fan(state):
     if state == "on":
         motor_control("on")

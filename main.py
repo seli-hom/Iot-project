@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 mail_manager = EmailAlertSystem(
     sender_email="taliamuro3@gmail.com",
-    password="hapc ypha dcwh ewbc",
+    password="fghd zvac bttr nvxf",
     receiver_email="sybrouss@gmail.com"
 )
 
