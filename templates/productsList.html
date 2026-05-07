@@ -55,7 +55,7 @@
               {% endif %}
             </td>
             <td><strong>{{ product.product_name }}</strong></td>
-            <td>{{ product.product_price }} $</td>
+            <td>{{ "%.2f"|format(product.product_price) }} $</td>
             <td>
               <div class="d-flex flex-wrap mb-2">
                 {% if product.rfid_tag and product.rfid_tag.strip() != "" %} {%
@@ -92,7 +92,7 @@
                   <a
                     href="{{ url_for('store.productDelete', product_id=product.product_id) }}"
                     class="btn btn-sm btn-outline-danger"
-                    >Del</a
+                    >Delete</a
                   >
                 </div>
               </div>
