@@ -79,7 +79,7 @@
                   class="btn btn-sm btn-warning"
                   data-bs-toggle="modal"
                   data-bs-target="#addRfidModal{{ product.product_id }}"
-                  data-bs-backdrop="false"
+                  onclick="startRfidScan('{{ product.product_id }}')"
                 >
                   + Add Stock
                 </button>
@@ -106,7 +106,7 @@
       <a href="{{url_for('store.productCreate')}}" class="btn btn-primary">Add New Product</a>
 
   {% endif %} {% for product in products %}
-  <div
+  <!-- <div
     class="modal fade"
     id="addRfidModal{{ product.product_id }}"
     tabindex="-1"
@@ -115,7 +115,7 @@
       <div class="modal-content">
         <div class="modal-header text-dark">
           <h5 class="modal-title">
-            Manual Stock Entry: {{ product.product_name }}
+            Stock Entry: {{ product.product_name }}
           </h5>
           <button
             type="button"
@@ -137,9 +137,6 @@
               required
               autofocus
             />
-            <small class="text-muted"
-              >Type the code exactly as it appears in your terminal.</small
-            >
           </div>
           <div class="modal-footer">
             <button type="submit" class="btn btn-primary w-100">
@@ -149,7 +146,91 @@
         </form>
       </div>
     </div>
+  </div> -->
+
+  <div class="modal fade" id="addRfidModal{{ product.product_id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        
+        <div class="modal-header">
+          <h5 class="modal-title text-dark">Stock Entry: {{ product.product_name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <form method="POST" action="{{ url_for('store.addRFID', product_id=product.product_id) }}">
+          <div class="modal-body text-dark">
+              <div class="alert alert-secondary p-2 mb-3" style="font-size: 0.85rem;">
+                  <i class="bi bi-info-circle"></i> <strong>Scanner Active:</strong> 
+                  Please hold one tag near the reader.
+              </div>
+
+              <label class="form-label">EPC/RFID Hex Code</label>
+              <input
+                type="text"
+                id="rfidInput{{ product.product_id }}" 
+                name="product_rfid"
+                class="form-control"
+                placeholder="Searching for tag..."
+                required
+                readonly 
+              />
+              <div id="scanStatus{{ product.product_id }}" class="mt-2 small text-muted">
+                  Initializing scanner...
+              </div>
+          </div>
+          
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add to Inventory</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
   </div>
-  {% endfor %}
+
+{% endfor %}
 </div>
+
+  <script>
+  let rfidInterval = null;
+
+  // Use 'click' on the button instead of 'shown.bs.modal' as a test
+  function startRfidScan(productId) {
+      console.log("Button clicked for product:", productId);
+      const inputField = document.getElementById('rfidInput' + productId);
+      const statusDiv = document.getElementById('scanStatus' + productId);
+
+      if (!inputField || !statusDiv) {
+          console.error("Critical Error: HTML IDs do not match JS lookup.");
+          return;
+      }
+
+      // Clear any old intervals
+      if (rfidInterval) clearInterval(rfidInterval);
+
+      rfidInterval = setInterval(() => {
+          console.log("Fetching from Pi...");
+          statusDiv.innerText = "Reading tag... hold close.";
+
+          fetch('/api/get-latest-scan')
+              .then(res => res.json())
+              .then(data => {
+                  console.log("Data from Pi:", data);
+                  if (data.success) {
+                      inputField.value = data.tag;
+                      statusDiv.innerHTML = '<span style="color:green">Captured!</span>';
+                      clearInterval(rfidInterval);
+                  }
+              })
+              .catch(err => console.error("Network Error:", err));
+      }, 1500);
+  }
+
+  // Ensure the interval stops if they close the modal
+  document.addEventListener('hidden.bs.modal', function () {
+      clearInterval(rfidInterval);
+      console.log("Scan stopped.");
+  });
+  </script>
 {% endblock %}

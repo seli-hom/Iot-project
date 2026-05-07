@@ -16,6 +16,8 @@ from services.rfid_service import RFIDService
 from services.receipt_service import EmailAlertSystem
 from services.hardware import hardware_status, motor_control
 
+rfid_svc = RFIDService(port="/dev/ttyUSB0", baudrate=115200)
+
 # Blueprint Setup
 app = Blueprint('store', __name__)
 
@@ -194,7 +196,7 @@ def productList():
                 (SELECT COUNT(r.rfid_tag)
                 FROM product_rfid r 
                 WHERE r.product_id = p.product_id) + p.product_stock_quantity	as stock
-                 FROM products p
+                FROM products p
     '''
     
     try:
@@ -262,23 +264,30 @@ def tagCreate(product_id):
     return render_template('tagCreation.html',product_id=product_id)
 
 
-@app.route('/admin-dashboard/products/<int:product_id>/addRFID',  methods=['POST'])
+@app.route('/admin-dashboard/products/<int:product_id>/addRFID', methods=['POST'])
 def addRFID(product_id):
-    storeDb = db.getDB()
-    try:
-        storeDb.execute('''
-            INSERT INTO product_rfid (product_id, rfid_tag, rfid_status)
-            VALUES (?, ?, ?)
-        ''', (product_id, request.form['product_rfid'],'ACTIVE'))
-        storeDb.commit() 
+    tag_to_add = request.form.get('product_rfid')
     
-    except Exception as e:
-        print(f"Error adding RFID tag: {e}")
-        flash("Error Adding RFID Tag. This tag is already in use please use a new tag", "danger")
-
-    finally:
-        storeDb.close()
-    return redirect(url_for('store.tagsList',product_id=product_id))
+    if tag_to_add:
+        try:
+            storeDb = db.getDB()
+            
+            # Use INSERT instead of UPDATE to create a new row for every tag
+            storeDb.execute('''
+                INSERT INTO product_rfid (product_id, rfid_tag) 
+                VALUES (?, ?)
+            ''', (product_id, tag_to_add))
+            
+            storeDb.commit()
+            storeDb.close()
+            
+            print(f"DEBUG: New row created for Product {product_id} with Tag {tag_to_add}")
+            flash(f"Tag {tag_to_add} added as new stock!")
+        except Exception as e:
+            print(f"DEBUG ERROR: {e}")
+            flash("Database error.")
+    
+    return redirect(url_for('store.productList'))
 
 @app.route('/admin-dashboard/products/<int:rfid_id>/removeRFID',  methods=['GET'])
 def removeRFID(rfid_id):
@@ -1215,14 +1224,46 @@ def ble_scan():
 def ble_scan_view():
     return render_template('BLESensorData.html')
 
-# Get scan for adding new product
+# @app.route('/api/scan-single-tag')
+# def scan_single_tag():
+#     # Perform a short 1.5-second scan
+#     tags = rfid_svc.perform_basket_scan(scan_duration=1.5)
+    
+#     if tags and len(tags) > 0:
+#         # Return the first tag found as JSON
+#         return jsonify({"success": True, "tag": tags[0]})
+    
+#     return jsonify({"success": False, "error": "No tag detected. Try again."})
+
+@app.route('/api/get-latest-scan')
+def get_latest_scan():
+    print("!!! [TERMINAL] Browser reached the Pi! Starting RFID Scan... !!!")
+    try:
+        tags = rfid_svc.perform_basket_scan(scan_duration=1.0)
+        if tags:
+            return jsonify({"success": True, "tag": tags[0]})
+    except Exception as e:
+        print(f"DEBUG ERROR: {e}")
+    return jsonify({"success": False})
+
 @app.route('/api/scan-single-tag')
 def scan_single_tag():
+    print("\n" + "="*40)
+    print("WEB REQUEST RECEIVED: /api/scan-single-tag")
+    print("="*40)
+    
     try:
-        # This calls your specific logic from rfid_service.py
-        tags = rfid_svc.perform_basket_scan(scan_duration=1.5)
+        # We'll use a slightly longer scan to be sure
+        print("DEBUG: Calling RFIDService.perform_basket_scan...")
+        tags = rfid_svc.perform_basket_scan(scan_duration=2.0)
+        
         if tags and len(tags) > 0:
+            print(f"DEBUG: SUCCESS! Found Tag: {tags[0]}")
             return jsonify({"success": True, "tag": tags[0]})
-        return jsonify({"success": False, "error": "No tag found in range"})
+        else:
+            print("DEBUG: Scan finished, but NO TAGS were detected.")
+            return jsonify({"success": False, "error": "No tag found"})
+            
     except Exception as e:
+        print(f"DEBUG ERROR: The RFID Service crashed: {e}")
         return jsonify({"success": False, "error": str(e)})
