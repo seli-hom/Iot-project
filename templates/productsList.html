@@ -43,7 +43,7 @@
             <td>{{ product.barcode_num }}</td>
             <td>{{ product.product_company }}</td>
 
-            <td>{{ product.product_stock_quantity }}</td>
+            <td>{{ product.stock }}</td>
             <td>
               <a
                 href="{{ url_for('store.productUpdate', product_id=product.product_id) }}"

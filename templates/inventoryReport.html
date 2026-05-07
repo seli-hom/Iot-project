@@ -22,7 +22,7 @@
             <td>{{ loop.index }}</td>
             <td>{{ product.product_id }}</td>
             <td>{{ product.product_name }}</td>
-            <td>{{ product.product_stock_quantity }}</td>
+            <td>{{ product.stock }}</td>
             <td>{{ product.last_restock }}</td>
           </tr>
           {% endfor %}
@@ -51,7 +51,7 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
     console.log(data);
     for (let index = 0; index < data.length; index++) {
       names.push(data[index]["product_name"]);
-      stock.push(data[index]["product_stock_quantity"]);
+      stock.push(data[index]["stock"]);
     }
     console.log(names);
     const myChart = new Chart(

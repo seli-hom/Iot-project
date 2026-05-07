@@ -188,10 +188,13 @@ def productList():
     # We MUST use GROUP_CONCAT(r.rfid_tag, '/') so the template split('/') logic works
     query = '''
         SELECT p.*, 
-               (SELECT GROUP_CONCAT(r.rfid_tag, '/') 
+                (SELECT GROUP_CONCAT(r.rfid_tag, '/') 
                 FROM product_rfid r 
-                WHERE r.product_id = p.product_id) as rfid_tag
-        FROM products p
+                WHERE r.product_id = p.product_id) as rfid_tag,
+                (SELECT COUNT(r.rfid_tag)
+                FROM product_rfid r 
+                WHERE r.product_id = p.product_id) + p.product_stock_quantity	as stock
+                 FROM products p
     '''
     
     try:
@@ -267,7 +270,7 @@ def addRFID(product_id):
                 VALUES (?, ?, ?)
             ''', (product_id, request.form['product_rfid'],'ACTIVE'))
     storeDb.commit()
-    return redirect(url_for('store.TagsList',product_id=product_id))
+    return redirect(url_for('store.tagsList',product_id=product_id))
 
 @app.route('/admin-dashboard/products/<int:rfid_id>/removeRFID',  methods=['GET'])
 def removeRFID(rfid_id):
@@ -717,9 +720,11 @@ def reportCustomersFetch():
 def reportInventory():   
     storeDb = db.getDB() 
     products = storeDb.execute('''
-        SELECT p.*,DATE(p.product_updated_at) as last_restock, c.category_type
+        SELECT p.*, p.product_stock_quantity + COUNT(rfid_tag) as stock, DATE(p.product_updated_at) as last_restock, c.category_type
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN product_rfid r ON p.product_id = r.product_id
+        GROUP BY p.product_id
     ''').fetchall()
 
     return render_template("inventoryReport.html",products=products ) 
@@ -728,9 +733,11 @@ def reportInventory():
 def reportInventoryFetch():   
     storeDb = db.getDB() 
     products = storeDb.execute('''
-        SELECT p.*, c.category_type
+        SELECT p.*, p.product_stock_quantity + COUNT(rfid_tag) as stock, DATE(p.product_updated_at) as last_restock, c.category_type
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN product_rfid r ON p.product_id = r.product_id
+        GROUP BY p.product_id
     ''').fetchall()
     json_data = json.dumps( [dict(ix) for ix in products] )
     return json_data
