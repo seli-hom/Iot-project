@@ -211,33 +211,32 @@ def productUpdate(product_id):
     if request.method == 'POST':
         storeDb = db.getDB()
         storeDb.execute('''
-                    UPDATE products SET product_name = ? , category_id = ?, product_price = ?, product_company = ?, product_description = ?, product_stock_quantity = ?
-                                WHERE product_id = ?
-                ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],request.form['product_stock'],product_id))        
+            UPDATE products 
+            SET product_name = ?, category_id = ?, product_price = ?, product_company = ?, product_description = ?
+            WHERE product_id = ?
+        ''', (
+                request.form['product_name'],
+                request.form['product_category'], 
+                request.form['product_price'], 
+                request.form['product_company'], 
+                request.form['product_description'],
+                product_id
+            ))        
         storeDb.execute('''
                     UPDATE product_barcode SET  barcode_num = ?
                         WHERE product_id = ?
                 ''', ( request.form['product_barcode'],product_id))
-        stock =  storeDb.execute('''
-                    SELECT product_stock_quantity FROM products
-                        WHERE product_id = ?
-                ''', (product_id,)).fetchone()
-        
-        if stock['product_stock_quantity'] != request.form['product_stock']:
-            storeDb.execute('''
-                        UPDATE products 
-                        SET product_updated_at = CURRENT_TIMESTAMP 
-                        WHERE product_id = ?;
-                    ''', (product_id,))
         
         storeDb.commit()
         return redirect(url_for('store.productList'))
     storeDb = db.getDB()
     product = storeDb.execute(
-        '''SELECT p.*,pb.*,STRING_AGG(pr.rfid_tag,' / ') as rfid_tag FROM products p  
-            LEFT JOIN product_rfid pr on pr.product_id = p.product_id
-            LEFT JOIN product_barcode pb on   pb.product_id= p.product_id
-            WHERE p.product_id = ? GROUP BY p.product_id''',
+    '''SELECT p.*, pb.*, GROUP_CONCAT(pr.rfid_tag, ' / ') as rfid_tag 
+       FROM products p  
+       LEFT JOIN product_rfid pr on pr.product_id = p.product_id
+       LEFT JOIN product_barcode pb on pb.product_id = p.product_id
+       WHERE p.product_id = ? 
+       GROUP BY p.product_id''',
     (product_id,)).fetchone()
     return render_template('productUpdate.html', product=product)
 
