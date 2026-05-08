@@ -305,22 +305,54 @@ def removeRFID(rfid_id):
     storeDb.commit()
     return redirect(url_for('store.productList'))
 
-@app.route('/admin-dashboard/products/add', methods=['POST'])
+@app.route('/admin-dashboard/products/add', methods=['GET', 'POST'])
 def productAdd():
+    if request.method == 'POST':
+        storeDb = db.getDB()
+        try:
+            product_name = request.form['product_name']
+            barcode_num = request.form['product_barcode']
 
-    storeDb = db.getDB()
-    product = storeDb.execute('''
-                INSERT INTO products (product_name, category_id, product_price, product_company, product_description,product_stock_quantity)
-                VALUES (?, ?, ?, ?, ?,?)
-            ''', (request.form['product_name'],request.form['product_category'], request.form['product_price'], request.form['product_company'], request.form['product_description'],request.form['stock']))
-    
-    storeDb.execute('''
+            # 1. Check if the barcode is already assigned to another product
+            existing = storeDb.execute(
+                'SELECT product_id FROM product_barcode WHERE barcode_num = ?', 
+                (barcode_num,)
+            ).fetchone()
+
+            if existing:
+                # If found, send an error and don't insert anything
+                flash(f"Barcode '{barcode_num}' is already assigned to another product.", "danger")
+                return redirect(url_for('store.productAdd'))
+
+            # 2. Insert into the 'products' table
+            cursor = storeDb.execute('''
+                INSERT INTO products (product_name, category_id, product_price, product_company, product_description)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (product_name, request.form['product_category'], request.form['product_price'], 
+                  request.form['product_company'], request.form['product_description']))
+            
+            new_product_id = cursor.lastrowid
+
+            # 3. Link the barcode to the new product ID
+            storeDb.execute('''
                 INSERT INTO product_barcode (product_id, barcode_num)
                 VALUES (?, ?)
-            ''', (product.lastrowid, request.form['product_barcode']))
+            ''', (new_product_id, barcode_num))
+            
+            storeDb.commit()
+            flash(f"Successfully created product: {product_name}", "success")
+            return redirect(url_for('store.productList'))
 
-    storeDb.commit()
-    return redirect(url_for('store.productList'))
+        except Exception as e:
+            storeDb.rollback()
+            print(f"DEBUG ERROR: {e}")
+            flash("An error occurred while creating the product. Please check your inputs.", "danger")
+            return redirect(url_for('store.productAdd'))
+        finally:
+            storeDb.close()
+
+    # If it's a GET request, just show the form
+    return render_template('productCreation.html')
 
 @app.route('/admin-dashboard/products/<int:product_id>/delete', methods=['POST', 'GET'])
 def productDelete(product_id):
@@ -335,7 +367,7 @@ def productDelete(product_id):
     storeDb.commit()
     storeDb.close()
 
-    flash("User deleted successfully.", "success")
+    flash("Product deleted successfully.", "success")
     return redirect(url_for('store.productList'))
 
 

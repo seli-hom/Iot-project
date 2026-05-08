@@ -59,9 +59,9 @@
               name="product_category"
               required
             >
-              <option value="1" {% if product.category_id == 1 %}selected{% endif %}>Makeup</option>
-              <option value="2" {% if product.category_id == 2 %}selected{% endif %}>Fragrance</option>
-              <option value="3" {% if product.category_id == 3 %}selected{% endif %}>Lip Sets</option>
+              <option value="1" {% if product.category_id = 1 %}selected{% endif %}>Makeup</option>
+              <option value="2" {% if product.category_id = 2 %}selected{% endif %}>Fragrance</option>
+              <option value="3" {% if product.category_id = 3 %}selected{% endif %}>Lip Sets</option>
             </select>
           </div>
 

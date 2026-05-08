@@ -159,7 +159,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS product_barcode (
             barcode_id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
-            barcode_num TEXT NOT NULL,
+            barcode_num TEXT UNIQUE NOT NULL,
             FOREIGN KEY(product_id) REFERENCES products(product_id)
         )
     ''')

@@ -4,6 +4,16 @@
         <!-- SIDEBAR -->
         {% include "adminSidebar.html" with context %}
 <div class="container d-flex flex-column align-items-center p-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
   <div class="card shadow-sm mb-4 rounded" style="min-width: 450px; max-width: 600px; width: 100%;">
     <div class="card-body p-4">
 
@@ -27,21 +37,17 @@
             <label class="form-label">Price</label>
             <input type="number" pattern="^\d*(\.\d{0,2})?$" class="form-control rounded" name="product_price" required>
           </div>
-                    <div class="col-md-6">
-            <label class="form-label">Stock</label>
-            <input type="number" class="form-control rounded" name="stock" required>
-          </div>
-                    <div class="col-md-6">
-            <label class="form-label">Barcode</label>
-            <input type="text"  class="form-control rounded" name="product_barcode" required>
-          </div>
-            <div class="col-md-6">
+          <div class="col-md-6">
             <label class="form-label">Category</label>
             <select type="text" class="form-control rounded" name="product_category" required>
             <option value="1">1</option>
             <option value="2">2</option>  
             <option value="3">3</option>  
             </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Barcode</label>
+            <input type="text" id="barcode_input" class="form-control rounded" name="product_barcode" placeholder="Scan the product barcode" required>
           </div>
 
           <div class="col-12">
@@ -71,21 +77,11 @@
 </div>
 
 <script>
-  // Simple listener to help direct hardware scanner input
-  document.addEventListener('keypress', function (e) {
-    // Most scanners send an 'Enter' key at the end of a scan
+  // Prevents the scanner's 'Enter' key from submitting the form prematurely
+  document.getElementById('barcode_input').addEventListener('keydown', function(e) {
     if (e.key === 'Enter') {
-      const activeElement = document.activeElement;
-      
-      // If the user isn't already typing in a specific box, 
-      // try to guess where the scan should go based on common lengths
-      if (activeElement.tagName !== 'INPUT') {
-        const rfidInput = document.getElementsByName('product_rfid')[0];
-        const barcodeInput = document.getElementsByName('product_barcode')[0];
-        
-        // Example: If scan is very long, it's likely the RFID[cite: 3]
-        // This is a "best effort" helper for your hardware demo[cite: 4]
-      }
+      e.preventDefault();
+      console.log("Barcode scan detected - auto-submit blocked.");
     }
   });
 </script>
