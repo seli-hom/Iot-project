@@ -39,19 +39,15 @@
           {% endfor %}
         </tbody>
       </table>
-
-                          <div class="text-center mt-2">
-        <a href="{{ url_for('store.productList') }}">Go Back</a>
-      </div>
     </div>
   </div>
   {% endif %}
 
   <div class="mt-4">
     <a
-      href="{{ url_for('store.tagCreate' , product_id=product_id) }}"
+      href="{{ url_for('store.productList') }}"
       class="btn btn-primary"
-      >Add Tag</a
+      >Back to Product List</a
     >
   </div>
 </div>
