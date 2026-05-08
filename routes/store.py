@@ -1166,7 +1166,7 @@ def selfCheckoutSubmit():
         session.pop('manual_items', None)
         session.modified = True
         
-        flash(f"Order #{order_id} successful! Stock updated and receipt sent.", "success")
+        flash(f"Order successful! Receipt sent to {customer_email}.", "success")
 
     except Exception as e:
         storeDb.rollback()
