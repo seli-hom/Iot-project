@@ -1,178 +1,146 @@
-{%  extends "base.html" %}
-
+{% extends "base.html" %}
 {% block content %}
 
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BLE Sensor Dashboard</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
-    <style>
-      .motion-active {
-        background-color: #fff5f5 !important;
-        border-color: #f5c6cb !important;
-      }
-      .motion-active .sensor-value {
-        color: #dc3545 !important;
-      }
-    </style>
-  </head>
-  <body class="bg-light">
-    <a
-      class="nav-link px-2 py-1 rounded"
-      href="{{ url_for('store.adminDashboard') }}"
-    >
-      <span class="text-primary fw-bold mb-2">Admin Panel</span>
-    </a>
+<body>
+  {% include "adminSidebar.html" with context %}
+  <div class="container py-5">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <h4 class="mb-0 fw-semibold">Environment Monitor</h4>
+      <small class="text-muted"
+        >Last updated: <span id="last-update"></span
+      ></small>
+    </div>
 
-    <div class="container py-5">
-      <div class="d-flex align-items-center justify-content-between mb-4">
-        <h4 class="mb-0 fw-semibold">Environment Monitor</h4>
-        <small class="text-muted"
-          >Last updated: <span id="last-update"></span
-        ></small>
+    <div class="row g-3">
+      <!-- Motion -->
+      <div class="col-sm-6 col-lg-3">
+        <div
+          id="pir-card"
+          class="card h-100 border-0 shadow-sm"
+          style="border-top: 3px solid #dc3545 !important"
+        >
+          <div class="card-body">
+            <p class="small mb-1" style="color: #dc3545">
+              <i class="bi bi-person-walking me-1"></i>Motion
+            </p>
+            <h3 id="pir-value" class="sensor-value fw-semibold mb-0">—</h3>
+          </div>
+        </div>
       </div>
 
-      <div class="row g-3">
-        <!-- Motion -->
-        <div class="col-sm-6 col-lg-3">
-          <div
-            id="pir-card"
-            class="card h-100 border-0 shadow-sm"
-            style="border-top: 3px solid #dc3545 !important"
-          >
-            <div class="card-body">
-              <p class="small mb-1" style="color: #dc3545">
-                <i class="bi bi-person-walking me-1"></i>Motion
-              </p>
-              <h3 id="pir-value" class="sensor-value fw-semibold mb-0">—</h3>
-            </div>
+      <!-- Temperature -->
+      <div class="col-sm-6 col-lg-3">
+        <div
+          class="card h-100 border-0 shadow-sm"
+          style="border-top: 3px solid #0dcaf0 !important"
+        >
+          <div class="card-body">
+            <p class="small mb-1 text-info">
+              <i class="bi bi-thermometer-half me-1"></i>Temperature
+            </p>
+            <h3 id="temp-value" class="fw-semibold mb-1">—</h3>
+            <p id="hum-value" class="text-muted small mb-0">
+              <i class="bi bi-droplet me-1"></i>— % humidity
+            </p>
           </div>
         </div>
+      </div>
 
-        <!-- Temperature -->
-        <div class="col-sm-6 col-lg-3">
-          <div
-            class="card h-100 border-0 shadow-sm"
-            style="border-top: 3px solid #0dcaf0 !important"
-          >
-            <div class="card-body">
-              <p class="small mb-1 text-info">
-                <i class="bi bi-thermometer-half me-1"></i>Temperature
-              </p>
-              <h3 id="temp-value" class="fw-semibold mb-1">—</h3>
-              <p id="hum-value" class="text-muted small mb-0">
-                <i class="bi bi-droplet me-1"></i>— % humidity
-              </p>
-            </div>
+      <!-- Light -->
+      <div class="col-sm-6 col-lg-3">
+        <div
+          class="card h-100 border-0 shadow-sm"
+          style="border-top: 3px solid #ffc107 !important"
+        >
+          <div class="card-body">
+            <p class="small mb-1 text-warning">
+              <i class="bi bi-brightness-high me-1"></i>Light
+            </p>
+            <h3 id="ps-value" class="fw-semibold mb-0">—</h3>
           </div>
         </div>
+      </div>
 
-        <!-- Light -->
-        <div class="col-sm-6 col-lg-3">
-          <div
-            class="card h-100 border-0 shadow-sm"
-            style="border-top: 3px solid #ffc107 !important"
-          >
-            <div class="card-body">
-              <p class="small mb-1 text-warning">
-                <i class="bi bi-brightness-high me-1"></i>Light
-              </p>
-              <h3 id="ps-value" class="fw-semibold mb-0">—</h3>
-            </div>
-          </div>
-        </div>
-
-        <!-- Battery -->
-        <div class="col-sm-6 col-lg-3">
-          <div
-            class="card h-100 border-0 shadow-sm"
-            style="border-top: 3px solid #198754 !important"
-          >
-            <div class="card-body">
-              <p class="small mb-1 text-success">
-                <i class="bi bi-battery-half me-1" id="battery-icon"></i>Battery
-              </p>
-              <h3 id="battery-value" class="fw-semibold mb-0">—</h3>
-            </div>
+      <!-- Battery -->
+      <div class="col-sm-6 col-lg-3">
+        <div
+          class="card h-100 border-0 shadow-sm"
+          style="border-top: 3px solid #198754 !important"
+        >
+          <div class="card-body">
+            <p class="small mb-1 text-success">
+              <i class="bi bi-battery-half me-1" id="battery-icon"></i>Battery
+            </p>
+            <h3 id="battery-value" class="fw-semibold mb-0">—</h3>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-      async function updateDashboard() {
-        try {
-          const response = await fetch("/ble-scan");
-          const data = await response.json();
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    async function updateDashboard() {
+      try {
+        const response = await fetch("/ble-scan");
+        const data = await response.json();
 
-          // PIR
-          const pirValue = document.getElementById("pir-value");
-          const pirCard = document.getElementById("pir-card");
-          if (data.PIR === 1 || data.PIR === true) {
-            pirValue.textContent = "Motion detected";
-            pirCard.classList.add("motion-active");
-          } else {
-            pirValue.textContent = "No motion";
-            pirCard.classList.remove("motion-active");
-          }
-
-          // Temperature & Humidity
-          if (data.HT) {
-            document.getElementById("temp-value").textContent =
-              `${data.HT.temperature}°C`;
-            document.getElementById("hum-value").innerHTML =
-              `<i class="bi bi-droplet me-1"></i>${data.HT.humidity}% humidity`;
-          }
-
-          // Light
-          document.getElementById("ps-value").textContent = data.PS ?? "—";
-
-          // Battery
-          const battElem = document.getElementById("battery-value");
-          const battIcon = document.getElementById("battery-icon");
-          const state = (data.batteryState ?? "").toString().toLowerCase();
-          battElem.textContent = data.batteryState ?? "—";
-
-          battElem.className = "fw-semibold mb-0";
-          battIcon.className = "me-1 bi";
-          if (state.includes("low") || state === "critical") {
-            battElem.classList.add("text-danger");
-            battIcon.classList.add("bi-battery", "text-danger");
-          } else if (state.includes("charg")) {
-            battElem.classList.add("text-warning");
-            battIcon.classList.add("bi-battery-charging", "text-warning");
-          } else {
-            battElem.classList.add("text-success");
-            battIcon.classList.add("bi-battery-full", "text-success");
-          }
-
-          // Timestamp
-          document.getElementById("last-update").textContent =
-            new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
-        } catch (err) {
-          console.error("Fetch error:", err);
+        // PIR
+        const pirValue = document.getElementById("pir-value");
+        const pirCard = document.getElementById("pir-card");
+        if (data.PIR === 1 || data.PIR === true) {
+          pirValue.textContent = "Motion detected";
+          pirCard.classList.add("motion-active");
+        } else {
+          pirValue.textContent = "No motion";
+          pirCard.classList.remove("motion-active");
         }
-      }
 
-      setInterval(updateDashboard, 2000);
-      updateDashboard();
-    </script>
-  </body>
-</html>
+        // Temperature & Humidity
+        if (data.HT) {
+          document.getElementById("temp-value").textContent =
+            `${data.HT.temperature}°C`;
+          document.getElementById("hum-value").innerHTML =
+            `<i class="bi bi-droplet me-1"></i>${data.HT.humidity}% humidity`;
+        }
+
+        // Light
+        document.getElementById("ps-value").textContent = data.PS ?? "—";
+
+        // Battery
+        const battElem = document.getElementById("battery-value");
+        const battIcon = document.getElementById("battery-icon");
+        const state = (data.batteryState ?? "").toString().toLowerCase();
+        battElem.textContent = data.batteryState ?? "—";
+
+        battElem.className = "fw-semibold mb-0";
+        battIcon.className = "me-1 bi";
+        if (state.includes("low") || state === "critical") {
+          battElem.classList.add("text-danger");
+          battIcon.classList.add("bi-battery", "text-danger");
+        } else if (state.includes("charg")) {
+          battElem.classList.add("text-warning");
+          battIcon.classList.add("bi-battery-charging", "text-warning");
+        } else {
+          battElem.classList.add("text-success");
+          battIcon.classList.add("bi-battery-full", "text-success");
+        }
+
+        // Timestamp
+        document.getElementById("last-update").textContent =
+          new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    }
+
+    setInterval(updateDashboard, 2000);
+    updateDashboard();
+  </script>
+</body>
 
 {% endblock %}

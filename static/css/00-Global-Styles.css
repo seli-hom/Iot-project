@@ -226,3 +226,11 @@ main {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+
+.motion-active {
+    background-color: #fff5f5 !important;
+    border-color: #f5c6cb !important;
+}
+.motion-active .sensor-value {
+    color: #dc3545 !important;
+}
