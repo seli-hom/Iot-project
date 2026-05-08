@@ -206,40 +206,66 @@ def tagsList(product_id):
     ,(product_id,)).fetchall()
     return render_template('TagsList.html', tags=tags,product_id=product_id)
 
-@app.route('/admin-dashboard/products/<int:product_id>/update',methods = ['GET','POST'])
-def productUpdate(product_id):
-    if request.method == 'POST':
-        storeDb = db.getDB()
+@app.route('/admin-dashboard/products/<int:product_id>/edit', methods=['GET'])
+def productEditPage(product_id):
+    storeDb = db.getDB()
+    try:
+        # 1. Fetch the specific product data
+        product = storeDb.execute('''
+            SELECT p.*, pb.barcode_num
+            FROM products p  
+            LEFT JOIN product_barcode pb ON pb.product_id = p.product_id
+            WHERE p.product_id = ? 
+        ''', (product_id,)).fetchone()
+
+        # 2. Fetch all categories for the dropdown
+        cat_rows = storeDb.execute('SELECT category_id, category_type FROM categories ORDER BY category_type ASC').fetchall()
+        categories_list = [dict(row) for row in cat_rows]
+
+        if not product:
+            flash("Product not found.", "warning")
+            return redirect(url_for('store.productList'))
+
+        return render_template('productUpdate.html', product=product, categories=categories_list)
+    finally:
+        storeDb.close()
+
+@app.route('/admin-dashboard/products/<int:product_id>/update', methods=['POST'])
+def productUpdateAction(product_id):
+    storeDb = db.getDB()
+    try:
+        # Update products table
         storeDb.execute('''
             UPDATE products 
             SET product_name = ?, category_id = ?, product_price = ?, product_company = ?, product_description = ?
             WHERE product_id = ?
         ''', (
-                request.form['product_name'],
-                request.form['product_category'], 
-                request.form['product_price'], 
-                request.form['product_company'], 
-                request.form['product_description'],
-                product_id
-            ))        
+            request.form['product_name'],
+            request.form['product_category'], 
+            request.form['product_price'], 
+            request.form['product_company'], 
+            request.form['product_description'],
+            product_id
+        ))
+        
+        # Update barcode table
         storeDb.execute('''
-                    UPDATE product_barcode SET  barcode_num = ?
-                        WHERE product_id = ?
-                ''', ( request.form['product_barcode'],product_id))
+            UPDATE product_barcode 
+            SET barcode_num = ?
+            WHERE product_id = ?
+        ''', (request.form['product_barcode'], product_id))
         
         storeDb.commit()
+        flash("Product updated successfully!", "success")
         return redirect(url_for('store.productList'))
-    storeDb = db.getDB()
-    product = storeDb.execute(
-    '''SELECT p.*, pb.*, GROUP_CONCAT(pr.rfid_tag, ' / ') as rfid_tag 
-       FROM products p  
-       LEFT JOIN product_rfid pr on pr.product_id = p.product_id
-       LEFT JOIN product_barcode pb on pb.product_id = p.product_id
-       WHERE p.product_id = ? 
-       GROUP BY p.product_id''',
-    (product_id,)).fetchone()
-    return render_template('productUpdate.html', product=product)
-
+        
+    except Exception as e:
+        storeDb.rollback()
+        print(f"UPDATE ERROR: {e}")
+        flash("An error occurred during update.", "danger")
+        return redirect(url_for('store.productEditPage', product_id=product_id))
+    finally:
+        storeDb.close()
 
 
 @app.route('/admin-dashboard/products/create')

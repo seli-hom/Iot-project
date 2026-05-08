@@ -15,7 +15,7 @@
       </div>
       {% endif %}
 
-      <form method="POST" class="mb-3">
+        <form action="{{ url_for('store.productUpdateAction', product_id=product.product_id) }}" method="POST">
         <div class="row g-2">
           <div class="col-md-6">
             <label class="form-label">Name</label>
@@ -54,14 +54,14 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Category</label>
-            <select
-              class="form-select rounded"
-              name="product_category"
-              required
-            >
-              <option value="1" {% if product.category_id = 1 %}selected{% endif %}>Makeup</option>
-              <option value="2" {% if product.category_id = 2 %}selected{% endif %}>Fragrance</option>
-              <option value="3" {% if product.category_id = 3 %}selected{% endif %}>Lip Sets</option>
+            <select name="product_category" class="form-control" required>
+                <option value="" disabled>-- Select Category --</option>
+                {% for cat in categories %}
+                    <option value="{{ cat['category_id'] }}" 
+                        {% if cat['category_id']|int == product['category_id']|int %} selected {% endif %}>
+                        {{ cat['category_type'] }}
+                    </option>
+                {% endfor %}
             </select>
           </div>
 
