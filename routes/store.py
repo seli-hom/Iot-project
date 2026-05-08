@@ -244,7 +244,17 @@ def productUpdate(product_id):
 
 @app.route('/admin-dashboard/products/create')
 def productCreate():
-    return render_template('productCreation.html')
+    storeDb = db.getDB()
+    try:
+        # Pull the categories here so the HTML has them when it loads
+        rows = storeDb.execute('SELECT category_id, category_type FROM categories ORDER BY category_type ASC').fetchall()
+        categories_list = [dict(row) for row in rows]
+        
+        print(f"DEBUG: Found {len(categories_list)} categories for the form.")
+        
+        return render_template('productCreation.html', categories=categories_list)
+    finally:
+        storeDb.close()
 
 @app.route('/admin-dashboard/products/<int:product_id>/Tags/create')
 def tagCreate(product_id):
@@ -305,54 +315,62 @@ def removeRFID(rfid_id):
     storeDb.commit()
     return redirect(url_for('store.productList'))
 
-@app.route('/admin-dashboard/products/add', methods=['GET', 'POST'])
+@app.route('/admin-dashboard/products/add', methods=['POST'])
 def productAdd():
-    if request.method == 'POST':
-        storeDb = db.getDB()
-        try:
-            product_name = request.form['product_name']
-            barcode_num = request.form['product_barcode']
+    storeDb = db.getDB()
+    try:
+        # 1. Collect all data from the form
+        product_name = request.form['product_name']
+        product_price = request.form['product_price']
+        category_id = request.form['product_category']
+        product_company = request.form['product_company']
+        product_description = request.form['product_description']
+        barcode_num = request.form['product_barcode']
 
-            # 1. Check if the barcode is already assigned to another product
-            existing = storeDb.execute(
-                'SELECT product_id FROM product_barcode WHERE barcode_num = ?', 
-                (barcode_num,)
-            ).fetchone()
+        # 2. Check for duplicate barcode in the barcode table
+        existing_barcode = storeDb.execute(
+            'SELECT barcode_id FROM product_barcode WHERE barcode_num = ?', 
+            (barcode_num,)
+        ).fetchone()
 
-            if existing:
-                # If found, send an error and don't insert anything
-                flash(f"Barcode '{barcode_num}' is already assigned to another product.", "danger")
-                return redirect(url_for('store.productAdd'))
+        if existing_barcode:
+            flash(f"Error: Barcode {barcode_num} is already assigned to another product.", "danger")
+            # We must re-fetch categories to re-render the form correctly on error
+            rows = storeDb.execute('SELECT category_id, category_type FROM categories').fetchall()
+            return render_template('productCreation.html', categories=[dict(r) for r in rows])
 
-            # 2. Insert into the 'products' table
-            cursor = storeDb.execute('''
-                INSERT INTO products (product_name, category_id, product_price, product_company, product_description)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (product_name, request.form['product_category'], request.form['product_price'], 
-                  request.form['product_company'], request.form['product_description']))
-            
-            new_product_id = cursor.lastrowid
+        # 3. Insert the main Product data
+        # Note: product_stock_quantity defaults to 0
+        cursor = storeDb.execute('''
+            INSERT INTO products (product_name, category_id, product_price, product_company, product_description, product_stock_quantity)
+            VALUES (?, ?, ?, ?, ?, 0)
+        ''', (product_name, category_id, product_price, product_company, product_description))
+        
+        # Get the ID of the product we just created
+        new_product_id = cursor.lastrowid
 
-            # 3. Link the barcode to the new product ID
-            storeDb.execute('''
-                INSERT INTO product_barcode (product_id, barcode_num)
-                VALUES (?, ?)
-            ''', (new_product_id, barcode_num))
-            
-            storeDb.commit()
-            flash(f"Successfully created product: {product_name}", "success")
-            return redirect(url_for('store.productList'))
+        # 4. Link the barcode to that specific product ID
+        storeDb.execute('''
+            INSERT INTO product_barcode (product_id, barcode_num)
+            VALUES (?, ?)
+        ''', (new_product_id, barcode_num))
 
-        except Exception as e:
-            storeDb.rollback()
-            print(f"DEBUG ERROR: {e}")
-            flash("An error occurred while creating the product. Please check your inputs.", "danger")
-            return redirect(url_for('store.productAdd'))
-        finally:
-            storeDb.close()
+        # 5. Commit everything to the database
+        storeDb.commit()
+        flash(f"Successfully registered {product_name}.", "success")
+        return redirect(url_for('store.productList'))
 
-    # If it's a GET request, just show the form
-    return render_template('productCreation.html')
+    except Exception as e:
+        storeDb.rollback()
+        print(f"DATABASE ERROR: {e}")
+        flash("An internal error occurred. Product was not saved.", "danger")
+        
+        # Re-fetch categories so the dropdown isn't empty on the error page
+        rows = storeDb.execute('SELECT category_id, category_type FROM categories').fetchall()
+        return render_template('productCreation.html', categories=[dict(r) for r in rows])
+        
+    finally:
+        storeDb.close()
 
 @app.route('/admin-dashboard/products/<int:product_id>/delete', methods=['POST', 'GET'])
 def productDelete(product_id):

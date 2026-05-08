@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 
-        <!-- SIDEBAR -->
-        {% include "adminSidebar.html" with context %}
+<!-- SIDEBAR -->
+{% include "adminSidebar.html" with context %}
 <div class="container d-flex flex-column align-items-center p-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -24,7 +24,6 @@
           {{ message }}
         </div>
       {% endif %}
-
       <form method="POST" action="{{ url_for('store.productAdd') }}" class="mb-3">
         <div class="row g-2">
 
@@ -39,10 +38,13 @@
           </div>
           <div class="col-md-6">
             <label class="form-label">Category</label>
-            <select type="text" class="form-control rounded" name="product_category" required>
-            <option value="1">1</option>
-            <option value="2">2</option>  
-            <option value="3">3</option>  
+            <select class="form-select rounded" name="product_category" required>
+              <option value="" selected disabled>Select Category</option>
+              {% for cat in categories %}
+                <option value="{{ cat['category_id'] }}">
+                  {{ cat['category_type'] }}
+                </option>
+              {% endfor %}
             </select>
           </div>
           <div class="col-md-6">
