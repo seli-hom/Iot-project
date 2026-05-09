@@ -13,31 +13,14 @@
         <span class="text-primary fw-bold mb-2">Customer Panel</span>
       </a>
 
-      <button
-        class="btn btn-toggle align-items-center rounded collapsed"
-        data-bs-toggle="collapse"
-        data-bs-target="#dashboard-collapse"
-        aria-expanded="false"
-        style="text-align: left"
+      <a
+        href="{{ url_for('store.customersDashboard',user_id = session['user_id']) }}"
+        class="nav-link rounded"
+        >Items</a
       >
-        Purchase History
-      </button>
-      <div class="collapse" id="dashboard-collapse">
-        <ul class="btn-toggle-nav list-unstyled fw-normal pb-1 small ms-4">
-          <li>
-            <a
-              href="{{ url_for('store.customersDashboard',user_id = session['user_id']) }}"
-              class="nav-link rounded"
-              >Items</a
-            >
-            <a
-              href="{{ url_for('store.customerOrders') }}"
-              class="nav-link rounded"
-              >Orders</a
-            >
-          </li>
-        </ul>
-      </div>
+      <a href="{{ url_for('store.customerOrders') }}" class="nav-link rounded"
+        >Orders</a
+      >
 
       <br />
     </nav>

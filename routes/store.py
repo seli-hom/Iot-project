@@ -164,6 +164,20 @@ def customerOrdersFetch():
 
     return json_data
 
+@app.route('/customers/my-profile/orders/<int:order_id>/details')
+def customerOrderDetails(order_id):
+    storeDb = db.getDB()
+    query = '''
+        Select *, DATE(o.order_created_at) as date from order_products op
+            LEFT JOIN products p on p.product_id = op.product_id
+            LEFT JOIN orders o on o.order_id = op.order_id
+            WHERE op.order_id = ?
+        '''
+
+    order = storeDb.execute(query, (order_id,)).fetchall()
+    
+
+    return render_template('customerOrderDetails.html', order=order)
 
 @app.route('/customers')
 def customersList():
