@@ -36,7 +36,6 @@
       View Admin Dashboard
     </a>
     {% elif session.get('user_role') == 'customer' %}
-
     <a
       href="{{ url_for('store.customersDashboard') }}"
       class="btn btn-success btn-lg mb-3"
