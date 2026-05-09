@@ -96,14 +96,43 @@ def get_notifications():
 @app.route('/customers/my-profile/')
 def customersDashboard():
     storeDb = db.getDB()
-    orders = storeDb.execute('''
-        Select *, DATE(o.order_created_at) as date  from orders o
-            LEFT JOIN order_products op  on op.order_id = o.order_id
-            LEFT JOIN products p on op.product_id = p.product_id
-            WHERE o.user_id = ?
-        ''', (session['user_id'],)).fetchall()
+    # 1. Fetch the data
+    rows = storeDb.execute('''
+        SELECT o.order_id, o.order_status, o.payment_method, o.order_total, 
+               DATE(o.order_created_at) as date,
+               p.product_name, p.product_price, op.order_product_quantity
+        FROM orders o
+        LEFT JOIN order_products op ON op.order_id = o.order_id
+        LEFT JOIN products p ON op.product_id = p.product_id
+        WHERE o.user_id = ?
+        ORDER BY o.order_created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    
+    # 2. Group items by Order ID
+    orders_dict = {}
+    for row in rows:
+        oid = row['order_id']
+        if oid not in orders_dict:
+            orders_dict[oid] = {
+                'order_id': oid,
+                'order_status': row['order_status'],
+                'payment_method': row['payment_method'],
+                'order_total': row['order_total'],
+                'date': row['date'],
+                'order_contents': []
+            }
+        
+        if row['product_name']:
+            orders_dict[oid]['order_contents'].append({
+                'name': row['product_name'],
+                'price': row['product_price'],
+                'qty': row['order_product_quantity']
+            })
+    
+    storeDb.close()
+    # Send the dictionary values (the list of orders) to the template
+    return render_template('customerDashboard.html', user_orders=list(orders_dict.values()))
 
-    return render_template('customerDashboard.html', user_orders = orders)
 @app.route('/customers/my-profile/orders')
 def customerOrders():
     storeDb = db.getDB()
@@ -1240,7 +1269,8 @@ def selfCheckoutSubmit():
         session.pop('cart_items', None)
         session.pop('manual_items', None)
         session.modified = True
-        
+
+        print("DEBUG: Reached the end of checkout logic successfully.")
         flash(f"Order successful! Receipt sent to {customer_email}.", "success")
 
     except Exception as e:
