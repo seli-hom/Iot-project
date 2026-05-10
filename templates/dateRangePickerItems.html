@@ -27,6 +27,8 @@
     placeholder="Search for item"
   />
 </div>
+
+<h4 id="amount"></h4>
 <script>
   $(function () {
     $('input[name="daterange"]').daterangepicker(
@@ -39,7 +41,6 @@
     );
   });
 
-  
   async function populateTable(start, end) {
     data = await fetch(
       `http://127.0.0.1:5000/customers/my-profile/items/fetch?start=${start}&end=${end}`,
@@ -51,22 +52,25 @@
     TableBody.innerHTML = `
         `;
     let html = ``;
+    let overall = 0;
     for (let index = 0; index < data.length; index++) {
-      html += `<tr> 
-          
+      html += `<tr>
+
               <td>${data[index]["order_id"] ?? "None"}</td>
                <td>${data[index]["product_name"] ?? "None"}</td>
                 <td>${data[index]["order_product_quantity"] ?? "None"}</td>
                  <td>${data[index]["product_price"] ?? "None"}</td>
+                      <td>${data[index]["total"] ?? "0"} $</td>
                   <td>${data[index]["date"] ?? "None"}</td>`;
       html += `</tr>`;
+      overall += data[index]["total"] ?? 0;
     }
     TableBody.innerHTML = html;
-    console.log(data);
+    amount.innerHTML = `Purchase Amount: ${overall} $`;
   }
 
   let searchBar = document.getElementById("searchBar");
-
+  let amount = document.getElementById("amount");
   searchBar.addEventListener("change", async () => {
     data = await fetch(
       `http://127.0.0.1:5000/customers/my-profile/items/fetch?q=${searchBar.value}`,
@@ -75,21 +79,26 @@
     });
 
     let TableBody = document.getElementById("tableBody");
+
     TableBody.innerHTML = `
         `;
     let html = ``;
+    let overall = 0;
     for (let index = 0; index < data.length; index++) {
-      html += `<tr> 
-          
+      console.log(data[index]["date"]);
+      html += `<tr>
               <td>${data[index]["order_id"] ?? "None"}</td>
                <td>${data[index]["product_name"] ?? "None"}</td>
                 <td>${data[index]["order_product_quantity"] ?? "None"}</td>
-                 <td>${data[index]["product_price"] ?? "None"}</td>
+                 <td>${data[index]["product_price"] ?? "0"} $</td>
+                 <td>${data[index]["total"] ?? "0"} $</td>
                   <td>${data[index]["date"] ?? "None"}</td>`;
       html += `</tr>`;
+      overall += data[index]["total"] ?? 0;
     }
+
     TableBody.innerHTML = html;
-    console.log(data);
+
+    amount.innerHTML = `Purchase Amount: ${overall} $`;
   });
-  console.log(searchBar);
 </script>

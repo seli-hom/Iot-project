@@ -99,8 +99,9 @@ def customersDashboard():
     # 1. Fetch the data
     rows = storeDb.execute('''
         SELECT o.order_id, o.order_status, o.payment_method, o.order_total, 
-               DATE(o.order_created_at) as date,
-               p.product_name, p.product_price, op.order_product_quantity
+               o.order_created_at as date,
+               p.product_name, p.product_price, op.order_product_quantity,
+                           p.product_price *op.order_product_quantity as total
         FROM orders o
         LEFT JOIN order_products op ON op.order_id = o.order_id
         LEFT JOIN products p ON op.product_id = p.product_id
@@ -155,7 +156,8 @@ def customerOrders():
 def customerItemsFetch():
     params = [session['user_id'],]
     query = '''
-        Select *, DATE(o.order_created_at) as date  from orders o
+        Select *, o.order_created_at as date ,
+                           p.product_price *op.order_product_quantity as total from orders o
             LEFT JOIN order_products op  on op.order_id = o.order_id
             LEFT JOIN products p on op.product_id = p.product_id
             WHERE o.user_id = ?
