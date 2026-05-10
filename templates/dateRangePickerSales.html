@@ -40,7 +40,7 @@
     });
     let names = [];
     let sold = [];
-    console.log(myChart.data.datasets);
+
     for (let index = 0; index < data.length; index++) {
       names.push(data[index]["product_name"]);
       sold.push(data[index]["quantity_sold"]);
@@ -55,18 +55,47 @@
     TableBody.innerHTML = `
         `;
     let html = ``;
+    let overall = 0;
     for (let index = 0; index < data.length; index++) {
-      html += `<tr> 
-          
-              <td>${data[index]["product_name"] ?? "None"}</td>
+      html += `<tr>
+
+              <td>${data[index]["product_name"] ?? "0"}</td>
             <td>${data[index]["quantity_sold"] ?? 0}</td>
             <td>${data[index]["total"] ?? 0} $</td>
             `;
-
+      overall += data[index]["total"] ?? 0;
       html += `</tr>`;
     }
 
+    html += `</tr>`;
     TableBody.innerHTML = html;
+
+    let summaryBody = document.getElementById("summaryTableBody");
+    summaryBody.innerHTML = ``;
+    if (typeof data[0] != "undefined") {
+      html = ` <tr>
+                <td>Most Sold: ${data[data.length - 1]["product_name"] ?? "None"}</td>
+              </tr>
+              <tr>
+                <td>Least Sold: ${data[0]["product_name"]}</td>
+              </tr>
+              <tr>
+                <td>Total Sales: ${overall} $</td>
+              </tr>
+          `;
+    } else {
+      html = ` <tr>
+                <td>Most Sold: N/A</td>
+              </tr>
+              <tr>
+                <td>Least Sold: N/A </td>
+              </tr>
+              <tr>
+                <td>Total Sales:  0$</td>
+              </tr>
+          `;
+    }
+    summaryBody.innerHTML = html;
   }
   createCanvas();
 </script>

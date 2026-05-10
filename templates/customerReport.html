@@ -6,30 +6,18 @@
   {% include "adminSidebar.html" with context %}
   <div class="card shadow-sm">
     <div class="card-body p-5">
-      <h4>Customer Overview</h4>
-      <table class="table table-striped table-hover mb-0">
-        <thead class="table-dark">
-          <tr>
-            <th>All Customers</th>
-            <th>New Customers</th>
-            <th>Returning Customers</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody">
-          <tr>
-            <td>{{ all_customers.customers }}</td>
-            <td>{{ new_customers.customers }}</td>
-            <td>{{ old_customers.customers }}</td>
-          </tr>
-        </tbody>
-      </table>
-
       <div class="row" mt-4>
         {% include "dateRangePickerCustomer.html" with context %}
         <div class="col-md-4">
           <select class="form-control" name="type" id="selectType">
-            <option value="activity">Activity</option>
+            <option value="activity">Active</option>
             <option value="registration">Registration</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <select class="form-control" name="type" id="selectChartType">
+            <option value="line">Lines</option>
+            <option value="bar">Bars</option>
           </select>
         </div>
         <div
@@ -52,6 +40,7 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
 
 <script>
   let select = document.getElementById("selectType");
+  let selectChart = document.getElementById("selectChartType");
   let registration = document.getElementById("registration");
   let activity = document.getElementById("activity");
 
@@ -71,7 +60,7 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
   let myChart = new Chart(
     chart, // TypeScript needs "as any" here
     {
-      type: "line",
+      type: "bar",
       options: {
         plugins: {
           title: {
@@ -112,7 +101,7 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
   let myChart2 = new Chart(
     chart2, // TypeScript needs "as any" here
     {
-      type: "line",
+      type: "bar",
       options: {
         plugins: {
           title: {
@@ -149,6 +138,15 @@ https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js
     },
   );
   chart2.append(myChart2);
+
+  selectChart.addEventListener("change", () => {
+    console.log(myChart.config._config);
+
+    myChart.config._config.type = selectChart.value;
+    myChart.update();
+    myChart2.config._config.type = selectChart.value;
+    myChart2.update();
+  });
 </script>
 
 {% endblock %}

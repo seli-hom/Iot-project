@@ -923,7 +923,8 @@ def reportSalesFetch():
     storeDb = db.getDB() 
     params= []
     query = '''
-       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold , SUM(op.order_product_quantity) * p.product_price as total  FROM orders o
+       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold , SUM(op.order_product_quantity) * p.product_price as total
+             FROM orders o
      LEFT JOIN order_products op on o.order_id = op.order_id
      LEFT JOIN products p on op.product_id = p.product_id WHERE 1=1
     '''
@@ -934,7 +935,7 @@ def reportSalesFetch():
     if request.args.get('end') is not None:
         params.append(request.args.get('end'))
         query = query + ' AND DATE(o.order_created_at) < ?'
-    query = query + 'GROUP BY p.product_id Order BY quantity_sold'
+    query = query + 'GROUP BY p.product_id Order BY total'
     products = storeDb.execute(query,params).fetchall()
     json_data = json.dumps( [dict(ix) for ix in products] )
     return json_data
