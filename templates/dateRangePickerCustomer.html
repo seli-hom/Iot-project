@@ -31,6 +31,8 @@
     );
   });
 
+  createCanvasInitial();
+
   async function createCanvasDate(start, end) {
     console.log(start);
     data = await fetch(
@@ -40,15 +42,115 @@
     });
 
     let counts = [];
+
+    const d1 = new Date(start);
+    const d2 = new Date(end);
     let dates = [];
-    console.log(myChart.data.datasets);
-    for (let index = 0; index < data.length; index++) {
-      counts.push(data[index]["customer_count"]);
-      dates.push(data[index]["date"]);
+    dates = getDatesInRange(d1, d2);
+    let added = false;
+    dates.forEach((day) => {
+      added = false;
+      for (let index = 0; index < data.registration.length; index++) {
+        if (data.registration[index]["date"] == day) {
+          counts.push([data.registration[index]["customer_count"], day]);
+          console.log(" customers " + day);
+          added = true;
+        }
+      }
+      if (!added) {
+        console.log("no customers " + day);
+
+        counts.push([0, day]);
+      }
+    });
+    //console.log(dates);
+    console.log(counts);
+    myChart.data.datasets[0].data = [];
+    myChart.data.labels = [];
+
+    counts.forEach((element) => {
+      console.log(element);
+      myChart.data.datasets[0].data.push(element[0]);
+      myChart.data.labels.push(element[1]);
+      console.log(myChart.data.labels);
+      console.log(myChart.data.datasets[0].data);
+    });
+    myChart.update();
+    counts = [];
+
+    dates.forEach((day) => {
+      added = false;
+      for (let index = 0; index < data.activity.length; index++) {
+        if (data.activity[index]["date"] == day) {
+          counts.push([data.activity[index]["customer_count"], day]);
+          console.log(" customers " + day);
+          added = true;
+        }
+      }
+      if (!added) {
+        console.log("no customers " + day);
+
+        counts.push([0, day]);
+      }
+    });
+
+    myChart2.data.datasets[0].data = [];
+    myChart2.data.labels = [];
+
+    counts.forEach((element) => {
+      myChart2.data.datasets[0].data.push(element[0]);
+      myChart2.data.labels.push(element[1]);
+    });
+    counts = [];
+    myChart2.update();
+  }
+
+  async function createCanvasInitial(start, end) {
+    console.log(start);
+    data = await fetch(
+      `http://127.0.0.1:5000/admin-dashboard/reports/customers/fetch?`,
+    ).then((response) => {
+      return response.json();
+    });
+
+    let counts = [];
+    let dates = [];
+
+    for (let index = 0; index < data.registration.length; index++) {
+      counts.push(data.registration[index]["customer_count"]);
+      dates.push(data.registration[index]["date"]);
     }
 
     myChart.data.datasets[0].data = counts;
     myChart.data.labels = dates;
     myChart.update();
+
+    counts = [];
+    dates = [];
+    console.log(data.activity);
+
+    for (let index = 0; index < data.activity.length; index++) {
+      counts.push(data.activity[index]["customer_count"]);
+      dates.push(data.activity[index]["date"]);
+    }
+    console.log(counts);
+
+    myChart2.data.datasets[0].data = counts;
+    myChart2.data.labels = dates;
+    myChart2.update();
+  }
+
+  function getDatesInRange(startDate, endDate) {
+    const dates = [];
+    // Use a copy to avoid modifying the original start date object
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      dates.push(new Date(currentDate).toISOString().split("T")[0]);
+      // Increment current date by 1 day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return dates;
   }
 </script>

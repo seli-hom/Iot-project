@@ -10,9 +10,9 @@
       <table class="table table-striped table-hover mb-0">
         <thead class="table-dark">
           <tr>
-
             <th>Name</th>
             <th>Quantity Sold</th>
+            <th>Total Sales</th>
           </tr>
         </thead>
         <tbody id="tableBody">
@@ -20,6 +20,7 @@
           <tr>
             <td>{{ product.product_name }}</td>
             <td>{{ product.quantity_sold }}</td>
+            <td>{{ product.total }} $</td>
           </tr>
           {% endfor %}
         </tbody>

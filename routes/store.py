@@ -108,6 +108,25 @@ def customersDashboard():
         ORDER BY o.order_created_at DESC
     ''', (session['user_id'],)).fetchall()
     
+    
+    storeDb.close()
+    # Send the dictionary values (the list of orders) to the template
+    return render_template('customerDashboard.html', user_orders= rows )
+
+@app.route('/customers/my-profile/orders')
+def customerOrders():
+    storeDb = db.getDB()
+    rows = storeDb.execute('''
+        SELECT o.order_id, o.order_status, o.payment_method, o.order_total, 
+               DATE(o.order_created_at) as date,
+               p.product_name, p.product_price, op.order_product_quantity
+        FROM orders o
+        LEFT JOIN order_products op ON op.order_id = o.order_id
+        LEFT JOIN products p ON op.product_id = p.product_id
+        WHERE o.user_id = ?
+        ORDER BY o.order_created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    
     # 2. Group items by Order ID
     orders_dict = {}
     for row in rows:
@@ -130,18 +149,7 @@ def customersDashboard():
             })
     
     storeDb.close()
-    # Send the dictionary values (the list of orders) to the template
-    return render_template('customerDashboard.html', user_orders=list(orders_dict.values()))
-
-@app.route('/customers/my-profile/orders')
-def customerOrders():
-    storeDb = db.getDB()
-    orders = storeDb.execute('''
-        Select *, DATE(o.order_created_at) as date  from orders o
-            WHERE o.user_id = ?
-        ''', (session['user_id'],)).fetchall()
-
-    return render_template('customerOrders.html', user_orders = orders)
+    return render_template('customerOrders.html', user_orders = list(orders_dict.values()))
 
 @app.route('/customers/my-profile/items/fetch')
 def customerItemsFetch():
@@ -830,7 +838,10 @@ def adminDeleteUser(user_id):
 def reportCustomers():   
     storeDb = db.getDB() 
     date = datetime.datetime.today() -  datetime.timedelta(weeks=1)
-    new_customer = storeDb.execute('''SELECT users.*, COUNT(users.user_id) as customers FROM users where user_role = 'customer' AND DATE(user_created_at) >  ?''',(date.date(),)).fetchone()
+    new_customer = storeDb.execute('''SELECT u.*, COUNT(u.user_id) as customers 
+                                   FROM users  u
+                                   LEFT JOIN orders  o on o.user_id = u.user_id
+                                   WHERE user_role = 'customer' AND DATE(user_created_at) >  ?''',(date.date(),)).fetchone()
     all_customers = storeDb.execute('''SELECT users.*, COUNT(users.user_id) as customers FROM users where user_role = 'customer' ''').fetchone()
     old_customers = new_customer = storeDb.execute('''SELECT users.*, COUNT(users.user_id) as customers FROM users where user_role = 'customer' AND DATE(user_created_at) <  ?''',(date.date(),)).fetchone()
     return render_template("customerReport.html",new_customers=new_customer,all_customers=all_customers,old_customers=old_customers) 
@@ -842,22 +853,32 @@ def reportCustomersFetch():
     SELECT DATE(user_created_at) as date,COUNT(user_id) as customer_count from users
     WHERE user_role  = 'customer'
     '''
+    query2 = '''
+    SELECT DATE(order_created_at) as date, COUNT(user_id) as customer_count from orders WHERE 1=1 
+    '''
     params = []
     if request.args.get('start') is not None:
-        query = query +' AND DATE(date) > ?'
+        query = query +' AND DATE(date) >= ?'
+        query2 = query2 +' AND DATE(date) >= ?'
         params.append(request.args.get('start'))
     if request.args.get('end') is not None:
         params.append(request.args.get('end'))
-        query = query + ' AND DATE(date) < ?'
+        query2 = query2 + ' AND DATE(date) <= ?'
+        query = query + ' AND DATE(date) <= ?'
 
     query = query + ' GROUP BY date'
+    query2 = query2 + ' GROUP BY date'
     customers = storeDb.execute(query,params).fetchall()
-
+    customers2 = storeDb.execute(query2,params).fetchall()
     json_data = json.dumps( [dict(ix) for ix in customers] )
     if(customers.__sizeof__() < 50):
         json_data = '[{"customers": 0}]'
+
+    json_data2 = json.dumps( [dict(ix) for ix in customers2] )
+    if(customers2.__sizeof__() < 50):
+        json_data2 = '[{"customers": 0}]'
     
-    return json_data
+    return '{ "registration": '+json_data +', "activity": '+json_data2+'}'
 
 @app.route('/admin-dashboard/reports/inventory')
 def reportInventory():   
@@ -889,7 +910,7 @@ def reportInventoryFetch():
 def reportSales():   
     storeDb = db.getDB() 
     products = storeDb.execute('''
-       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold  FROM orders o
+       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold, SUM(op.order_product_quantity) * p.product_price as total FROM orders o
  LEFT JOIN order_products op on o.order_id = op.order_id
  LEFT JOIN products p on op.product_id = p.product_id
 GROUP BY p.product_id
@@ -902,7 +923,7 @@ def reportSalesFetch():
     storeDb = db.getDB() 
     params= []
     query = '''
-       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold  FROM orders o
+       SELECT  p.* ,SUM(op.order_product_quantity) as quantity_sold , SUM(op.order_product_quantity) * p.product_price as total  FROM orders o
      LEFT JOIN order_products op on o.order_id = op.order_id
      LEFT JOIN products p on op.product_id = p.product_id WHERE 1=1
     '''

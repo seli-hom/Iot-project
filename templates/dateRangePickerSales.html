@@ -45,28 +45,28 @@
       names.push(data[index]["product_name"]);
       sold.push(data[index]["quantity_sold"]);
     }
-    console.log(sold)
-    
+    console.log(sold);
+
     myChart.data.datasets[0].data = sold;
     myChart.data.label = names;
     myChart.update();
-    console.log( myChart.data.datasets[0].data);
-        let TableBody = document.getElementById('tableBody');
-        TableBody.innerHTML= `
-        `
-        let html =``
-        for (let index = 0; index < data.length; index++) {
-          html +=`<tr> 
+    console.log(myChart.data.datasets[0].data);
+    let TableBody = document.getElementById("tableBody");
+    TableBody.innerHTML = `
+        `;
+    let html = ``;
+    for (let index = 0; index < data.length; index++) {
+      html += `<tr> 
           
-              <td>${data[index]['product_name']?? 'None'}</td>
-            <td>${data[index]['quantity_sold']?? 0}</td>`
-           html += `</tr>`
-        }
-          
-      
-    
-       
-        TableBody.innerHTML= html
+              <td>${data[index]["product_name"] ?? "None"}</td>
+            <td>${data[index]["quantity_sold"] ?? 0}</td>
+            <td>${data[index]["total"] ?? 0} $</td>
+            `;
+
+      html += `</tr>`;
+    }
+
+    TableBody.innerHTML = html;
   }
   createCanvas();
 </script>
