@@ -57,8 +57,6 @@ IOT-PROJECT
 └── README.md                 -> <a href="#documentation"><small><b>project documentation</b></small></a>
 </pre>
 
-
-
 ## Installation instructions
   1. Download the project zip file
   2. Unzip the project file
@@ -74,6 +72,8 @@ IOT-PROJECT
       - time
       - MIMEText
       - smtplib
-  5. Run main.py
-  6. Access the webpage at http://127.0.0.1:5000 http://<Your-IP-Address>:5000 or http://localhost:5000
+  4. Modify the esp_code to fit your IP address, SSID and password 
+  5. Load the esp_code into their respective microcontroller 
+  6. Run main.py
+  7. Access the webpage at http://127.0.0.1:5000 http://<Your-IP-Address>:5000 or http://localhost:5000
 
