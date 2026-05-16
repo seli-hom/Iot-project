@@ -42,7 +42,7 @@ IOT-PROJECT
 │   └── python/                  <small>frontend python scripts</small>
 │
 ├── routes/                   -> <a href="#controllers-layer"><small><b>controllers / request handling</b></small></a>
-│   └── store_routes.py          <small>main store dashboard routing</small>
+│   └── store.py          <small>main store dashboard routing</small>
 │
 ├── scripts/                  -> <a href="#scripts-layer"><small><b>backend utility scripts</b></small></a>
 │
@@ -57,36 +57,23 @@ IOT-PROJECT
 └── README.md                 -> <a href="#documentation"><small><b>project documentation</b></small></a>
 </pre>
 
-<br>
 
-*TODO: add more detailed descript of each part, its purpose and how it works.
 
-## Application Entry
-<a id="application-entry"></a>
-
-## Documentation
-<a id="documentation"></a>
-
-Project documentation includes
-
-## Frontend Layer
-<a id="frontend-layer"></a>
-
-## Models Layer
-<a id="models-layer"></a>
-
-## Controllers Layer
-<a id="controllers-layer"></a>
-
-Handles:
-
-## Services Layer
-<a id="services-layer"></a>
-
-Business logic including:
-
-## Scripts Layer
-<a id="scripts-layer"></a>
-
-Background workers:
+## Installation instructions
+  1. Download the project zip file
+  2. Unzip the project file
+  3. Install all the necessary python libraries using the python "pip install <library-name>" on windows or "sudo apt install <library-name>" on linux
+      - flask
+      - flask_email
+      - json
+      - datetime
+      - sqlite3
+      - bcrypt
+      - gpiozero
+      - serial
+      - time
+      - MIMEText
+      - smtplib
+  5. Run main.py
+  6. Access the webpage at http://127.0.0.1:5000 http://<Your-IP-Address>:5000 or http://localhost:5000
 
